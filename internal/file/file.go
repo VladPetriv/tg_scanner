@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"example.com/test/m/internal/channel"
 	"example.com/test/m/internal/message"
 )
 
@@ -44,4 +45,18 @@ func GetMessagesFromFile(fileName string) ([]message.Message, error) {
 	file.WriteString("")
 
 	return messages, nil
+}
+
+func GetGroupsFromFile(fileName string) ([]channel.Group, error) {
+	var gropus []channel.Group
+	data, err := os.ReadFile(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR_WHILE_OPENING_FILE: %s", err)
+	}
+	err = json.Unmarshal(data, &gropus)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR_WHILE_CREATEING_JSON: %s", err)
+	}
+
+	return gropus, nil
 }

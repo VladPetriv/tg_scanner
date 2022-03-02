@@ -47,10 +47,10 @@ func (a TermAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
 	return strings.TrimSpace(code), nil
 }
 
-func Login(ctx context.Context, client telegram.Client, config config.Config) (*tg.AuthAuthorization, error) {
+func Login(ctx context.Context, client telegram.Client, cfg config.Config) (*tg.AuthAuthorization, error) {
 	//Create new flow
 	flow := auth.NewFlow(
-		TermAuth{UserPhone: config.Phone},
+		TermAuth{UserPhone: cfg.Phone},
 		auth.SendCodeOptions{},
 	)
 	//Authorization
@@ -60,9 +60,11 @@ func Login(ctx context.Context, client telegram.Client, config config.Config) (*
 
 	//Authorization with password
 	password, _ := flow.Auth.Password(ctx)
+
 	user, err := client.Auth().Password(ctx, password)
 	if err != nil {
 		return nil, err
 	}
+
 	return user, nil
 }

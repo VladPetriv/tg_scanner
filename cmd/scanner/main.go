@@ -34,13 +34,16 @@ func main() {
 	ctx := context.Background()
 
 	if err := client.Run(ctx, func(ctx context.Context) error {
+
 		for {
 			log.Println("Start")
+
 			//Authorization to telegram
 			_, err := auth.Login(ctx, *client, *cfg)
 			if err != nil {
 				return err
 			}
+
 			accessHash, err := channel.GetAccessHash(ctx, "nodejs_ru", api)
 			if err != nil {
 				return err
@@ -49,8 +52,7 @@ func main() {
 			data, err := channel.GetChannelHistory(ctx, api, tg.InputPeerChannel{
 				ChannelID:  1041204341,
 				AccessHash: accessHash,
-			}, 10)
-
+			}, 5)
 			if err != nil {
 				return err
 			}
@@ -61,10 +63,12 @@ func main() {
 				ChannelID:  1041204341,
 				AccessHash: accessHash,
 			})
+
 			messagesFromFile, err := file.GetMessagesFromFile("message.json")
 			if err != nil {
 				return err
 			}
+
 			for _, message := range messages {
 				msg, ok := filter.FilterMessages(&message)
 				if !ok {
@@ -79,12 +83,12 @@ func main() {
 			if err != nil {
 				return err
 			}
+
 			log.Println("Completed without errors")
 			time.Sleep(time.Second)
 			log.Println("Wait 30s and do request again")
 			time.Sleep(time.Second * 30)
 		}
-
 	}); err != nil {
 		panic(err)
 	}

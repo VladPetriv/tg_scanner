@@ -11,7 +11,18 @@ type Message struct {
 	ID      int
 	Message string
 	FromID  tg.PeerUser
-	Replies interface{}
+	Replies Replies
+}
+type Replies struct {
+	Count    int
+	Messages []RepliesMessage
+}
+
+type RepliesMessage struct {
+	ID      int
+	FromID  tg.PeerUser
+	Message string
+	ReplyTo interface{}
 }
 
 func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, api *tg.Client, channelPeer *tg.InputPeerChannel) []Message {
@@ -35,11 +46,14 @@ func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessag
 			continue
 		}
 
-		msg.Replies = replies
+		repliesMessages := ProcessRepliesMessage(replies)
+		msg.Replies.Count = len(repliesMessages)
+		msg.Replies.Messages = repliesMessages
 
 		result = append(result, msg)
 
 	}
+
 	return result
 }
 
@@ -54,4 +68,23 @@ func GetReplies(ctx context.Context, api *tg.Client, channelPeer *tg.InputPeerCh
 	}
 
 	return replies, nil
+}
+
+func ProcessRepliesMessage(replies tg.MessagesMessagesClass) []RepliesMessage {
+	var rms []RepliesMessage
+	var rm RepliesMessage
+
+	data, _ := replies.AsModified()
+	for _, replie := range data.GetMessages() {
+		encodedData, err := json.Marshal(replie)
+		if err != nil {
+			continue
+		}
+		err = json.Unmarshal(encodedData, &rm)
+		if err != nil {
+			continue
+		}
+		rms = append(rms, rm)
+	}
+	return rms
 }
