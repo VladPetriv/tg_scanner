@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -35,62 +36,71 @@ func main() {
 
 	if err := client.Run(ctx, func(ctx context.Context) error {
 
-		for {
-			log.Println("Start")
-
-			//Authorization to telegram
-			_, err := auth.Login(ctx, *client, *cfg)
-			if err != nil {
-				return err
-			}
-
-			accessHash, err := channel.GetAccessHash(ctx, "nodejs_ru", api)
-			if err != nil {
-				return err
-			}
-
-			data, err := channel.GetChannelHistory(ctx, api, tg.InputPeerChannel{
-				ChannelID:  1041204341,
-				AccessHash: accessHash,
-			}, 5)
-			if err != nil {
-				return err
-			}
-
-			modifiedData, _ := data.AsModified()
-
-			messages := message.GetMessagesFromTelegram(ctx, modifiedData, api, &tg.InputPeerChannel{
-				ChannelID:  1041204341,
-				AccessHash: accessHash,
-			})
-
-			messagesFromFile, err := file.GetMessagesFromFile("message.json")
-			if err != nil {
-				return err
-			}
-
-			for _, message := range messages {
-				msg, ok := filter.FilterMessages(&message)
-				if !ok {
-					continue
-				}
-				messagesFromFile = append(messagesFromFile, *msg)
-			}
-
-			result := filter.RemoveDuplicateByMessage(messagesFromFile)
-
-			err = file.WriteMessagesToFile(result, "message.json")
-			if err != nil {
-				return err
-			}
-
-			log.Println("Completed without errors")
-			time.Sleep(time.Second)
-			log.Println("Wait 30s and do request again")
-			time.Sleep(time.Second * 30)
+		//Authorization to telegram
+		_, err = auth.Login(ctx, *client, *cfg)
+		if err != nil {
+			log.Fatal(err)
 		}
+		groups, err := channel.GetAllGroups(ctx, api)
+		if err != nil {
+			return err
+		}
+
+		file.CreateFiles(groups)
+		for _, group := range groups {
+			go GetResult(ctx, group, api)
+		}
+		fmt.Scanln()
+		return nil
 	}); err != nil {
 		panic(err)
 	}
 
+}
+
+func GetResult(ctx context.Context, group channel.Group, api *tg.Client) error {
+	fileName := fmt.Sprintf("%s.json", group.Username)
+	for {
+		log.Printf("Start with %s", group.Username)
+
+		data, err := channel.GetChannelHistory(ctx, api, tg.InputPeerChannel{
+			ChannelID:  int64(group.ID),
+			AccessHash: int64(group.AccessHash),
+		}, 5)
+		if err != nil {
+			return err
+		}
+
+		modifiedData, _ := data.AsModified()
+
+		messages := message.GetMessagesFromTelegram(ctx, modifiedData, api, &tg.InputPeerChannel{
+			ChannelID:  int64(group.ID),
+			AccessHash: int64(group.AccessHash),
+		})
+
+		messagesFromFile, err := file.GetMessagesFromFile(fileName)
+		if err != nil {
+			return err
+		}
+
+		for _, message := range messages {
+			msg, ok := filter.FilterMessages(&message)
+			if !ok {
+				continue
+			}
+			messagesFromFile = append(messagesFromFile, *msg)
+		}
+
+		result := filter.RemoveDuplicateByMessage(messagesFromFile)
+
+		err = file.WriteMessagesToFile(result, fileName)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("Completed without errors [%s]", group.Username)
+		time.Sleep(time.Second)
+		log.Printf("Wait 30s and do request again[%s]", group.Username)
+		time.Sleep(time.Second * 30)
+	}
 }

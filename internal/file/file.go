@@ -3,11 +3,15 @@ package file
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"sync"
 
 	"example.com/test/m/internal/channel"
 	"example.com/test/m/internal/message"
 )
+
+var once sync.Once
 
 func WriteMessagesToFile(msgs []message.Message, fileName string) error {
 	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -59,4 +63,19 @@ func GetGroupsFromFile(fileName string) ([]channel.Group, error) {
 	}
 
 	return gropus, nil
+}
+
+func CreateFiles(groups []channel.Group) {
+	once.Do(func() {
+		for _, group := range groups {
+			fileName := fmt.Sprintf("%s.json", group.Username)
+			file, err := os.Create(fileName)
+			if err != nil {
+				log.Fatal(err)
+			}
+			file.WriteString("[]")
+		}
+		log.Println("File was created")
+	})
+
 }
