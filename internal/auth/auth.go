@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"example.com/test/m/config"
+	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
 	"github.com/gotd/td/tg"

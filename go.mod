@@ -1,4 +1,4 @@
-module example.com/test/m
+module github.com/VladPetriv/tg_scanner
 
 go 1.17
 

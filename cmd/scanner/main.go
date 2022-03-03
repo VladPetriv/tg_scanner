@@ -6,12 +6,12 @@ import (
 	"log"
 	"time"
 
-	"example.com/test/m/config"
-	"example.com/test/m/internal/auth"
-	"example.com/test/m/internal/channel"
-	"example.com/test/m/internal/file"
-	"example.com/test/m/internal/filter"
-	"example.com/test/m/internal/message"
+	"github.com/VladPetriv/tg_scanner/config"
+	"github.com/VladPetriv/tg_scanner/internal/auth"
+	"github.com/VladPetriv/tg_scanner/internal/channel"
+	"github.com/VladPetriv/tg_scanner/internal/file"
+	"github.com/VladPetriv/tg_scanner/internal/filter"
+	"github.com/VladPetriv/tg_scanner/internal/message"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/tg"
 )

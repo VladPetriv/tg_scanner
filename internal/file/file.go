@@ -7,8 +7,8 @@ import (
 	"os"
 	"sync"
 
-	"example.com/test/m/internal/channel"
-	"example.com/test/m/internal/message"
+	"github.com/VladPetriv/tg_scanner/internal/channel"
+	"github.com/VladPetriv/tg_scanner/internal/message"
 )
 
 var once sync.Once
@@ -67,6 +67,7 @@ func GetGroupsFromFile(fileName string) ([]channel.Group, error) {
 
 func CreateFiles(groups []channel.Group) {
 	once.Do(func() {
+		os.Mkdir("data", 0644)
 		for _, group := range groups {
 			fileName := fmt.Sprintf("%s.json", group.Username)
 			file, err := os.Create(fileName)

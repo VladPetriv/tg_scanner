@@ -3,7 +3,7 @@ package filter
 import (
 	"strings"
 
-	"example.com/test/m/internal/message"
+	"github.com/VladPetriv/tg_scanner/internal/message"
 )
 
 func FilterMessages(msg *message.Message) (*message.Message, bool) {
