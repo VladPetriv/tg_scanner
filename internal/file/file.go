@@ -67,16 +67,22 @@ func GetGroupsFromFile(fileName string) ([]channel.Group, error) {
 
 func CreateFiles(groups []channel.Group) {
 	once.Do(func() {
-		os.Mkdir("data", 0644)
+		err := os.Mkdir("data", 0755)
+		if os.IsNotExist(err) {
+			log.Fatalf("ERROR_WHILE_CREATE_DIR:%s", err)
+		}
 		for _, group := range groups {
 			fileName := fmt.Sprintf("%s.json", group.Username)
 			file, err := os.Create(fileName)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
 			}
 			file.WriteString("[]")
+			err = os.Rename(fileName, fmt.Sprintf("./data/%s", fileName))
+			if err != nil {
+				log.Fatalf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
+			}
 		}
 		log.Println("File was created")
 	})
-
 }

@@ -59,14 +59,14 @@ func main() {
 }
 
 func GetResult(ctx context.Context, group channel.Group, api *tg.Client) error {
-	fileName := fmt.Sprintf("%s.json", group.Username)
+	fileName := fmt.Sprintf("./data/%s.json", group.Username)
 	for {
 		log.Printf("Start with %s", group.Username)
 
 		data, err := channel.GetChannelHistory(ctx, api, tg.InputPeerChannel{
 			ChannelID:  int64(group.ID),
 			AccessHash: int64(group.AccessHash),
-		}, 5)
+		}, 100)
 		if err != nil {
 			return err
 		}
