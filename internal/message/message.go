@@ -11,6 +11,7 @@ type Message struct {
 	ID      int
 	Message string
 	FromID  tg.PeerUser
+	PeerID  interface{}
 	Replies Replies
 }
 type Replies struct {
@@ -87,4 +88,32 @@ func ProcessRepliesMessage(replies tg.MessagesMessagesClass) []RepliesMessage {
 		rms = append(rms, rm)
 	}
 	return rms
+}
+
+func GetIncomingMessages(ctx context.Context, user *tg.User, api *tg.Client) ([]Message, error) {
+	var msgs []Message
+	var msg Message
+	data, err := api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
+		OffsetPeer: &tg.InputPeerUser{
+			UserID:     user.ID,
+			AccessHash: user.AccessHash,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	modifiedData, _ := data.AsModified()
+	for _, m := range modifiedData.GetMessages() {
+		encodedData, err := json.Marshal(m)
+		if err != nil {
+			continue
+		}
+		err = json.Unmarshal(encodedData, &msg)
+		if err != nil {
+			continue
+		}
+		msgs = append(msgs, msg)
+	}
+
+	return msgs, err
 }

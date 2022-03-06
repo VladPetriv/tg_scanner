@@ -3,8 +3,10 @@ package channel
 import (
 	"context"
 	"encoding/json"
+	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gotd/td/tg"
 )
@@ -30,9 +32,10 @@ func GetAccessHash(ctx context.Context, groupName string, api *tg.Client) (int64
 }
 
 func GetChannelHistory(ctx context.Context, api *tg.Client, channelPeer tg.InputPeerChannel, limint int) (tg.MessagesMessagesClass, error) {
+	rand.Seed(time.Now().Unix())
 	result, err := api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
 		Peer:  &channelPeer,
-		Hash:  31243312413321,
+		Hash:  int64(rand.Int()),
 		Limit: limint,
 	})
 	if err != nil {
