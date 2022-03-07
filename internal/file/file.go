@@ -65,12 +65,8 @@ func GetGroupsFromFile(fileName string) ([]channel.Group, error) {
 	return gropus, nil
 }
 
-func CreateFiles(groups []channel.Group) {
+func CreateFilesForGroups(groups []channel.Group) {
 	once.Do(func() {
-		err := os.Mkdir("data", 0755)
-		if os.IsNotExist(err) {
-			log.Fatalf("ERROR_WHILE_CREATE_DIR:%s", err)
-		}
 		for _, group := range groups {
 			fileName := fmt.Sprintf("%s.json", group.Username)
 			file, err := os.Create(fileName)
@@ -85,4 +81,21 @@ func CreateFiles(groups []channel.Group) {
 		}
 		log.Println("File was created")
 	})
+}
+
+func CreateDir() error {
+	err := os.Mkdir("data", 0755)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("ERROR_WHILE_CREATE_DIR:%s", err)
+	}
+	return nil
+}
+
+func CreateFileForIncoming() error {
+	file, err := os.Create("./data/incoming.json")
+	if os.IsNotExist(err) {
+		return fmt.Errorf("ERROR_WHILE_CREATE_FILE:%s", err)
+	}
+	file.WriteString("[]")
+	return nil
 }
