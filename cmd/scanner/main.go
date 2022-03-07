@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/VladPetriv/tg_scanner/config"
@@ -28,6 +29,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	var wg sync.WaitGroup
 
 	//Create new client
 	client, err := telegram.ClientFromEnvironment(telegram.Options{})
@@ -43,15 +45,17 @@ func main() {
 
 	if err := client.Run(ctx, func(ctx context.Context) error {
 		//Authorization to telegram
-		user, err := auth.Login(ctx, client, *cfg)
+		user, err := auth.Login(ctx, client, cfg)
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		wg.Add(2)
 		//Get user data
 		u, _ := user.GetUser().AsNotEmpty()
 
 		//Getting incoming messages
-		go GetNewMessage(ctx, u, api)
+		go GetNewMessage(ctx, u, api, &wg)
 
 		//Getting all groups
 		groups, err := channel.GetAllGroups(ctx, api)
@@ -64,9 +68,9 @@ func main() {
 
 		//Getting group history
 		for _, group := range groups {
-			go GetFromHistory(ctx, group, api)
+			go GetFromHistory(ctx, group, api, cfg, &wg)
 		}
-		fmt.Scanln()
+		wg.Wait()
 		return nil
 	}); err != nil {
 		panic(err)
@@ -74,25 +78,26 @@ func main() {
 
 }
 
-func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client) error {
+func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cfg *config.Config, wg *sync.WaitGroup) error {
+	defer wg.Done()
 	fileName := fmt.Sprintf("./data/%s.json", group.Username)
 	for {
 		log.Printf("Start with %s", group.Username)
 
-		data, err := channel.GetChannelHistory(ctx, api, tg.InputPeerChannel{
+		data, err := channel.GetChannelHistory(ctx, cfg.Limit, tg.InputPeerChannel{
 			ChannelID:  int64(group.ID),
 			AccessHash: int64(group.AccessHash),
-		}, 100)
+		}, api)
 		if err != nil {
 			return err
 		}
 
 		modifiedData, _ := data.AsModified()
 
-		messages := message.GetMessagesFromTelegram(ctx, modifiedData, api, &tg.InputPeerChannel{
+		messages := message.GetMessagesFromTelegram(ctx, modifiedData, &tg.InputPeerChannel{
 			ChannelID:  int64(group.ID),
 			AccessHash: int64(group.AccessHash),
-		})
+		}, api)
 
 		messagesFromFile, err := file.GetMessagesFromFile(fileName)
 		if err != nil {
@@ -119,12 +124,12 @@ func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client) er
 	}
 }
 
-func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client) error {
+func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, wg *sync.WaitGroup) error {
+	defer wg.Done()
 	fileName := "incoming.json"
 	path := fmt.Sprintf("./data/%s", fileName)
 	err := file.CreateFileForIncoming()
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 

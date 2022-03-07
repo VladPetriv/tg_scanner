@@ -31,7 +31,7 @@ func GetAccessHash(ctx context.Context, groupName string, api *tg.Client) (int64
 	return int64(accessHash), nil
 }
 
-func GetChannelHistory(ctx context.Context, api *tg.Client, channelPeer tg.InputPeerChannel, limint int) (tg.MessagesMessagesClass, error) {
+func GetChannelHistory(ctx context.Context, limint int, channelPeer tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) {
 	rand.Seed(time.Now().Unix())
 	result, err := api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
 		Peer:  &channelPeer,

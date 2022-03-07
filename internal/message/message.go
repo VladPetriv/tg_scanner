@@ -26,7 +26,7 @@ type RepliesMessage struct {
 	ReplyTo interface{}
 }
 
-func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, api *tg.Client, channelPeer *tg.InputPeerChannel) []Message {
+func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, channelPeer *tg.InputPeerChannel, api *tg.Client) []Message {
 	var msg Message
 	result := make([]Message, 0)
 	messages := data.GetMessages()
@@ -42,7 +42,7 @@ func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessag
 			continue
 		}
 
-		replies, err := GetReplies(ctx, api, channelPeer, &msg)
+		replies, err := GetReplies(ctx, &msg, channelPeer, api)
 		if err != nil {
 			continue
 		}
@@ -58,7 +58,7 @@ func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessag
 	return result
 }
 
-func GetReplies(ctx context.Context, api *tg.Client, channelPeer *tg.InputPeerChannel, message *Message) (tg.MessagesMessagesClass, error) {
+func GetReplies(ctx context.Context, message *Message, channelPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) {
 	replies, err := api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{
 		Peer:  channelPeer,
 		MsgID: message.ID,

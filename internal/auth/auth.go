@@ -47,7 +47,7 @@ func (a TermAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
 	return strings.TrimSpace(code), nil
 }
 
-func Login(ctx context.Context, client *telegram.Client, cfg config.Config) (*tg.AuthAuthorization, error) {
+func Login(ctx context.Context, client *telegram.Client, cfg *config.Config) (*tg.AuthAuthorization, error) {
 	//Create new flow
 	flow := auth.NewFlow(
 		TermAuth{UserPhone: cfg.Phone},
