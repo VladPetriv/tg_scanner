@@ -13,25 +13,35 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/message"
+	"github.com/VladPetriv/tg_scanner/logger"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/tg"
 )
 
 func main() {
+
+	logger := logger.Get()
+
 	//Initialize config
-	cfg, err := config.GetConfig()
+	logger.Info("Initialize config")
+
+	cfg, err := config.Get()
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	//Createting dir for data
-	err = file.CreateDir()
+	logger.Info("Creating base dir")
+	err = file.CreateDirs()
 	if err != nil {
 		panic(err)
 	}
+
 	var wg sync.WaitGroup
 
 	//Create new client
+	logger.Info("Initialize client")
 	client, err := telegram.ClientFromEnvironment(telegram.Options{})
 	if err != nil {
 		log.Fatalf("ERROR_WHILE_CREATING_CLIENT:%s", err)
@@ -45,11 +55,12 @@ func main() {
 
 	if err := client.Run(ctx, func(ctx context.Context) error {
 		//Authorization to telegram
+		logger.Info("Authorization completed")
+
 		user, err := auth.Login(ctx, client, cfg)
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		wg.Add(2)
 		//Get user data
 		u, _ := user.GetUser().AsNotEmpty()
@@ -73,7 +84,7 @@ func main() {
 		wg.Wait()
 		return nil
 	}); err != nil {
-		panic(err)
+		logger.Error(err)
 	}
 
 }
@@ -82,8 +93,6 @@ func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cf
 	defer wg.Done()
 	fileName := fmt.Sprintf("./data/%s.json", group.Username)
 	for {
-		log.Printf("Start with %s", group.Username)
-
 		data, err := channel.GetChannelHistory(ctx, cfg.Limit, tg.InputPeerChannel{
 			ChannelID:  int64(group.ID),
 			AccessHash: int64(group.AccessHash),
@@ -119,8 +128,7 @@ func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cf
 			return err
 		}
 
-		log.Printf("Completed without errors [%s]", group.Username)
-		time.Sleep(time.Second * 30)
+		time.Sleep(time.Minute)
 	}
 }
 
@@ -134,8 +142,6 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, wg *sync.
 	}
 
 	for {
-		log.Println("Start getting new message)")
-
 		messagesFromFile, err := file.GetMessagesFromFile(path)
 		if err != nil {
 			return err
@@ -160,7 +166,6 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, wg *sync.
 			return err
 		}
 
-		log.Println("Completed without errors)")
-		time.Sleep(time.Minute)
+		time.Sleep(time.Second * 30)
 	}
 }

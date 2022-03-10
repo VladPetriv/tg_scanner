@@ -14,7 +14,7 @@ type Config struct {
 	Limit    int
 }
 
-func GetConfig() (*Config, error) {
+func Get() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
 		return nil, errors.New("ERROR_WHILE_LOAD_ENV_FILE")
 	}

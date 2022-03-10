@@ -9,6 +9,7 @@ import (
 
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/message"
+	"github.com/sirupsen/logrus"
 )
 
 var once sync.Once
@@ -83,8 +84,12 @@ func CreateFilesForGroups(groups []channel.Group) {
 	})
 }
 
-func CreateDir() error {
+func CreateDirs() error {
 	err := os.Mkdir("data", 0755)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("ERROR_WHILE_CREATE_DIR:%s", err)
+	}
+	err = os.Mkdir("logs", 0755)
 	if os.IsNotExist(err) {
 		return fmt.Errorf("ERROR_WHILE_CREATE_DIR:%s", err)
 	}
@@ -97,5 +102,17 @@ func CreateFileForIncoming() error {
 		return fmt.Errorf("ERROR_WHILE_CREATE_FILE:%s", err)
 	}
 	file.WriteString("[]")
+	return nil
+}
+
+func CreateFilesForLogger(path string) error {
+	for _, level := range logrus.AllLevels {
+		fileName := fmt.Sprintf("%s/%s.log", path, level.String())
+		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0640)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+	}
 	return nil
 }
