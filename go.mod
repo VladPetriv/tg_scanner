@@ -16,6 +16,7 @@ require (
 	github.com/gotd/neo v0.1.5 // indirect
 	github.com/klauspost/compress v1.14.1 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
+	github.com/sirupsen/logrus v1.8.1
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.20.0 // indirect
@@ -26,3 +27,5 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )
+
+require github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5 // indirect
