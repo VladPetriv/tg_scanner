@@ -2,46 +2,74 @@ package logger
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"path"
 	"runtime"
 
 	"github.com/VladPetriv/tg_scanner/internal/file"
-	"github.com/rifflock/lfshook"
 	"github.com/sirupsen/logrus"
 )
 
+type writerHook struct {
+	Writer    []io.Writer
+	LogLevels []logrus.Level
+}
+
+func (hook *writerHook) Fire(entry *logrus.Entry) error {
+	line, err := entry.String()
+	if err != nil {
+		return err
+	}
+	for _, w := range hook.Writer {
+		_, err = w.Write([]byte(line))
+	}
+	return err
+}
+
+// Levels define on which log levels this hook would trigger
+func (hook *writerHook) Levels() []logrus.Level {
+	return hook.LogLevels
+}
+
+var e *logrus.Entry
+
 type Logger struct {
-	*logrus.Logger
+	*logrus.Entry
 }
 
 func Get() *Logger {
-	logger := Logger{logrus.New()}
+	Init()
+	return &Logger{e}
+}
 
-	err := file.CreateFilesForLogger("logs")
+func Init() {
+	l := logrus.New()
+	l.SetReportCaller(true)
+	l.Formatter = &logrus.TextFormatter{
+		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			filename := path.Base(f.File)
+			return fmt.Sprintf("%s:%d", filename, f.Line), fmt.Sprintf("%s()", f.Function)
+		},
+		DisableColors: false,
+		FullTimestamp: true,
+		ForceColors:   true,
+	}
+
+	allFile, err := file.CreateFileForLogger("./logs/all.log")
 	if err != nil {
-		fmt.Println("error is : ", err)
+		panic(fmt.Sprintf("[Error]: %s", err))
 	}
-	pathMap := lfshook.PathMap{
-		logrus.InfoLevel:  "./logs/info.log",
-		logrus.DebugLevel: "./logs/debug.log",
-		logrus.ErrorLevel: "./logs/error.log",
-		logrus.FatalLevel: "./logs/fatal.log",
-		logrus.PanicLevel: "./logs/panic.log",
-		logrus.TraceLevel: "./logs/trace.log",
-		logrus.WarnLevel:  "./logs/warning.log",
-	}
-	logger.AddHook(
-		lfshook.NewHook(
-			pathMap,
-			&logrus.TextFormatter{
-				CallerPrettyfier: func(f *runtime.Frame) (function string, file string) {
-					fileName := path.Base(f.File)
-					return fmt.Sprintf("%s():", f.Func.Name()), fmt.Sprintf("%s:%d", fileName, f.Line)
-				},
-				FullTimestamp: true,
-			},
-		),
-	)
 
-	return &logger
+	l.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
+
+	l.AddHook(&writerHook{
+		Writer:    []io.Writer{allFile, os.Stdout},
+		LogLevels: logrus.AllLevels,
+	})
+
+	l.SetLevel(logrus.TraceLevel)
+
+	e = logrus.NewEntry(l)
 }
