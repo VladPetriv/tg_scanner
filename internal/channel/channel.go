@@ -2,13 +2,13 @@ package channel
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
-	"math/rand"
-	"strconv"
-	"strings"
-	"time"
+	"fmt"
+	"math/big"
 
 	"github.com/gotd/td/tg"
+	"github.com/sirupsen/logrus"
 )
 
 type Group struct {
@@ -18,49 +18,48 @@ type Group struct {
 	Username   string
 }
 
-func GetAccessHash(ctx context.Context, groupName string, api *tg.Client) (int64, error) {
-	var accessHash int
-	group, err := api.ContactsResolveUsername(ctx, groupName)
+func GetChannelHistory(ctx context.Context, limit int, cPeer tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
+	bInt := big.NewInt(10000) // nolint
+
+	value, err := rand.Int(rand.Reader, bInt)
 	if err != nil {
-		return 0, err
-	}
-	for _, chat := range group.Chats {
-		accessHash, _ = strconv.Atoi(strings.Split(chat.String(), " ")[19][11:])
+		logrus.Errorf("ERROR_WHILE_GENERATE_RANDOM_INT:%s", err)
 	}
 
-	return int64(accessHash), nil
-}
-
-func GetChannelHistory(ctx context.Context, limint int, channelPeer tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) {
-	rand.Seed(time.Now().Unix())
-	result, err := api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
-		Peer:  &channelPeer,
-		Hash:  int64(rand.Int()),
-		Limit: limint,
+	result, err := api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{ // nolint
+		Peer:  &cPeer,
+		Hash:  value.Int64(),
+		Limit: limit,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ERROR_WHILE_GETTING_MESSAGES:%w", err)
 	}
+
 	return result, nil
 }
 
 func GetAllGroups(ctx context.Context, api *tg.Client) ([]Group, error) {
-	var groups []Group
+	groups := make([]Group, 0)
+
 	data, err := api.MessagesGetAllChats(ctx, []int64{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ERROR_WHILE_GETTING_GROUPS:%w", err)
 	}
-	var g Group
+
+	var newGroup Group
+
 	for _, group := range data.GetChats() {
 		encodedData, err := json.Marshal(group)
 		if err != nil {
 			continue
 		}
-		err = json.Unmarshal(encodedData, &g)
+
+		err = json.Unmarshal(encodedData, &newGroup)
 		if err != nil {
 			continue
 		}
-		groups = append(groups, g)
+
+		groups = append(groups, newGroup)
 	}
 
 	return groups, nil

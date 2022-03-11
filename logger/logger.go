@@ -20,20 +20,21 @@ type writerHook struct {
 func (hook *writerHook) Fire(entry *logrus.Entry) error {
 	line, err := entry.String()
 	if err != nil {
-		return err
+		return fmt.Errorf("ERROR_WHILE_GETTING_STRING:%w", err)
 	}
+
 	for _, w := range hook.Writer {
 		_, err = w.Write([]byte(line))
 	}
-	return err
+
+	return fmt.Errorf("ERROR_WHILE_WRITING_TO_WRITER:%w", err)
 }
 
-// Levels define on which log levels this hook would trigger
 func (hook *writerHook) Levels() []logrus.Level {
 	return hook.LogLevels
 }
 
-var e *logrus.Entry
+var e *logrus.Entry // nolint
 
 type Logger struct {
 	*logrus.Entry
@@ -41,15 +42,17 @@ type Logger struct {
 
 func Get() *Logger {
 	Init()
+
 	return &Logger{e}
 }
 
 func Init() {
-	l := logrus.New()
-	l.SetReportCaller(true)
-	l.Formatter = &logrus.TextFormatter{
+	log := logrus.New()
+	log.SetReportCaller(true)
+	log.Formatter = &logrus.TextFormatter{ // nolint
 		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 			filename := path.Base(f.File)
+
 			return fmt.Sprintf("%s:%d", filename, f.Line), fmt.Sprintf("%s()", f.Function)
 		},
 		DisableColors: false,
@@ -62,14 +65,14 @@ func Init() {
 		panic(fmt.Sprintf("[Error]: %s", err))
 	}
 
-	l.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
+	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
 
-	l.AddHook(&writerHook{
+	log.AddHook(&writerHook{
 		Writer:    []io.Writer{allFile, os.Stdout},
 		LogLevels: logrus.AllLevels,
 	})
 
-	l.SetLevel(logrus.TraceLevel)
+	log.SetLevel(logrus.TraceLevel)
 
-	e = logrus.NewEntry(l)
+	e = logrus.NewEntry(log)
 }

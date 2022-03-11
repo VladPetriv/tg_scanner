@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -19,86 +18,81 @@ import (
 )
 
 func main() {
-
-	logger := logger.Get()
-
-	//Initialize config
-	logger.Info("Initialize config")
-
-	cfg, err := config.Get()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//Createting dir for data
-	logger.Info("Creating base dir")
-	err = file.CreateDirs()
+	// Create needed dirs
+	err := file.CreateDirs()
 	if err != nil {
 		panic(err)
 	}
 
-	var wg sync.WaitGroup
+	// Initialize logger
+	logger := logger.Get()
 
-	//Create new client
-	logger.Info("Initialize client")
-	client, err := telegram.ClientFromEnvironment(telegram.Options{})
+	// Initialize config
+	cfg, err := config.Get()
 	if err != nil {
-		log.Fatalf("ERROR_WHILE_CREATING_CLIENT:%s", err)
+		logger.Panic(err)
 	}
 
-	//Create API
+	var waitGroup sync.WaitGroup
+
+	// Create new client
+	client, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
+	if err != nil {
+		logger.Errorf("ERROR_WHILE_CREATING_CLIENT:%s", err)
+	}
+
+	// Create API
 	api := client.API()
 
-	//Create context
-	ctx := context.Background()
-
-	if err := client.Run(ctx, func(ctx context.Context) error {
-		//Authorization to telegram
-		logger.Info("Authorization completed")
-
+	if err := client.Run(context.Background(), func(ctx context.Context) error {
+		// Authorization to telegram
 		user, err := auth.Login(ctx, client, cfg)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("AUTH_ERROR:%w", err)
 		}
-		wg.Add(2)
-		//Get user data
+
+		waitGroup.Add(2) // nolint
+		// Get user data
 		u, _ := user.GetUser().AsNotEmpty()
 
-		//Getting incoming messages
-		go GetNewMessage(ctx, u, api, &wg)
+		// Getting incoming messages
+		go GetNewMessage(ctx, u, api, &waitGroup, logger)
 
-		//Getting all groups
+		// Getting all groups
 		groups, err := channel.GetAllGroups(ctx, api)
 		if err != nil {
-			return err
+			return fmt.Errorf("GROUPS_ERROR:%w", err)
 		}
 
-		//Create files
+		// Create files for groups
 		file.CreateFilesForGroups(groups)
 
-		//Getting group history
+		// Getting group history
 		for _, group := range groups {
-			go GetFromHistory(ctx, group, api, cfg, &wg)
+			go GetFromHistory(ctx, group, api, cfg, &waitGroup, logger)
 		}
-		wg.Wait()
+		waitGroup.Wait()
+
 		return nil
 	}); err != nil {
 		logger.Error(err)
 	}
-
 }
 
-func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cfg *config.Config, wg *sync.WaitGroup) error {
+func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cfg *config.Config, wg *sync.WaitGroup, log *logger.Logger) { // nolint
 	defer wg.Done()
-	fileName := fmt.Sprintf("./data/%s.json", group.Username)
+
+	path := fmt.Sprintf("./data/%s.json", group.Username)
+
 	for {
+		log.Info("Start parsing messages from telgram")
+
 		data, err := channel.GetChannelHistory(ctx, cfg.Limit, tg.InputPeerChannel{
 			ChannelID:  int64(group.ID),
 			AccessHash: int64(group.AccessHash),
 		}, api)
 		if err != nil {
-			return err
+			log.Error(err)
 		}
 
 		modifiedData, _ := data.AsModified()
@@ -108,64 +102,72 @@ func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cf
 			AccessHash: int64(group.AccessHash),
 		}, api)
 
-		messagesFromFile, err := file.GetMessagesFromFile(fileName)
-		if err != nil {
-			return err
-		}
-
-		for _, m := range messages {
-			msg, ok := filter.FilterMessages(&m)
-			if !ok {
-				continue
-			}
-			messagesFromFile = append(messagesFromFile, *msg)
-		}
-
-		result := filter.RemoveDuplicateByMessage(messagesFromFile)
-
-		err = file.WriteMessagesToFile(result, fileName)
-		if err != nil {
-			return err
-		}
-
-		time.Sleep(time.Minute)
-	}
-}
-
-func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, wg *sync.WaitGroup) error {
-	defer wg.Done()
-	fileName := "incoming.json"
-	path := fmt.Sprintf("./data/%s", fileName)
-	err := file.CreateFileForIncoming()
-	if err != nil {
-		return err
-	}
-
-	for {
 		messagesFromFile, err := file.GetMessagesFromFile(path)
 		if err != nil {
-			return err
+			log.Error(err)
 		}
 
-		incomingMessage, err := message.GetIncomingMessages(ctx, user, api)
-		if err != nil {
-			return err
-		}
-
-		for _, m := range incomingMessage {
-			msg, ok := filter.FilterMessages(&m)
+		for index := range messages {
+			msg, ok := filter.Messages(&messages[index])
 			if !ok {
 				continue
 			}
+
 			messagesFromFile = append(messagesFromFile, *msg)
 		}
+
 		result := filter.RemoveDuplicateByMessage(messagesFromFile)
 
 		err = file.WriteMessagesToFile(result, path)
 		if err != nil {
-			return err
+			log.Error(err)
 		}
 
-		time.Sleep(time.Second * 30)
+		log.Info("Completed without errors [history]")
+		time.Sleep(time.Minute)
+	}
+}
+
+func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, wg *sync.WaitGroup, log *logger.Logger) {
+	defer wg.Done()
+
+	path := "./data/incoming.json"
+
+	err := file.CreateFileForIncoming()
+	if err != nil {
+		log.Error(err)
+	}
+
+	for {
+		log.Info("Start getting incoming messages")
+
+		messagesFromFile, err := file.GetMessagesFromFile(path)
+		if err != nil {
+			log.Error(err)
+		}
+
+		incomingMessage, err := message.GetIncomingMessages(ctx, user, api)
+		if err != nil {
+			log.Error(err)
+		}
+
+		for index := range incomingMessage {
+			msg, ok := filter.Messages(&incomingMessage[index])
+			if !ok {
+				continue
+			}
+
+			messagesFromFile = append(messagesFromFile, *msg)
+		}
+
+		result := filter.RemoveDuplicateByMessage(messagesFromFile)
+
+		err = file.WriteMessagesToFile(result, path)
+		if err != nil {
+			log.Error(err)
+		}
+
+		log.Info("Completed without errors [incoming]")
+		time.Sleep(time.Second * 30) // nolint
 	}
 }

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"strconv"
 
@@ -16,8 +16,9 @@ type Config struct {
 
 func Get() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
-		return nil, errors.New("ERROR_WHILE_LOAD_ENV_FILE")
+		return nil, fmt.Errorf("ERROR_WHILE_LOAD_ENV_FILE:%w", err)
 	}
+
 	limit, _ := strconv.Atoi(os.Getenv("LIMIT"))
 
 	return &Config{

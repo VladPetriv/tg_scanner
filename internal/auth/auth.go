@@ -12,6 +12,7 @@ import (
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
 	"github.com/gotd/td/tg"
+	"github.com/sirupsen/logrus"
 )
 
 type noSignUp struct{}
@@ -22,8 +23,10 @@ type TermAuth struct {
 	UserPhone string
 }
 
+var ErrNotImplemented = errors.New("not implemented")
+
 func (c noSignUp) SignUp(ctx context.Context) (auth.UserInfo, error) {
-	return auth.UserInfo{}, errors.New("not implemented")
+	return auth.UserInfo{}, ErrNotImplemented
 }
 
 func (c noSignUp) AcceptTermsOfService(ctx context.Context, tos tg.HelpTermsOfService) error {
@@ -39,31 +42,37 @@ func (a TermAuth) Password(_ context.Context) (string, error) {
 }
 
 func (a TermAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
-	fmt.Print("Enter code: ")
+	logrus.Info("Enter code: ")
+
 	code, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("ERROR_WHILE_CREATE_INPUT:%w", err)
 	}
+
 	return strings.TrimSpace(code), nil
 }
 
 func Login(ctx context.Context, client *telegram.Client, cfg *config.Config) (*tg.AuthAuthorization, error) {
-	//Create new flow
+	// Create new flow
 	flow := auth.NewFlow(
-		TermAuth{UserPhone: cfg.Phone},
-		auth.SendCodeOptions{},
+		TermAuth{noSignUp: noSignUp{}, UserPhone: cfg.Phone},
+		auth.SendCodeOptions{
+			AllowFlashCall: false,
+			CurrentNumber:  false,
+			AllowAppHash:   false,
+		},
 	)
-	//Authorization
+	// Authorization
 	if err := client.Auth().IfNecessary(ctx, flow); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ERROR_WHILE_TRY_TO_AUTH:%w", err)
 	}
 
-	//Authorization with password
+	// Authorization with password
 	password, _ := flow.Auth.Password(ctx)
 
 	user, err := client.Auth().Password(ctx, password)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ERROR_WHILE_TRY_TO_AUTH:%w", err)
 	}
 
 	return user, nil

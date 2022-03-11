@@ -3,7 +3,6 @@ package file
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"sync"
 
@@ -12,107 +11,109 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var once sync.Once
-
 func WriteMessagesToFile(msgs []message.Message, fileName string) error {
-	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644) // nolint
 	if err != nil {
-		return fmt.Errorf("ERROR_WHILE_OPENING_FILE: %s", err)
+		return fmt.Errorf("ERROR_WHILE_OPENING_FILE: %w", err)
 	}
 	defer file.Close()
 
 	messages, err := json.Marshal(msgs)
 	if err != nil {
-		return fmt.Errorf("ERROR_WHILE_CREATEING_JSON: %s", err)
+		return fmt.Errorf("ERROR_WHILE_CREATEING_JSON: %w", err)
 	}
 
-	file.WriteString(string(messages))
+	_, err = file.WriteString(string(messages))
+	if err != nil {
+		return fmt.Errorf("ERROR_WHILE_WRITING_TO_FILE:%w", err)
+	}
 
 	return nil
 }
 
 func GetMessagesFromFile(fileName string) ([]message.Message, error) {
 	var messages []message.Message
+
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_OPENING_FILE: %s", err)
+		return nil, fmt.Errorf("ERROR_WHILE_OPENING_FILE: %w", err)
 	}
 
 	err = json.Unmarshal(data, &messages)
 	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_CREATEING_JSON: %s", err)
-	}
-	file, err := os.Create(fileName)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ERROR_WHILE_CREATEING_JSON: %w", err)
 	}
 
-	file.WriteString("")
+	file, err := os.Create(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR_WHILE_CREATING_FILE:%w", err)
+	}
+
+	_, err = file.WriteString("")
+	if err != nil {
+		return nil, fmt.Errorf("ERROR_WHILE_WRITING_TO_FILE:%w", err)
+	}
 
 	return messages, nil
 }
 
-func GetGroupsFromFile(fileName string) ([]channel.Group, error) {
-	var gropus []channel.Group
-	data, err := os.ReadFile(fileName)
-	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_OPENING_FILE: %s", err)
-	}
-	err = json.Unmarshal(data, &gropus)
-	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_CREATEING_JSON: %s", err)
-	}
-
-	return gropus, nil
-}
-
 func CreateFilesForGroups(groups []channel.Group) {
+	var once sync.Once
+
 	once.Do(func() {
 		for _, group := range groups {
 			fileName := fmt.Sprintf("%s.json", group.Username)
 			file, err := os.Create(fileName)
 			if err != nil {
-				log.Fatalf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
+				logrus.Errorf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
 			}
-			file.WriteString("[]")
+			_, err = file.WriteString("[]")
+			if err != nil {
+				logrus.Errorf("ERROR_WHILE_WRITING_TO_FILE:%s", err)
+			}
+
 			err = os.Rename(fileName, fmt.Sprintf("./data/%s", fileName))
 			if err != nil {
-				log.Fatalf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
+				logrus.Errorf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
 			}
 		}
-		log.Println("File was created")
+		logrus.Info("Files was created")
 	})
-}
-
-func CreateDirs() error {
-	err := os.Mkdir("data", 0755)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("ERROR_WHILE_CREATE_DIR:%s", err)
-	}
-	err = os.Mkdir("logs", 0755)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("ERROR_WHILE_CREATE_DIR:%s", err)
-	}
-	return nil
 }
 
 func CreateFileForIncoming() error {
 	file, err := os.Create("./data/incoming.json")
 	if os.IsNotExist(err) {
-		return fmt.Errorf("ERROR_WHILE_CREATE_FILE:%s", err)
+		return fmt.Errorf("ERROR_WHILE_CREATE_FILE:%w", err)
 	}
-	file.WriteString("[]")
+
+	_, err = file.WriteString("[]")
+	if err != nil {
+		return fmt.Errorf("ERROR_WHILE_WRITING_TO_FILE:%w", err)
+	}
+
 	return nil
 }
 
-func CreateFilesForLogger(path string) error {
-	for _, level := range logrus.AllLevels {
-		fileName := fmt.Sprintf("%s/%s.log", path, level.String())
-		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0640)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
+func CreateFileForLogger(path string) (*os.File, error) {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640) // nolint
+	if err != nil {
+		return nil, fmt.Errorf("ERROR_WHILE_OPEN_FILE:%w", err)
 	}
+
+	return file, nil
+}
+
+func CreateDirs() error {
+	err := os.Mkdir("data", 0o755) // nolint
+	if os.IsNotExist(err) {
+		return fmt.Errorf("ERROR_WHILE_CREATE_DIR:%w", err)
+	}
+
+	err = os.Mkdir("logs", 0o755) // nolint
+	if os.IsNotExist(err) {
+		return fmt.Errorf("ERROR_WHILE_CREATE_DIR:%w", err)
+	}
+
 	return nil
 }
