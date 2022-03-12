@@ -27,7 +27,7 @@ func (hook *writerHook) Fire(entry *logrus.Entry) error {
 		_, err = w.Write([]byte(line))
 	}
 
-	return fmt.Errorf("ERROR_WHILE_WRITING_TO_WRITER:%w", err)
+	return err // nolint
 }
 
 func (hook *writerHook) Levels() []logrus.Level {

@@ -7,10 +7,12 @@ import (
 )
 
 func Messages(msg *message.Message) (*message.Message, bool) {
-	if strings.Contains(msg.Message, "?") {
-		msg.Message = strings.ReplaceAll(msg.Message, "\n", " ")
+	if msg.ReplyTo.ReplyToMsgID == 0 {
+		if strings.Contains(msg.Message, "?") {
+			msg.Message = strings.ReplaceAll(msg.Message, "\n", " ")
 
-		return msg, true
+			return msg, true
+		}
 	}
 
 	return nil, false

@@ -17,6 +17,7 @@ type Message struct {
 	FromID  tg.PeerUser
 	PeerID  interface{}
 	Replies Replies
+	ReplyTo ReplyTo
 }
 
 type Replies struct {
@@ -29,6 +30,10 @@ type RepliesMessage struct {
 	FromID  tg.PeerUser
 	Message string
 	ReplyTo interface{}
+}
+
+type ReplyTo struct {
+	ReplyToMsgID int
 }
 
 func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, channelPeer *tg.InputPeerChannel, api *tg.Client) []Message { // nolint

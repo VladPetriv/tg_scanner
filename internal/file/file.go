@@ -77,7 +77,6 @@ func CreateFilesForGroups(groups []channel.Group) {
 				logrus.Errorf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
 			}
 		}
-		logrus.Info("Files was created")
 	})
 }
 
