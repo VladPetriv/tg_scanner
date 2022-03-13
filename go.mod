@@ -27,5 +27,3 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )
-
-require github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5 // indirect
