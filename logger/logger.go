@@ -57,7 +57,6 @@ func Init() {
 		},
 		DisableColors: false,
 		FullTimestamp: true,
-		ForceColors:   true,
 	}
 
 	allFile, err := file.CreateFileForLogger("./logs/all.log")

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/VladPetriv/tg_scanner/internal/channel"
+	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/message"
 	"github.com/sirupsen/logrus"
 )
@@ -115,4 +116,33 @@ func CreateDirs() error {
 	}
 
 	return nil
+}
+
+func ParseFromFiles(path string) ([]message.Message, error) {
+	var messages []message.Message
+
+	dir, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR_WHILE_OPEN_DIR:%w", err)
+	}
+
+	files, err := dir.ReadDir(0)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR_WHILE_READ_DIR:%w", err)
+	}
+
+	for _, file := range files {
+		pathToFile := fmt.Sprintf("./%s/%s", path, file.Name())
+
+		data, err := GetMessagesFromFile(pathToFile)
+		if err != nil {
+			continue
+		}
+
+		messages = append(messages, data...)
+	}
+
+	result := filter.RemoveDuplicateByMessage(messages)
+
+	return result, nil
 }
