@@ -11,13 +11,6 @@ Go,GoTD,Logrus,GoDotenv
 
 ## Usage
 
-Before start using this application you should create .env files with this fields
-APP_ID=Telegram app id
-APP_HASH=Telegram app hash
-PHONE=Your mobile phone which you are going to use
-PASSWORD=Password to telegram
-LIMIT=Limit for getting messages from telegram history.1000 is the most perfect value
-
 Starting an application locally:
 
 ```bash

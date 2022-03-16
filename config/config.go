@@ -15,7 +15,7 @@ type Config struct {
 }
 
 func Get() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load("configs/.config.env"); err != nil {
 		return nil, fmt.Errorf("ERROR_WHILE_LOAD_ENV_FILE:%w", err)
 	}
 

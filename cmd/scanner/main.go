@@ -84,9 +84,8 @@ func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cf
 
 	path := fmt.Sprintf("./data/%s.json", group.Username)
 
+	log.Info("Start parsing messages from telgram")
 	for {
-		log.Info("Start parsing messages from telgram")
-
 		data, err := channel.GetChannelHistory(ctx, cfg.Limit, tg.InputPeerChannel{
 			ChannelID:  int64(group.ID),
 			AccessHash: int64(group.AccessHash),
@@ -123,8 +122,7 @@ func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cf
 			log.Error(err)
 		}
 
-		log.Info("Completed without errors [history]")
-		time.Sleep(time.Minute)
+		time.Sleep(time.Minute * 2)
 	}
 }
 
@@ -138,9 +136,8 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, wg *sync.
 		log.Error(err)
 	}
 
+	log.Info("Start getting incoming messages")
 	for {
-		log.Info("Start getting incoming messages")
-
 		messagesFromFile, err := file.GetMessagesFromFile(path)
 		if err != nil {
 			log.Error(err)
@@ -167,7 +164,6 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, wg *sync.
 			log.Error(err)
 		}
 
-		log.Info("Completed without errors [incoming]")
-		time.Sleep(time.Second * 30) // nolint
+		time.Sleep(time.Minute) // nolint
 	}
 }
