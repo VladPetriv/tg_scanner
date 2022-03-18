@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
@@ -17,14 +16,13 @@ func WriteMessagesToFile(msgs []message.Message, fileName string) error {
 	if err != nil {
 		return fmt.Errorf("ERROR_WHILE_OPENING_FILE: %w", err)
 	}
-	defer file.Close()
 
 	messages, err := json.Marshal(msgs)
 	if err != nil {
 		return fmt.Errorf("ERROR_WHILE_CREATEING_JSON: %w", err)
 	}
 
-	_, err = file.WriteString(string(messages))
+	_, err = file.Write(messages)
 	if err != nil {
 		return fmt.Errorf("ERROR_WHILE_WRITING_TO_FILE:%w", err)
 	}
@@ -39,7 +37,6 @@ func GetMessagesFromFile(fileName string) ([]message.Message, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ERROR_WHILE_OPENING_FILE: %w", err)
 	}
-
 	err = json.Unmarshal(data, &messages)
 	if err != nil {
 		return nil, fmt.Errorf("ERROR_WHILE_CREATEING_JSON: %w", err)
@@ -59,26 +56,26 @@ func GetMessagesFromFile(fileName string) ([]message.Message, error) {
 }
 
 func CreateFilesForGroups(groups []channel.Group) {
-	var once sync.Once
-
-	once.Do(func() {
-		for _, group := range groups {
-			fileName := fmt.Sprintf("%s.json", group.Username)
-			file, err := os.Create(fileName)
-			if err != nil {
-				logrus.Errorf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
-			}
-			_, err = file.WriteString("[]")
-			if err != nil {
-				logrus.Errorf("ERROR_WHILE_WRITING_TO_FILE:%s", err)
-			}
-
-			err = os.Rename(fileName, fmt.Sprintf("./data/%s", fileName))
-			if err != nil {
-				logrus.Errorf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
-			}
+	for _, group := range groups {
+		fileName := fmt.Sprintf("%s.json", group.Username)
+		if _, err := os.Stat("./data/" + fileName); err == nil {
+			continue
 		}
-	})
+		file, err := os.Create(fileName)
+		if err != nil {
+			logrus.Errorf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
+		}
+		_, err = file.WriteString("[]")
+		if err != nil {
+			logrus.Errorf("ERROR_WHILE_WRITING_TO_FILE:%s", err)
+		}
+
+		err = os.Rename(fileName, fmt.Sprintf("./data/%s", fileName))
+		if err != nil {
+			logrus.Errorf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
+		}
+	}
+
 }
 
 func CreateFileForIncoming() error {

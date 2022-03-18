@@ -20,7 +20,7 @@ func Messages(msg *message.Message) (*message.Message, bool) {
 
 func RemoveDuplicateByMessage(msgs []message.Message) []message.Message {
 	allKeys := make(map[string]bool)
-	messages := []message.Message{}
+	var messages []message.Message
 
 	for _, item := range msgs {
 		if _, value := allKeys[item.Message]; !value {

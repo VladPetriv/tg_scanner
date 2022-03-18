@@ -25,12 +25,12 @@ func main() {
 	}
 
 	// Initialize logger
-	logger := logger.Get()
+	log := logger.Get()
 
 	// Initialize config
 	cfg, err := config.Get()
 	if err != nil {
-		logger.Panic(err)
+		log.Panic(err)
 	}
 
 	var waitGroup sync.WaitGroup
@@ -38,7 +38,7 @@ func main() {
 	// Create new client
 	client, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
 	if err != nil {
-		logger.Errorf("ERROR_WHILE_CREATING_CLIENT:%s", err)
+		log.Errorf("ERROR_WHILE_CREATING_CLIENT:%s", err)
 	}
 
 	// Create API
@@ -56,7 +56,7 @@ func main() {
 		u, _ := user.GetUser().AsNotEmpty()
 
 		// Getting incoming messages
-		go GetNewMessage(ctx, u, api, &waitGroup, logger)
+		go GetNewMessage(ctx, u, api, &waitGroup, log)
 
 		// Getting all groups
 		groups, err := channel.GetAllGroups(ctx, api)
@@ -69,13 +69,13 @@ func main() {
 
 		// Getting group history
 		for _, group := range groups {
-			go GetFromHistory(ctx, group, api, cfg, &waitGroup, logger)
+			go GetFromHistory(ctx, group, api, cfg, &waitGroup, log)
 		}
 		waitGroup.Wait()
 
 		return nil
 	}); err != nil {
-		logger.Error(err)
+		log.Error(err)
 	}
 }
 
