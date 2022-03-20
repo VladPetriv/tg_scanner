@@ -24,3 +24,11 @@ Starting in docker:
 docker build -t scanner .
 docker run --name tg_scanner scanner
 ```
+
+Starting with docker-compose:
+
+
+```bash
+docker-compose build
+docker-compose up #After it enter code which telegram send to you
+```
