@@ -27,3 +27,5 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )
+
+require github.com/lib/pq v1.10.4 // indirect
