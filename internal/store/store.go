@@ -1,20 +1,22 @@
 package store
 
 import (
-	"context"
 	"fmt"
+	"time"
+
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/store/pg"
 	"github.com/VladPetriv/tg_scanner/logger"
-	"time"
 )
 
 type Store struct {
 	Pg     *pg.DB
 	Logger *logger.Logger
+
+	Channel ChannelRepo
 }
 
-func New(ctx context.Context, cfg config.Config, log *logger.Logger) (*Store, error) {
+func New(cfg config.Config, log *logger.Logger) (*Store, error) {
 	pgDB, err := pg.Dial(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("pg.Dial() failed: %w", err)
