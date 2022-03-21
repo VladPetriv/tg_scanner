@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/auth"
 	"github.com/VladPetriv/tg_scanner/internal/channel"
@@ -10,7 +12,6 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/logger"
 	"github.com/gotd/td/telegram"
-	"sync"
 )
 
 func main() {

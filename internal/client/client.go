@@ -3,6 +3,9 @@ package client
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/file"
@@ -10,8 +13,6 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/message"
 	"github.com/VladPetriv/tg_scanner/logger"
 	"github.com/gotd/td/tg"
-	"sync"
-	"time"
 )
 
 func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cfg *config.Config, wg *sync.WaitGroup, log *logger.Logger) { // nolint
@@ -46,7 +47,7 @@ func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cf
 			if !ok {
 				continue
 			}
-
+			msg.PeerID = group
 			messagesFromFile = append(messagesFromFile, *msg)
 		}
 
