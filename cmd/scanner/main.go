@@ -3,15 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
-	"sync"
-
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/auth"
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/client"
 	"github.com/VladPetriv/tg_scanner/internal/file"
+	"github.com/VladPetriv/tg_scanner/internal/model"
+	"github.com/VladPetriv/tg_scanner/internal/service"
+	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/logger"
 	"github.com/gotd/td/telegram"
+	"sync"
 )
 
 func main() {
@@ -30,6 +32,17 @@ func main() {
 		log.Panic(err)
 	}
 	var waitGroup sync.WaitGroup
+
+	store, err := store.New(*cfg, log)
+	if err != nil {
+		log.Error(err)
+
+	}
+
+	serviceManager, err := service.NewManager(store)
+	if err != nil {
+		log.Error(err)
+	}
 
 	// Create new client
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
@@ -65,6 +78,10 @@ func main() {
 
 		// Getting group history
 		for _, group := range groups {
+			err := serviceManager.Channel.CreateChannel(&model.Channel{Name: group.Title})
+			if err != nil {
+				log.Error(err)
+			}
 			go client.GetFromHistory(ctx, group, api, cfg, &waitGroup, log)
 		}
 		waitGroup.Wait()
