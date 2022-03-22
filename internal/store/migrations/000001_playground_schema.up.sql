@@ -1,0 +1,4 @@
+CREATE TABLE channel (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255)
+);
