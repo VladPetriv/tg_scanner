@@ -26,6 +26,7 @@ func New(cfg config.Config, log *logger.Logger) (*Store, error) {
 
 	if pgDB != nil {
 		store.Pg = pgDB
+		store.Channel = pg.NewChannelRepo(pgDB)
 		go store.KeepAliveDB(cfg)
 	}
 	return &store, nil
