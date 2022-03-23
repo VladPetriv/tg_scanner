@@ -46,7 +46,7 @@ func (s *ChannelDbService) GetChannel(channelId int) (*model.Channel, error) {
 func (s *ChannelDbService) GetChannelByName(name string) (*model.Channel, error) {
 	channel, err := s.store.Channel.GetChannelByName(name)
 	if err != nil {
-		return nil, fmt.Errorf("[Channel] Sevice.GetChannelByName error: %w", err)
+		return nil, fmt.Errorf("[Channel] Service.GetChannelByName error: %w", err)
 	}
 	if channel == nil {
 		return nil, nil

@@ -8,6 +8,7 @@ import (
 
 type Manager struct {
 	Channel ChannelService
+	Message MessageService
 }
 
 func NewManager(store *store.Store) (*Manager, error) {
@@ -17,5 +18,6 @@ func NewManager(store *store.Store) (*Manager, error) {
 
 	return &Manager{
 		Channel: NewChannelDbService(store),
+		Message: NewMessageDbService(store),
 	}, nil
 }

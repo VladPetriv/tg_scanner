@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/auth"
 	"github.com/VladPetriv/tg_scanner/internal/channel"
@@ -13,7 +15,6 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/logger"
 	"github.com/gotd/td/telegram"
-	"sync"
 )
 
 func main() {
@@ -85,7 +86,6 @@ func main() {
 			go client.GetFromHistory(ctx, group, api, cfg, &waitGroup, log)
 		}
 		waitGroup.Wait()
-
 		return nil
 	}); err != nil {
 		log.Error(err)
