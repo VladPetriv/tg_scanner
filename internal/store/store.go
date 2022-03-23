@@ -14,6 +14,7 @@ type Store struct {
 	Logger *logger.Logger
 
 	Channel ChannelRepo
+	Message MessageRepo
 }
 
 func New(cfg config.Config, log *logger.Logger) (*Store, error) {
@@ -27,6 +28,7 @@ func New(cfg config.Config, log *logger.Logger) (*Store, error) {
 	if pgDB != nil {
 		store.Pg = pgDB
 		store.Channel = pg.NewChannelRepo(pgDB)
+		store.Message = pg.NewMessageRepo(pgDB)
 		go store.KeepAliveDB(cfg)
 	}
 	return &store, nil
