@@ -6,6 +6,6 @@ CREATE TABLE channel (
 CREATE TABLE message (
   id SERIAL PRIMARY KEY,
   channel_id INT NOT NULL,
-  title VARCHAR(255),
+  title TEXT,
   CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channel(id)
 );
