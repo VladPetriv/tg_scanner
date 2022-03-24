@@ -4,3 +4,4 @@ message.json
 logs
 data
 .idea
+./configs/.config.env

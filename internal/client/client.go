@@ -11,6 +11,8 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/message"
+	"github.com/VladPetriv/tg_scanner/internal/model"
+	"github.com/VladPetriv/tg_scanner/internal/service"
 	"github.com/VladPetriv/tg_scanner/logger"
 	"github.com/gotd/td/tg"
 )
@@ -58,7 +60,7 @@ func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cf
 			log.Error(err)
 		}
 
-		time.Sleep(time.Minute * 5)
+		time.Sleep(time.Minute * 10)
 	}
 }
 
@@ -101,5 +103,30 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, wg *sync.
 		}
 
 		time.Sleep(time.Minute) // nolint
+	}
+}
+
+func SaveToDb(serviceManager *service.Manager, log *logger.Logger) {
+	for {
+		messages, err := file.ParseFromFiles("data")
+		if err != nil {
+			log.Error(err)
+		}
+
+		for _, msg := range messages {
+			candidate, err := serviceManager.Message.GetMessageByName(msg.Message)
+			if err != nil {
+				log.Error(err)
+			}
+			if candidate.Title == msg.Message {
+				continue
+			}
+
+			err = serviceManager.Message.CreateMessage(&model.Message{ChannelId: 1, Title: msg.Message})
+			if err != nil {
+				log.Error(err)
+			}
+		}
+		time.Sleep(time.Minute * 30)
 	}
 }

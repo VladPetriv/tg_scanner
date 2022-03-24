@@ -1,0 +1,33 @@
+version: "3.0"
+
+services:
+  tg_scanner:
+    container_name: main
+    env_file:
+      - ./configs/.config.env
+    build:
+      context: .
+    command: ./wait-for-postgres.sh db ./todo-app
+    depends_on:
+      - postgres
+    tty: true
+    stdin_open: true
+    restart: always
+
+
+
+  postgres:
+    container_name: postgres
+    image: postgres:12
+    env_file:
+      - ./configs/.config.env
+    environment:
+      PG_DATA: /var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  pgdata:

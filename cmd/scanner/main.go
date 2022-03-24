@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 	"sync"
+ 	"time"
 
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/auth"
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/client"
 	"github.com/VladPetriv/tg_scanner/internal/file"
+	"github.com/VladPetriv/tg_scanner/internal/model"
+	"github.com/VladPetriv/tg_scanner/internal/service"
+	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/logger"
 	"github.com/gotd/td/telegram"
 )
@@ -31,6 +35,17 @@ func main() {
 	}
 	var waitGroup sync.WaitGroup
 
+	store, err := store.New(*cfg, log)
+	if err != nil {
+		log.Error(err)
+
+	}
+
+	serviceManager, err := service.NewManager(store)
+	if err != nil {
+		log.Error(err)
+	}
+
 	// Create new client
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
 	if err != nil {
@@ -47,7 +62,7 @@ func main() {
 			return fmt.Errorf("AUTH_ERROR:%w", err)
 		}
 
-		waitGroup.Add(2) // nolint
+		waitGroup.Add(3) // nolint
 		// Get user data
 		u, _ := user.GetUser().AsNotEmpty()
 
@@ -65,10 +80,17 @@ func main() {
 
 		// Getting group history
 		for _, group := range groups {
+			err := serviceManager.Channel.CreateChannel(&model.Channel{Name: group.Title})
+			if err != nil {
+				log.Error(err)
+			}
 			go client.GetFromHistory(ctx, group, api, cfg, &waitGroup, log)
 		}
-		waitGroup.Wait()
 
+		time.Sleep(time.Second * 5)
+		go client.SaveToDb(serviceManager, log)
+
+		waitGroup.Wait()
 		return nil
 	}); err != nil {
 		log.Error(err)
