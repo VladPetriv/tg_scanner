@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/auth"
@@ -61,7 +62,7 @@ func main() {
 			return fmt.Errorf("AUTH_ERROR:%w", err)
 		}
 
-		waitGroup.Add(2) // nolint
+		waitGroup.Add(3) // nolint
 		// Get user data
 		u, _ := user.GetUser().AsNotEmpty()
 
@@ -85,6 +86,10 @@ func main() {
 			}
 			go client.GetFromHistory(ctx, group, api, cfg, &waitGroup, log)
 		}
+
+		time.Sleep(time.Second * 5)
+		go client.SaveToDb(serviceManager, log)
+
 		waitGroup.Wait()
 		return nil
 	}); err != nil {

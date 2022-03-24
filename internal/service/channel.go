@@ -61,7 +61,7 @@ func (s *ChannelDbService) CreateChannel(channel *model.Channel) error {
 		return err
 	}
 
-	if candidate != nil {
+	if candidate.Name == channel.Name {
 		return fmt.Errorf("channel with name %s is exist", channel.Name)
 	}
 
