@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/gotd/td/tg"
 	"github.com/sirupsen/logrus"
 )
@@ -15,7 +16,7 @@ type Message struct {
 	ID      int
 	Message string
 	FromID  tg.PeerUser
-	PeerID  interface{}
+	PeerID  channel.Group
 	Replies Replies
 	ReplyTo ReplyTo
 }

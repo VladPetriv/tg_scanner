@@ -7,6 +7,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/store/pg"
 	"github.com/VladPetriv/tg_scanner/logger"
+	_ "github.com/lib/pq"
 )
 
 type Store struct {

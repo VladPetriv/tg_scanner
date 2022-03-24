@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
- 	"time"
+	"time"
 
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/auth"
@@ -80,7 +80,7 @@ func main() {
 
 		// Getting group history
 		for _, group := range groups {
-			err := serviceManager.Channel.CreateChannel(&model.Channel{Name: group.Title})
+			err := serviceManager.Channel.CreateChannel(&model.Channel{Name: group.Username})
 			if err != nil {
 				log.Error(err)
 			}

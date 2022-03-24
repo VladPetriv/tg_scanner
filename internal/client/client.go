@@ -122,7 +122,12 @@ func SaveToDb(serviceManager *service.Manager, log *logger.Logger) {
 				continue
 			}
 
-			err = serviceManager.Message.CreateMessage(&model.Message{ChannelId: 1, Title: msg.Message})
+			channel, err := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
+			if err != nil {
+				log.Error(err)
+			}
+
+			err = serviceManager.Message.CreateMessage(&model.Message{ChannelId: channel.Id, Title: msg.Message})
 			if err != nil {
 				log.Error(err)
 			}
