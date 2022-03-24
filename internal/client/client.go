@@ -49,7 +49,7 @@ func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cf
 			if !ok {
 				continue
 			}
-
+			msg.PeerID = group
 			messagesFromFile = append(messagesFromFile, *msg)
 		}
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
+ 	"time"
 
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/auth"
