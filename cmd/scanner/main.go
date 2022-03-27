@@ -35,12 +35,13 @@ func main() {
 	}
 	var waitGroup sync.WaitGroup
 
+	// Initialize store
 	store, err := store.New(*cfg, log)
 	if err != nil {
 		log.Error(err)
-
 	}
 
+	// Initialize service manager
 	serviceManager, err := service.NewManager(store)
 	if err != nil {
 		log.Error(err)
@@ -64,10 +65,10 @@ func main() {
 
 		waitGroup.Add(3) // nolint
 		// Get user data
-		u, _ := user.GetUser().AsNotEmpty()
+		uData, _ := user.GetUser().AsNotEmpty()
 
 		// Getting incoming messages
-		go client.GetNewMessage(ctx, u, api, &waitGroup, log)
+		go client.GetNewMessage(ctx, uData, api, &waitGroup, log)
 
 		// Getting all groups
 		groups, err := channel.GetAllGroups(ctx, api)
@@ -84,6 +85,7 @@ func main() {
 			if err != nil {
 				log.Error(err)
 			}
+
 			go client.GetFromHistory(ctx, group, api, cfg, &waitGroup, log)
 		}
 
@@ -95,4 +97,6 @@ func main() {
 	}); err != nil {
 		log.Error(err)
 	}
+
+	log.Info("Program failed!")
 }
