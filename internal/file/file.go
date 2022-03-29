@@ -147,7 +147,10 @@ func ParseFromFiles(path string) ([]message.Message, error) {
 			return nil, fmt.Errorf("ERROR_WHILE_OPEN_FILE: %w", err)
 		}
 
-		f.WriteString("[  ]")
+		_, err = f.WriteString("[  ]")
+		if err != nil {
+			return nil, fmt.Errorf("error while writing to file: %w", err)
+		}
 
 		messages = append(messages, data...)
 	}
