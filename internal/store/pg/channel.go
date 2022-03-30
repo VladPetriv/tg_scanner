@@ -35,10 +35,10 @@ func (repo *ChannelPgRepo) GetChannels() (*[]model.Channel, error) {
 	return &channels, nil
 }
 
-func (repo *ChannelPgRepo) GetChannel(channelId int) (*model.Channel, error) {
+func (repo *ChannelPgRepo) GetChannel(channelID int) (*model.Channel, error) {
 	channel := &model.Channel{}
 
-	rows, err := repo.db.Query("SELECT * FROM channel WHERE id=$1;", channelId)
+	rows, err := repo.db.Query("SELECT * FROM channel WHERE id=$1;", channelID)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting channel: %w", err)
 	}
@@ -81,8 +81,8 @@ func (repo *ChannelPgRepo) CreateChannel(channel *model.Channel) error {
 	return nil
 }
 
-func (repo *ChannelPgRepo) DeleteChannel(channelId int) error {
-	_, err := repo.db.Exec("DELETE FROM channel WHERE id = $1;", channelId)
+func (repo *ChannelPgRepo) DeleteChannel(channelID int) error {
+	_, err := repo.db.Exec("DELETE FROM channel WHERE id = $1;", channelID)
 	if err != nil {
 		return fmt.Errorf("error while deleting channel: %w", err)
 	}

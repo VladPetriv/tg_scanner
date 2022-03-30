@@ -36,10 +36,10 @@ func (repo *MessageRepo) GetMessages() (*[]model.Message, error) {
 	return &messages, nil
 }
 
-func (repo *MessageRepo) GetMessage(messageId int) (*model.Message, error) {
+func (repo *MessageRepo) GetMessage(messageID int) (*model.Message, error) {
 	message := &model.Message{}
 
-	rows, err := repo.db.Query("SELECT * FROM message WHERE id=$1", messageId)
+	rows, err := repo.db.Query("SELECT * FROM message WHERE id=$1", messageID)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting message: %w", err)
 	}
@@ -83,8 +83,8 @@ func (repo *MessageRepo) CreateMessage(message *model.Message) error {
 	return nil
 }
 
-func (repo *MessageRepo) DeleteMessage(messageId int) error {
-	_, err := repo.db.Exec("DELETE FROM message WHERE id=$1", messageId)
+func (repo *MessageRepo) DeleteMessage(messageID int) error {
+	_, err := repo.db.Exec("DELETE FROM message WHERE id=$1", messageID)
 	if err != nil {
 		return fmt.Errorf("error while deleting message: %w", err)
 	}
