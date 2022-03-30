@@ -16,3 +16,11 @@ type MessageService interface {
 	CreateMessage(message *model.Message) error
 	DeleteMessage(messageId int) error
 }
+
+type ReplieService interface {
+	GetReplies() (*[]model.Replie, error)
+	GetReplie(replieId int) (*model.Replie, error)
+	GetReplieByName(name string) (*model.Replie, error)
+	CreateReplie(replie *model.Replie) error
+	DeleteReplie(replieId int) error
+}

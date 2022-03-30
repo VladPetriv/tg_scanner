@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/VladPetriv/tg_scanner/config"
+	"github.com/VladPetriv/tg_scanner/internal/auth"
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
@@ -14,6 +15,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/service"
 	"github.com/VladPetriv/tg_scanner/logger"
+	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/tg"
 )
 
@@ -116,11 +118,11 @@ func SaveToDb(serviceManager *service.Manager, log *logger.Logger) {
 		}
 
 		for _, msg := range messages {
-			candidate, err := serviceManager.Message.GetMessageByName(msg.Message)
+			messageCandidate, err := serviceManager.Message.GetMessageByName(msg.Message)
 			if err != nil {
 				log.Error(err)
 			}
-			if candidate.Title == msg.Message {
+			if messageCandidate.Title == msg.Message {
 				continue
 			}
 
@@ -129,11 +131,85 @@ func SaveToDb(serviceManager *service.Manager, log *logger.Logger) {
 				log.Error(err)
 			}
 
-			err = serviceManager.Message.CreateMessage(&model.Message{ChannelId: channel.Id, Title: msg.Message})
+			err = serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, Title: msg.Message})
 			if err != nil {
 				log.Error(err)
 			}
+
+			for _, replie := range msg.Replies.Messages {
+				replieCandidate, err := serviceManager.Replie.GetReplieByName(replie.Message)
+				if err != nil {
+					log.Error(err)
+				}
+
+				if replieCandidate.Title == replie.Message {
+					continue
+				}
+
+				message, err := serviceManager.Message.GetMessageByName(msg.Message)
+				if err != nil {
+					log.Error(err)
+				}
+
+				err = serviceManager.Replie.CreateReplie(&model.Replie{MessageID: message.ID, Title: replie.Message})
+				if err != nil {
+					log.Error(err)
+				}
+			}
 		}
-		time.Sleep(time.Minute * 30)
+		time.Sleep(time.Minute * 15)
+	}
+}
+
+func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config.Config, log *logger.Logger) {
+	// Create new client
+	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
+	if err != nil {
+		log.Errorf("ERROR_WHILE_CREATING_CLIENT:%s", err)
+	}
+
+	// Create API
+	api := tgClient.API()
+
+	if err := tgClient.Run(context.Background(), func(ctx context.Context) error {
+		// Authorization to telegram
+		user, err := auth.Login(ctx, tgClient, cfg)
+		if err != nil {
+			return fmt.Errorf("AUTH_ERROR:%w", err)
+		}
+
+		waitGroup.Add(3) // nolint
+		// Get user data
+		uData, _ := user.GetUser().AsNotEmpty()
+
+		// Getting incoming messages
+		go GetNewMessage(ctx, uData, api, waitGroup, log)
+
+		// Getting all groups
+		groups, err := channel.GetAllGroups(ctx, api)
+		if err != nil {
+			return fmt.Errorf("GROUPS_ERROR:%w", err)
+		}
+
+		// Create files for groups
+		file.CreateFilesForGroups(groups)
+
+		// Getting group history
+		for _, group := range groups {
+			err := serviceManager.Channel.CreateChannel(&model.Channel{Name: group.Username})
+			if err != nil {
+				log.Error(err)
+			}
+
+			go GetFromHistory(ctx, group, api, cfg, waitGroup, log)
+		}
+
+		time.Sleep(time.Second * 5)
+		go SaveToDb(serviceManager, log)
+
+		waitGroup.Wait()
+		return nil
+	}); err != nil {
+		log.Error(err)
 	}
 }

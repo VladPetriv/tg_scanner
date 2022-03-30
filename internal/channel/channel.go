@@ -27,9 +27,8 @@ func GetChannelHistory(ctx context.Context, limit int, cPeer tg.InputPeerChannel
 	}
 
 	result, err := api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{ // nolint
-		Peer:  &cPeer,
-		Hash:  value.Int64(),
-		Limit: limit,
+		Peer: &cPeer,
+		Hash: value.Int64(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("ERROR_WHILE_GETTING_MESSAGES:%w", err)
