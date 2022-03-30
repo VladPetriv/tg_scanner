@@ -1,6 +1,6 @@
 package model
 
 type Channel struct {
-	Id   int    `json:"Id"`
+	ID   int    `json:"ID"`
 	Name string `json:"Name"`
 }

@@ -1,7 +1,7 @@
 package model
 
-type Message struct {
+type Replie struct {
 	ID        int    `json:"ID"`
-	ChannelID int    `json:"ChannelID"`
+	MessageID int    `json:"MessageID"`
 	Title     string `json:"Title"`
 }
