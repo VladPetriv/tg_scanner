@@ -24,7 +24,7 @@ func (repo *ChannelPgRepo) GetChannels() (*[]model.Channel, error) {
 	defer rows.Close()
 	for rows.Next() {
 		channel := model.Channel{}
-		err := rows.Scan(&channel.Id, &channel.Name)
+		err := rows.Scan(&channel.ID, &channel.Name)
 		if err != nil {
 			continue
 		}
@@ -45,7 +45,7 @@ func (repo *ChannelPgRepo) GetChannel(channelId int) (*model.Channel, error) {
 
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&channel.Id, &channel.Name)
+		err := rows.Scan(&channel.ID, &channel.Name)
 		if err != nil {
 			continue
 		}
@@ -63,7 +63,7 @@ func (repo *ChannelPgRepo) GetChannelByName(name string) (*model.Channel, error)
 
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&channel.Id, &channel.Name)
+		err := rows.Scan(&channel.ID, &channel.Name)
 		if err != nil {
 			continue
 		}

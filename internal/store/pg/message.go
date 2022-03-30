@@ -25,7 +25,7 @@ func (repo *MessageRepo) GetMessages() (*[]model.Message, error) {
 	defer rows.Close()
 	for rows.Next() {
 		message := model.Message{}
-		err := rows.Scan(&message.Id, &message.ChannelId, &message.Title)
+		err := rows.Scan(&message.ID, &message.ChannelID, &message.Title)
 		if err != nil {
 			continue
 		}
@@ -46,7 +46,7 @@ func (repo *MessageRepo) GetMessage(messageId int) (*model.Message, error) {
 
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&message.Id, &message.ChannelId, &message.Title)
+		err := rows.Scan(&message.ID, &message.ChannelID, &message.Title)
 		if err != nil {
 			continue
 		}
@@ -65,7 +65,7 @@ func (repo *MessageRepo) GetMessageByName(name string) (*model.Message, error) {
 
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&message.Id, &message.ChannelId, &message.Title)
+		err := rows.Scan(&message.ID, &message.ChannelID, &message.Title)
 		if err != nil {
 			continue
 		}
@@ -75,7 +75,7 @@ func (repo *MessageRepo) GetMessageByName(name string) (*model.Message, error) {
 }
 
 func (repo *MessageRepo) CreateMessage(message *model.Message) error {
-	_, err := repo.db.Exec("INSERT INTO message(channel_id,title) VALUES ($1,$2)", message.ChannelId, message.Title)
+	_, err := repo.db.Exec("INSERT INTO message(channel_id,title) VALUES ($1,$2)", message.ChannelID, message.Title)
 	if err != nil {
 		return fmt.Errorf("error while creating message: %w", err)
 	}
