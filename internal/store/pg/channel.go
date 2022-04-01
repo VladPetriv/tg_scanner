@@ -14,7 +14,7 @@ func NewChannelRepo(db *DB) *ChannelPgRepo {
 	return &ChannelPgRepo{db}
 }
 
-func (repo *ChannelPgRepo) GetChannels() (*[]model.Channel, error) {
+func (repo *ChannelPgRepo) GetChannels() ([]model.Channel, error) {
 	channels := make([]model.Channel, 0)
 	rows, err := repo.db.Query("SELECT * FROM channel;")
 	if err != nil {
@@ -31,8 +31,11 @@ func (repo *ChannelPgRepo) GetChannels() (*[]model.Channel, error) {
 
 		channels = append(channels, channel)
 	}
+	if len(channels) == 0 {
+		return nil, fmt.Errorf("channels not found")
+	}
 
-	return &channels, nil
+	return channels, nil
 }
 
 func (repo *ChannelPgRepo) GetChannel(channelID int) (*model.Channel, error) {
@@ -51,12 +54,16 @@ func (repo *ChannelPgRepo) GetChannel(channelID int) (*model.Channel, error) {
 		}
 	}
 
+	if channel.Name == "" {
+		return nil, fmt.Errorf("channel not found")
+	}
+
 	return channel, nil
 }
 func (repo *ChannelPgRepo) GetChannelByName(name string) (*model.Channel, error) {
 	channel := &model.Channel{}
 
-	rows, err := repo.db.Query("SELECT * FROM channel WHERE name=$1", name)
+	rows, err := repo.db.Query("SELECT * FROM channel WHERE name=$1;", name)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting channel: %w", err)
 	}
@@ -69,20 +76,26 @@ func (repo *ChannelPgRepo) GetChannelByName(name string) (*model.Channel, error)
 		}
 	}
 
+	if channel.Name == "" {
+		return nil, fmt.Errorf("channel not found")
+	}
+
 	return channel, nil
 }
 
-func (repo *ChannelPgRepo) CreateChannel(channel *model.Channel) error {
-	_, err := repo.db.Exec("INSERT INTO channel(name) VALUES ($1)", channel.Name)
-	if err != nil {
-		return fmt.Errorf("error while creating channel: %w", err)
+func (repo *ChannelPgRepo) CreateChannel(channel *model.Channel) (int, error) {
+	var id int
+	row := repo.db.QueryRow("INSERT INTO channel(name) VALUES ($1) RETURNING id;", channel.Name)
+
+	if err := row.Scan(&id); err != nil {
+		return 0, fmt.Errorf("error while creating channel: %w", err)
 	}
 
-	return nil
+	return 1, nil
 }
 
 func (repo *ChannelPgRepo) DeleteChannel(channelID int) error {
-	_, err := repo.db.Exec("DELETE FROM channel WHERE id = $1;", channelID)
+	_, err := repo.db.Exec("DELETE FROM channel WHERE id=$1;", channelID)
 	if err != nil {
 		return fmt.Errorf("error while deleting channel: %w", err)
 	}

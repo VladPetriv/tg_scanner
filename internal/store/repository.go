@@ -5,10 +5,10 @@ import (
 )
 
 type ChannelRepo interface {
-	GetChannels() (*[]model.Channel, error)
+	GetChannels() ([]model.Channel, error)
 	GetChannel(channelId int) (*model.Channel, error)
 	GetChannelByName(name string) (*model.Channel, error)
-	CreateChannel(channel *model.Channel) error
+	CreateChannel(channel *model.Channel) (int, error)
 	DeleteChannel(channelId int) error
 }
 

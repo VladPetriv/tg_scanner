@@ -17,7 +17,7 @@ func NewChannelDbService(store *store.Store) *ChannelDbService {
 	}
 }
 
-func (s *ChannelDbService) GetChannels() (*[]model.Channel, error) {
+func (s *ChannelDbService) GetChannels() ([]model.Channel, error) {
 	channels, err := s.store.Channel.GetChannels()
 	if err != nil {
 		return nil, fmt.Errorf("[Channel] Service.GetChannels error: %w", err)
@@ -37,7 +37,7 @@ func (s *ChannelDbService) GetChannel(channelId int) (*model.Channel, error) {
 	}
 
 	if channel == nil {
-		return nil, nil
+		return nil, fmt.Errorf("channel not found")
 	}
 
 	return channel, nil
@@ -49,7 +49,7 @@ func (s *ChannelDbService) GetChannelByName(name string) (*model.Channel, error)
 		return nil, fmt.Errorf("[Channel] Service.GetChannelByName error: %w", err)
 	}
 	if channel == nil {
-		return nil, nil
+		return nil, fmt.Errorf("channel not found")
 	}
 
 	return channel, nil
@@ -65,7 +65,7 @@ func (s *ChannelDbService) CreateChannel(channel *model.Channel) error {
 		return fmt.Errorf("channel with name %s is exist", channel.Name)
 	}
 
-	err = s.store.Channel.CreateChannel(channel)
+	_, err = s.store.Channel.CreateChannel(channel)
 	if err != nil {
 		return fmt.Errorf("[Channel] Service error: %w", err)
 	}
