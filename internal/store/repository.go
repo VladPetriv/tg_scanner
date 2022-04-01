@@ -13,10 +13,10 @@ type ChannelRepo interface {
 }
 
 type MessageRepo interface {
-	GetMessages() (*[]model.Message, error)
+	GetMessages() ([]model.Message, error)
 	GetMessage(messageId int) (*model.Message, error)
 	GetMessageByName(name string) (*model.Message, error)
-	CreateMessage(message *model.Message) error
+	CreateMessage(message *model.Message) (int, error)
 	DeleteMessage(messageId int) error
 }
 

@@ -17,7 +17,7 @@ func NewMessageDbService(store *store.Store) *MessageDbService {
 	}
 }
 
-func (s *MessageDbService) GetMessages() (*[]model.Message, error) {
+func (s *MessageDbService) GetMessages() ([]model.Message, error) {
 	messages, err := s.store.Message.GetMessages()
 	if err != nil {
 		return nil, fmt.Errorf("[Message] Service.GetMessages error: %w", err)
@@ -66,7 +66,7 @@ func (s *MessageDbService) CreateMessage(message *model.Message) error {
 		return fmt.Errorf("message with name %s is exist", message.Title)
 	}
 
-	err = s.store.Message.CreateMessage(message)
+	_, err = s.store.Message.CreateMessage(message)
 	if err != nil {
 		return fmt.Errorf("[Message] Service.CreateMessage error: %w", err)
 	}

@@ -10,7 +10,7 @@ type ChannelService interface {
 	DeleteChannel(channelId int) error
 }
 type MessageService interface {
-	GetMessages() (*[]model.Message, error)
+	GetMessages() ([]model.Message, error)
 	GetMessage(messagelId int) (*model.Message, error)
 	GetMessageByName(name string) (*model.Message, error)
 	CreateMessage(message *model.Message) error

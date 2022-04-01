@@ -78,7 +78,7 @@ func TestChannelPg_GetChannel(t *testing.T) {
 	tests := []struct {
 		name    string
 		mock    func()
-		input   model.Channel
+		input   int
 		want    *model.Channel
 		wantErr bool
 	}{
@@ -90,7 +90,7 @@ func TestChannelPg_GetChannel(t *testing.T) {
 				mock.ExpectQuery("SELECT * FROM channel WHERE id=$1;").
 					WithArgs(1).WillReturnRows(rows)
 			},
-			input: model.Channel{ID: 1},
+			input: 1,
 			want: &model.Channel{
 				ID:   1,
 				Name: "test",
@@ -104,7 +104,7 @@ func TestChannelPg_GetChannel(t *testing.T) {
 				mock.ExpectQuery("SELECT * FROM channel WHERE id=$1;").
 					WithArgs(404).WillReturnRows(rows)
 			},
-			input:   model.Channel{ID: 404},
+			input:   404,
 			wantErr: true,
 		},
 	}
@@ -113,7 +113,7 @@ func TestChannelPg_GetChannel(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mock()
 
-			got, err := r.GetChannel(tt.input.ID)
+			got, err := r.GetChannel(tt.input)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
