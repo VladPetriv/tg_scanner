@@ -17,3 +17,8 @@ migrate_up:
 
 migrate_down:
 	migrate -path ./internal/store/migrations/ -database "postgresql://vlad:admin@localhost:5432/scanner?sslmode=disable" -verbose down
+
+.PHONT: test
+
+test:
+	go test -v ./...
