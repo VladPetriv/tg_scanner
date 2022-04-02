@@ -27,9 +27,10 @@ func TestRepliePg_CreateReplie(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "ok",
+			name: "Ok",
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
+
 				mock.ExpectQuery("INSERT INTO replie (message_id, title) VALUES ($1, $2) RETURNING id;").
 					WithArgs(1, "test").WillReturnRows(rows)
 
@@ -41,6 +42,7 @@ func TestRepliePg_CreateReplie(t *testing.T) {
 			name: "empty fields",
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"})
+
 				mock.ExpectQuery("INSERT INTO replie (message_id, title) VALUES ($1, $2) RETURNING id;").
 					WithArgs().WillReturnRows(rows)
 			},
@@ -84,7 +86,7 @@ func TestRepliePg_GetReplie(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "ok",
+			name: "Ok",
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id", "message_id", "title"}).
 					AddRow(1, 1, "test")
@@ -96,7 +98,7 @@ func TestRepliePg_GetReplie(t *testing.T) {
 			want:  &model.Replie{ID: 1, MessageID: 1, Title: "test"},
 		},
 		{
-			name: "channel not found",
+			name: "replie not found",
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id", "message_id", "title"})
 
@@ -141,14 +143,13 @@ func TestRepliePg_GetReplies(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "ok",
+			name: "Ok",
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id", "message_id", "title"}).
 					AddRow(1, 1, "test1").
 					AddRow(2, 2, "test2")
 
 				mock.ExpectQuery("SELECT * FROM replie;").
-					WithArgs().
 					WillReturnRows(rows)
 			},
 			want: []model.Replie{
@@ -173,7 +174,6 @@ func TestRepliePg_GetReplies(t *testing.T) {
 			tt.mock()
 
 			got, err := r.GetReplies()
-
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -204,7 +204,7 @@ func TestRepliePg_GetReplieByName(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "ok",
+			name: "Ok",
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id", "message_id", "title"}).
 					AddRow(1, 1, "test")
@@ -232,7 +232,6 @@ func TestRepliePg_GetReplieByName(t *testing.T) {
 			tt.mock()
 
 			got, err := r.GetReplieByName(tt.input)
-
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -262,7 +261,7 @@ func TestRepliePg_DeleteReplie(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "ok",
+			name: "Ok",
 			mock: func() {
 				mock.ExpectExec("DELETE FROM replie WHERE id=$1;").
 					WithArgs(1).WillReturnResult(sqlmock.NewResult(0, 1))
@@ -285,7 +284,6 @@ func TestRepliePg_DeleteReplie(t *testing.T) {
 			tt.mock()
 
 			err := r.DeleteReplie(tt.input)
-
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

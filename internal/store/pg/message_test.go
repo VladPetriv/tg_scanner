@@ -2,7 +2,6 @@ package pg
 
 import (
 	"database/sql"
-	"fmt"
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
@@ -56,7 +55,6 @@ func TestMessagePg_CreateMessage(t *testing.T) {
 			tt.mock()
 
 			got, err := r.CreateMessage(&tt.input)
-
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -116,7 +114,6 @@ func TestMessagePg_GetMessage(t *testing.T) {
 			tt.mock()
 
 			got, err := r.GetMessage(tt.input)
-			fmt.Println("Hello from", err, tt.input)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -161,7 +158,7 @@ func TestMessagePg_GetMessages(t *testing.T) {
 			},
 		},
 		{
-			name: "channels not found",
+			name: "message not found",
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id", "channel_id", "title"})
 
@@ -177,7 +174,6 @@ func TestMessagePg_GetMessages(t *testing.T) {
 			tt.mock()
 
 			got, err := r.GetMessages()
-
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -225,7 +221,7 @@ func TestMessagePg_GetMessageByName(t *testing.T) {
 				rows := sqlmock.NewRows([]string{"id", "channel_id", "title"})
 
 				mock.ExpectQuery("SELECT * FROM message WHERE title=$1;").
-					WillReturnRows(rows)
+					WithArgs().WillReturnRows(rows)
 			},
 			wantErr: true,
 		},
@@ -236,7 +232,6 @@ func TestMessagePg_GetMessageByName(t *testing.T) {
 			tt.mock()
 
 			got, err := r.GetMessageByName(tt.input)
-
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -289,7 +284,6 @@ func TestMessagePg_DeleteMessage(t *testing.T) {
 			tt.mock()
 
 			err := r.DeleteMessage(tt.input)
-
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
