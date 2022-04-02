@@ -15,7 +15,7 @@ func NewReplieDbService(store *store.Store) *ReplieDbService {
 	return &ReplieDbService{store: store}
 }
 
-func (s *ReplieDbService) GetReplies() (*[]model.Replie, error) {
+func (s *ReplieDbService) GetReplies() ([]model.Replie, error) {
 	replies, err := s.store.Replie.GetReplies()
 	if err != nil {
 		return nil, fmt.Errorf("[Replie] Service.GetReplies error: %w", err)
@@ -55,7 +55,7 @@ func (s *ReplieDbService) GetReplieByName(name string) (*model.Replie, error) {
 }
 
 func (s *ReplieDbService) CreateReplie(replie *model.Replie) error {
-	err := s.store.Replie.CreateReplie(replie)
+	_, err := s.store.Replie.CreateReplie(replie)
 	if err != nil {
 		return fmt.Errorf("[Replie] Service.CreateReplie error: %v", err)
 	}

@@ -21,9 +21,9 @@ type MessageRepo interface {
 }
 
 type ReplieRepo interface {
-	GetReplies() (*[]model.Replie, error)
+	GetReplies() ([]model.Replie, error)
 	GetReplie(replieId int) (*model.Replie, error)
 	GetReplieByName(name string) (*model.Replie, error)
-	CreateReplie(replie *model.Replie) error
+	CreateReplie(replie *model.Replie) (int, error)
 	DeleteReplie(replieId int) error
 }
