@@ -6,6 +6,8 @@ import (
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/client"
 	"github.com/VladPetriv/tg_scanner/internal/file"
+	"github.com/VladPetriv/tg_scanner/internal/handler"
+	"github.com/VladPetriv/tg_scanner/internal/server"
 	"github.com/VladPetriv/tg_scanner/internal/service"
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/logger"
@@ -39,6 +41,19 @@ func main() {
 	if err != nil {
 		log.Error(err)
 	}
+
+	// Create instance of server
+	srv := new(server.Server)
+
+	// Initialize handler
+	handler := handler.NewHandler(serviceManager)
+
+	go func() {
+		log.Info("Starting server")
+		if err := srv.Run(cfg.BindAddr, handler.InitRoutes()); err != nil {
+			log.Error(err)
+		}
+	}()
 
 	client.Run(serviceManager, &waitGroup, cfg, log)
 }
