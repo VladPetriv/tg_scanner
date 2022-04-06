@@ -77,7 +77,7 @@ func (repo *ChannelPgRepo) GetChannelByName(name string) (*model.Channel, error)
 	}
 
 	if channel.Name == "" {
-		return nil, fmt.Errorf("channel not found")
+		return nil, nil
 	}
 
 	return channel, nil

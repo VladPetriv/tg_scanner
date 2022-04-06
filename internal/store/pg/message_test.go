@@ -223,7 +223,7 @@ func TestMessagePg_GetMessageByName(t *testing.T) {
 				mock.ExpectQuery("SELECT * FROM message WHERE title=$1;").
 					WithArgs().WillReturnRows(rows)
 			},
-			wantErr: true,
+			want: nil,
 		},
 	}
 

@@ -223,7 +223,7 @@ func TestRepliePg_GetReplieByName(t *testing.T) {
 				mock.ExpectQuery("SELECT * FROM replie WHERE title=$1;").
 					WithArgs().WillReturnRows(rows)
 			},
-			wantErr: true,
+			want: nil,
 		},
 	}
 

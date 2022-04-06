@@ -13,6 +13,7 @@ import (
 
 type Group struct {
 	ID         int
+	ChannelID  int
 	Title      string
 	AccessHash int
 	Username   string

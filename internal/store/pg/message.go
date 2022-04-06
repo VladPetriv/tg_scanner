@@ -80,7 +80,7 @@ func (repo *MessageRepo) GetMessageByName(name string) (*model.Message, error) {
 	}
 
 	if message.Title == "" {
-		return nil, fmt.Errorf("message  not found")
+		return nil, nil
 	}
 
 	return message, nil

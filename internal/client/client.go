@@ -67,7 +67,7 @@ func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cf
 	}
 }
 
-func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, wg *sync.WaitGroup, log *logger.Logger) {
+func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []channel.Group, wg *sync.WaitGroup, log *logger.Logger) {
 	defer wg.Done()
 
 	path := "./data/incoming.json"
@@ -95,6 +95,12 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, wg *sync.
 				continue
 			}
 
+			for _, group := range groups {
+				if group.ID == msg.PeerID.ChannelID {
+					msg.PeerID = group
+				}
+			}
+
 			messagesFromFile = append(messagesFromFile, *msg)
 		}
 
@@ -118,14 +124,6 @@ func SaveToDb(serviceManager *service.Manager, log *logger.Logger) {
 		}
 
 		for _, msg := range messages {
-			messageCandidate, err := serviceManager.Message.GetMessageByName(msg.Message)
-			if err != nil {
-				log.Error(err)
-			}
-			if messageCandidate.Title == msg.Message {
-				continue
-			}
-
 			channel, err := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
 			if err != nil {
 				log.Error(err)
@@ -138,11 +136,8 @@ func SaveToDb(serviceManager *service.Manager, log *logger.Logger) {
 
 			for _, replie := range msg.Replies.Messages {
 				replieCandidate, err := serviceManager.Replie.GetReplieByName(replie.Message)
-				if err != nil {
+				if replieCandidate != nil || err != nil {
 					log.Error(err)
-				}
-
-				if replieCandidate.Title == replie.Message {
 					continue
 				}
 
@@ -179,17 +174,18 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 		}
 
 		waitGroup.Add(3) // nolint
+
 		// Get user data
 		uData, _ := user.GetUser().AsNotEmpty()
-
-		// Getting incoming messages
-		go GetNewMessage(ctx, uData, api, waitGroup, log)
 
 		// Getting all groups
 		groups, err := channel.GetAllGroups(ctx, api)
 		if err != nil {
 			return fmt.Errorf("GROUPS_ERROR:%w", err)
 		}
+
+		// Getting incoming messages
+		go GetNewMessage(ctx, uData, api, groups, waitGroup, log)
 
 		// Create files for groups
 		file.CreateFilesForGroups(groups)

@@ -81,7 +81,7 @@ func (repo *ReplieRepo) GetReplieByName(name string) (*model.Replie, error) {
 	}
 
 	if replie.Title == "" {
-		return nil, fmt.Errorf("replie not found")
+		return nil, nil
 	}
 
 	return replie, nil

@@ -224,7 +224,7 @@ func TestChannelPg_GetByName(t *testing.T) {
 				mock.ExpectQuery("SELECT * FROM channel WHERE name=$1;").
 					WithArgs().WillReturnRows(rows)
 			},
-			wantErr: true,
+			want: nil,
 		},
 	}
 

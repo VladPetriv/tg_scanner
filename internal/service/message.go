@@ -24,7 +24,7 @@ func (s *MessageDbService) GetMessages() ([]model.Message, error) {
 	}
 
 	if messages == nil {
-		return nil, fmt.Errorf("messages not found")
+		return nil, nil
 	}
 
 	return messages, nil
@@ -50,7 +50,7 @@ func (s *MessageDbService) GetMessageByName(name string) (*model.Message, error)
 	}
 
 	if message == nil {
-		return nil, fmt.Errorf("message not found")
+		return nil, nil
 	}
 
 	return message, nil
@@ -62,7 +62,7 @@ func (s *MessageDbService) CreateMessage(message *model.Message) error {
 		return err
 	}
 
-	if candidate.Title == message.Title {
+	if candidate != nil {
 		return fmt.Errorf("message with name %s is exist", message.Title)
 	}
 
