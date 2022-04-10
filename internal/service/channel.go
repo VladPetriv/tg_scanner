@@ -49,7 +49,7 @@ func (s *ChannelDbService) GetChannelByName(name string) (*model.Channel, error)
 		return nil, fmt.Errorf("[Channel] Service.GetChannelByName error: %w", err)
 	}
 	if channel == nil {
-		return nil, fmt.Errorf("channel not found")
+		return nil, nil
 	}
 
 	return channel, nil
@@ -61,7 +61,7 @@ func (s *ChannelDbService) CreateChannel(channel *model.Channel) error {
 		return err
 	}
 
-	if candidate.Name == channel.Name {
+	if candidate != nil {
 		return fmt.Errorf("channel with name %s is exist", channel.Name)
 	}
 
