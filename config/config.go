@@ -15,7 +15,6 @@ type Config struct {
 	PgUser     string
 	PgPassword string
 	PgDb       string
-	BindAddr   string
 }
 
 func Get() (*Config, error) {
@@ -32,6 +31,5 @@ func Get() (*Config, error) {
 		PgUser:     os.Getenv("POSTGRES_USER"),
 		PgPassword: os.Getenv("POSTGRES_PASSWORD"),
 		PgDb:       os.Getenv("POSTGRES_DB"),
-		BindAddr:   os.Getenv("BIND_ADDR"),
 	}, nil
 }
