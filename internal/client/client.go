@@ -95,12 +95,6 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []
 				continue
 			}
 
-			for _, group := range groups {
-				if group.ID == msg.PeerID.ChannelID {
-					msg.PeerID = group
-				}
-			}
-
 			messagesFromFile = append(messagesFromFile, *msg)
 		}
 
@@ -115,7 +109,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []
 	}
 }
 
-func SaveToDb(serviceManager *service.Manager, log *logger.Logger) {
+func SaveToDb(ctx context.Context, serviceManager *service.Manager, api *tg.Client, log *logger.Logger) {
 	for {
 		log.Info("Start saving messages to db")
 		messages, err := file.ParseFromFiles("data")
@@ -124,6 +118,11 @@ func SaveToDb(serviceManager *service.Manager, log *logger.Logger) {
 		}
 
 		for _, msg := range messages {
+			err := message.GetRepliesForMessageBeforeSave(ctx, &msg, api)
+			if err != nil {
+				log.Error(err)
+			}
+
 			channel, err := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
 			if err != nil {
 				log.Error(err)
@@ -201,7 +200,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 		}
 
 		time.Sleep(time.Second * 5)
-		go SaveToDb(serviceManager, log)
+		go SaveToDb(ctx, serviceManager, api, log)
 
 		waitGroup.Wait()
 		return nil

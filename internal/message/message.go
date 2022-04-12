@@ -134,9 +134,32 @@ func GetIncomingMessages(ctx context.Context, user *tg.User, groups []channel.Gr
 		if err != nil {
 			continue
 		}
+		for _, group := range groups {
+			if msg.PeerID.ChannelID == group.ID {
+				msg.PeerID = group
+			}
+		}
 
 		msgs = append(msgs, msg)
 	}
 
 	return msgs, nil
+}
+
+func GetRepliesForMessageBeforeSave(ctx context.Context, message *Message, api *tg.Client) error {
+	replie, err := GetReplies(ctx, message, &tg.InputPeerChannel{
+		ChannelID:  int64(message.PeerID.ID),
+		AccessHash: int64(message.PeerID.AccessHash),
+	}, api)
+	if err != nil {
+		return err
+	}
+
+	messageReplie := ProcessRepliesMessage(replie)
+
+	for _, replie := range messageReplie {
+		message.Replies.Messages = append(message.Replies.Messages, replie)
+	}
+
+	return nil
 }
