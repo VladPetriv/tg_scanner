@@ -9,7 +9,6 @@ import (
 
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/gotd/td/tg"
-	"github.com/sirupsen/logrus"
 )
 
 type Message struct {
@@ -72,10 +71,7 @@ func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessag
 func GetReplies(ctx context.Context, message *Message, channelPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
 	bInt := big.NewInt(10000) // nolint
 
-	value, err := rand.Int(rand.Reader, bInt)
-	if err != nil {
-		logrus.Errorf("ERROR_WHILE_GENERATE_RANDOM_INT:%s", err)
-	}
+	value, _ := rand.Int(rand.Reader, bInt)
 
 	replies, err := api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{ // nolint
 		Peer:  channelPeer,
@@ -83,7 +79,7 @@ func GetReplies(ctx context.Context, message *Message, channelPeer *tg.InputPeer
 		Hash:  value.Int64(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_GETTING_REPLIES:%w", err)
+		return nil, fmt.Errorf("error while getting replies:%w", err)
 	}
 
 	return replies, nil
@@ -112,7 +108,7 @@ func ProcessRepliesMessage(replies tg.MessagesMessagesClass) []RepliesMessage {
 	return repliesMessages
 }
 
-func GetIncomingMessages(ctx context.Context, user *tg.User, api *tg.Client) ([]Message, error) {
+func GetIncomingMessages(ctx context.Context, user *tg.User, groups []channel.Group, api *tg.Client) ([]Message, error) {
 	msgs := make([]Message, 0)
 
 	var msg Message
@@ -124,7 +120,7 @@ func GetIncomingMessages(ctx context.Context, user *tg.User, api *tg.Client) ([]
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_GETTING_DIALOGS:%w", err)
+		return nil, fmt.Errorf("error while getting incoming message: %w", err)
 	}
 
 	modifiedData, _ := data.AsModified()

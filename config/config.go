@@ -19,7 +19,7 @@ type Config struct {
 
 func Get() (*Config, error) {
 	if err := godotenv.Load("configs/.config.env"); err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_LOAD_ENV_FILE:%w", err)
+		return nil, fmt.Errorf("load env file error: %w", err)
 	}
 
 	limit, _ := strconv.Atoi(os.Getenv("LIMIT"))

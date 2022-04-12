@@ -64,7 +64,7 @@ func Login(ctx context.Context, client *telegram.Client, cfg *config.Config) (*t
 	)
 	// Authorization
 	if err := client.Auth().IfNecessary(ctx, flow); err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_TRY_TO_AUTH:%w", err)
+		return nil, fmt.Errorf("authentication error: %w", err)
 	}
 
 	// Authorization with password
@@ -72,7 +72,7 @@ func Login(ctx context.Context, client *telegram.Client, cfg *config.Config) (*t
 
 	user, err := client.Auth().Password(ctx, password)
 	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_TRY_TO_AUTH:%w", err)
+		return nil, fmt.Errorf("authentication error: %w", err)
 	}
 
 	return user, nil

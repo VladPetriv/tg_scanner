@@ -84,7 +84,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []
 			log.Error(err)
 		}
 
-		incomingMessage, err := message.GetIncomingMessages(ctx, user, api)
+		incomingMessage, err := message.GetIncomingMessages(ctx, user, groups, api)
 		if err != nil {
 			log.Error(err)
 		}

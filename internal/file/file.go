@@ -14,17 +14,17 @@ import (
 func WriteMessagesToFile(msgs []message.Message, fileName string) error {
 	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644) // nolint
 	if err != nil {
-		return fmt.Errorf("ERROR_WHILE_OPENING_FILE: %w", err)
+		return fmt.Errorf("error while open file: %w", err)
 	}
 
 	messages, err := json.Marshal(msgs)
 	if err != nil {
-		return fmt.Errorf("ERROR_WHILE_CREATEING_JSON: %w", err)
+		return fmt.Errorf("error while createing json: %w", err)
 	}
 
 	_, err = file.Write(messages)
 	if err != nil {
-		return fmt.Errorf("ERROR_WHILE_WRITING_TO_FILE: %w", err)
+		return fmt.Errorf("error while writing to file: %w", err)
 	}
 
 	return nil
@@ -35,22 +35,22 @@ func GetMessagesFromFile(fileName string) ([]message.Message, error) {
 
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		return nil, fmt.Errorf("error while reading file: %w", err)
+		return nil, fmt.Errorf("read file error: %w", err)
 	}
 
 	err = json.Unmarshal(data, &messages)
 	if err != nil {
-		return nil, fmt.Errorf("error while createing JSON: %w", err)
+		return nil, fmt.Errorf("create JSON error: %w", err)
 	}
 
 	file, err := os.Create(fileName)
 	if err != nil {
-		return nil, fmt.Errorf("error while createing file: %w", err)
+		return nil, fmt.Errorf("create file error: %w", err)
 	}
 
 	_, err = file.WriteString("")
 	if err != nil {
-		return nil, fmt.Errorf("error while writing to file: %w", err)
+		return nil, fmt.Errorf("write file error: %w", err)
 	}
 
 	return messages, nil
@@ -62,32 +62,33 @@ func CreateFilesForGroups(groups []channel.Group) {
 		if _, err := os.Stat("./data/" + fileName); err == nil {
 			continue
 		}
+
 		file, err := os.Create(fileName)
 		if err != nil {
-			logrus.Errorf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
+			logrus.Errorf("create file error: %s", err)
 		}
+
 		_, err = file.WriteString("[]")
 		if err != nil {
-			logrus.Errorf("ERROR_WHILE_WRITING_TO_FILE: %s", err)
+			logrus.Errorf("write file error: %s", err)
 		}
 
 		err = os.Rename(fileName, fmt.Sprintf("./data/%s", fileName))
 		if err != nil {
-			logrus.Errorf("ERROR_WHILE_WORKING_WITH_FILES:%s", err)
+			logrus.Errorf("rename file error:%s", err)
 		}
 	}
-
 }
 
 func CreateFileForIncoming() error {
 	file, err := os.Create("./data/incoming.json")
 	if os.IsNotExist(err) {
-		return fmt.Errorf("ERROR_WHILE_CREATE_FILE: %w", err)
+		return fmt.Errorf("create file error: %w", err)
 	}
 
 	_, err = file.WriteString("[]")
 	if err != nil {
-		return fmt.Errorf("ERROR_WHILE_WRITING_TO_FILE: %w", err)
+		return fmt.Errorf("write file error: %w", err)
 	}
 
 	return nil
@@ -96,7 +97,7 @@ func CreateFileForIncoming() error {
 func CreateFileForLogger(path string) (*os.File, error) {
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640) // nolint
 	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_OPEN_FILE: %w", err)
+		return nil, fmt.Errorf("open file error: %w", err)
 	}
 
 	return file, nil
@@ -105,12 +106,12 @@ func CreateFileForLogger(path string) (*os.File, error) {
 func CreateDirs() error {
 	err := os.Mkdir("data", 0o755) // nolint
 	if os.IsNotExist(err) {
-		return fmt.Errorf("ERROR_WHILE_CREATE_DIR: %w", err)
+		return fmt.Errorf("create dir error: %w", err)
 	}
 
 	err = os.Mkdir("logs", 0o755) // nolint
 	if os.IsNotExist(err) {
-		return fmt.Errorf("ERROR_WHILE_CREATE_DIR: %w", err)
+		return fmt.Errorf("create dir error: %w", err)
 	}
 
 	return nil
@@ -121,12 +122,12 @@ func ParseFromFiles(path string) ([]message.Message, error) {
 
 	dir, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_OPEN_DIR: %w", err)
+		return nil, fmt.Errorf("open dir error: %w", err)
 	}
 
 	files, err := dir.ReadDir(0)
 	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_READ_DIR: %w", err)
+		return nil, fmt.Errorf("read dir error: %w", err)
 	}
 
 	for _, file := range files {
@@ -139,17 +140,17 @@ func ParseFromFiles(path string) ([]message.Message, error) {
 
 		err = os.Remove(pathToFile)
 		if err != nil {
-			return nil, fmt.Errorf("ERROR_WHILE_REMOVE_FILE: %w", err)
+			return nil, fmt.Errorf("remove file error: %w", err)
 		}
 
 		f, err := os.Create(pathToFile)
 		if err != nil {
-			return nil, fmt.Errorf("ERROR_WHILE_OPEN_FILE: %w", err)
+			return nil, fmt.Errorf("open file error: %w", err)
 		}
 
 		_, err = f.WriteString("[  ]")
 		if err != nil {
-			return nil, fmt.Errorf("error while writing to file: %w", err)
+			return nil, fmt.Errorf("write file error: %w", err)
 		}
 
 		messages = append(messages, data...)

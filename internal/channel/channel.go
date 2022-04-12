@@ -8,7 +8,6 @@ import (
 	"math/big"
 
 	"github.com/gotd/td/tg"
-	"github.com/sirupsen/logrus"
 )
 
 type Group struct {
@@ -22,17 +21,14 @@ type Group struct {
 func GetChannelHistory(ctx context.Context, limit int, cPeer tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
 	bInt := big.NewInt(10000) // nolint
 
-	value, err := rand.Int(rand.Reader, bInt)
-	if err != nil {
-		logrus.Errorf("ERROR_WHILE_GENERATE_RANDOM_INT:%s", err)
-	}
+	value, _ := rand.Int(rand.Reader, bInt)
 
 	result, err := api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{ // nolint
 		Peer: &cPeer,
 		Hash: value.Int64(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_GETTING_MESSAGES:%w", err)
+		return nil, fmt.Errorf("getting message from history error: %w", err)
 	}
 
 	return result, nil
@@ -43,7 +39,7 @@ func GetAllGroups(ctx context.Context, api *tg.Client) ([]Group, error) {
 
 	data, err := api.MessagesGetAllChats(ctx, []int64{})
 	if err != nil {
-		return nil, fmt.Errorf("ERROR_WHILE_GETTING_GROUPS:%w", err)
+		return nil, fmt.Errorf("getting group error: %w", err)
 	}
 
 	var newGroup Group
