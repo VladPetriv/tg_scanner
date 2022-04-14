@@ -12,7 +12,6 @@ import (
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
 	"github.com/gotd/td/tg"
-	"github.com/sirupsen/logrus"
 )
 
 type noSignUp struct{}
@@ -42,7 +41,7 @@ func (a TermAuth) Password(_ context.Context) (string, error) {
 }
 
 func (a TermAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
-	logrus.Info("Enter code: ")
+	fmt.Println("Enter code: ")
 
 	code, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {

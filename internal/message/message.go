@@ -147,8 +147,14 @@ func GetIncomingMessages(ctx context.Context, user *tg.User, groups []channel.Gr
 }
 
 func GetRepliesForMessageBeforeSave(ctx context.Context, message *Message, api *tg.Client) error {
+	var id int
+	if message.PeerID.ChannelID == 0 {
+		id = message.PeerID.ID
+	} else {
+		id = message.PeerID.ChannelID
+	}
 	replie, err := GetReplies(ctx, message, &tg.InputPeerChannel{
-		ChannelID:  int64(message.PeerID.ID),
+		ChannelID:  int64(id),
 		AccessHash: int64(message.PeerID.AccessHash),
 	}, api)
 	if err != nil {

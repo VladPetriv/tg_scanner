@@ -196,7 +196,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 				log.Error(err)
 			}
 
-			go GetFromHistory(ctx, group, api, cfg, waitGroup, log)
+			// go GetFromHistory(ctx, group, api, cfg, waitGroup, log)
 		}
 
 		time.Sleep(time.Second * 5)
