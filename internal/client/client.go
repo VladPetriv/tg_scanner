@@ -19,54 +19,56 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-func GetFromHistory(ctx context.Context, group channel.Group, api *tg.Client, cfg *config.Config, wg *sync.WaitGroup, log *logger.Logger) { // nolint
+func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *config.Config, wg *sync.WaitGroup, api *tg.Client, log *logger.Logger) {
 	time.Sleep(time.Second * 10)
 	defer wg.Done()
-
-	path := fmt.Sprintf("./data/%s.json", group.Username)
-
 	for {
-		log.Info("Start parsing messages from telgram")
-		data, err := channel.GetChannelHistory(ctx, cfg.Limit, tg.InputPeerChannel{
-			ChannelID:  int64(group.ID),
-			AccessHash: int64(group.AccessHash),
-		}, api)
-		if err != nil {
-			log.Error(err)
-		}
-
-		modifiedData, _ := data.AsModified()
-
-		messages := message.GetMessagesFromTelegram(ctx, modifiedData, &tg.InputPeerChannel{
-			ChannelID:  int64(group.ID),
-			AccessHash: int64(group.AccessHash),
-		}, api)
-
-		messagesFromFile, err := file.GetMessagesFromFile(path)
-		if err != nil {
-			log.Error(err)
-		}
-
-		for index := range messages {
-			msg, ok := filter.Messages(&messages[index])
-			if !ok {
-				continue
+		for _, group := range groups {
+			log.Infof("Start getting messages from history[%s]", group.Username)
+			fileName := fmt.Sprintf("./data/%s.json", group.Username)
+			data, err := channel.GetChannelHistory(ctx, cfg.Limit, &tg.InputPeerChannel{
+				ChannelID:  int64(group.ID),
+				AccessHash: int64(group.AccessHash),
+			}, api)
+			if err != nil {
+				log.Error(err)
 			}
-			msg.PeerID = group
-			messagesFromFile = append(messagesFromFile, *msg)
+
+			modifiedData, _ := data.AsModified()
+
+			messages := message.GetMessagesFromTelegram(ctx, modifiedData, &tg.InputPeerChannel{
+				ChannelID:  int64(group.ID),
+				AccessHash: int64(group.AccessHash),
+			}, api)
+
+			messagesFromFile, err := file.GetMessagesFromFile(fileName)
+			if err != nil {
+				log.Error(err)
+			}
+
+			for _, msg := range messages {
+				msg, ok := filter.Messages(&msg)
+				if !ok {
+					continue
+				}
+				msg.PeerID = group
+				messagesFromFile = append(messagesFromFile, *msg)
+			}
+
+			result := filter.RemoveDuplicateByMessage(messagesFromFile)
+
+			err = file.WriteMessagesToFile(result, fileName)
+			if err != nil {
+				log.Error(err)
+			}
+
+			time.Sleep(time.Second * 10)
 		}
 
-		result := filter.RemoveDuplicateByMessage(messagesFromFile)
-
-		err = file.WriteMessagesToFile(result, path)
-		if err != nil {
-			log.Error(err)
-		}
-
-		time.Sleep(time.Minute * 10)
+		time.Sleep(time.Minute * 30)
 	}
-}
 
+}
 func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []channel.Group, wg *sync.WaitGroup, log *logger.Logger) {
 	defer wg.Done()
 
@@ -195,11 +197,9 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			if err != nil {
 				log.Error(err)
 			}
-
-			// go GetFromHistory(ctx, group, api, cfg, waitGroup, log)
 		}
 
-		time.Sleep(time.Second * 5)
+		go GetMessagesFromHistory(ctx, groups, cfg, waitGroup, api, log)
 		go SaveToDb(ctx, serviceManager, api, log)
 
 		waitGroup.Wait()
