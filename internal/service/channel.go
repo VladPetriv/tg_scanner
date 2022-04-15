@@ -7,17 +7,17 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/store"
 )
 
-type ChannelDbService struct {
+type ChannelDBService struct {
 	store *store.Store
 }
 
-func NewChannelDbService(store *store.Store) *ChannelDbService {
-	return &ChannelDbService{
+func NewChannelDBService(store *store.Store) *ChannelDBService {
+	return &ChannelDBService{
 		store: store,
 	}
 }
 
-func (s *ChannelDbService) GetChannels() ([]model.Channel, error) {
+func (s *ChannelDBService) GetChannels() ([]model.Channel, error) {
 	channels, err := s.store.Channel.GetChannels()
 	if err != nil {
 		return nil, fmt.Errorf("[Channel] Service.GetChannels error: %w", err)
@@ -30,8 +30,8 @@ func (s *ChannelDbService) GetChannels() ([]model.Channel, error) {
 	return channels, nil
 }
 
-func (s *ChannelDbService) GetChannel(channelId int) (*model.Channel, error) {
-	channel, err := s.store.Channel.GetChannel(channelId)
+func (s *ChannelDBService) GetChannel(channelID int) (*model.Channel, error) {
+	channel, err := s.store.Channel.GetChannel(channelID)
 	if err != nil {
 		return nil, fmt.Errorf("[Channel] Service.GetChannel error: %w", err)
 	}
@@ -43,11 +43,12 @@ func (s *ChannelDbService) GetChannel(channelId int) (*model.Channel, error) {
 	return channel, nil
 }
 
-func (s *ChannelDbService) GetChannelByName(name string) (*model.Channel, error) {
+func (s *ChannelDBService) GetChannelByName(name string) (*model.Channel, error) {
 	channel, err := s.store.Channel.GetChannelByName(name)
 	if err != nil {
 		return nil, fmt.Errorf("[Channel] Service.GetChannelByName error: %w", err)
 	}
+
 	if channel == nil {
 		return nil, nil
 	}
@@ -55,7 +56,7 @@ func (s *ChannelDbService) GetChannelByName(name string) (*model.Channel, error)
 	return channel, nil
 }
 
-func (s *ChannelDbService) CreateChannel(channel *model.Channel) error {
+func (s *ChannelDBService) CreateChannel(channel *model.Channel) error {
 	candidate, err := s.GetChannelByName(channel.Name)
 	if err != nil {
 		return err
@@ -73,8 +74,8 @@ func (s *ChannelDbService) CreateChannel(channel *model.Channel) error {
 	return nil
 }
 
-func (s *ChannelDbService) DeleteChannel(channelId int) error {
-	err := s.store.Channel.DeleteChannel(channelId)
+func (s *ChannelDBService) DeleteChannel(channelID int) error {
+	err := s.store.Channel.DeleteChannel(channelID)
 	if err != nil {
 		return fmt.Errorf("[Channel] Service error: %w", err)
 	}

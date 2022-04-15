@@ -26,7 +26,8 @@ func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *co
 		for _, group := range groups {
 			log.Infof("Start getting messages from history[%s]", group.Username)
 			fileName := fmt.Sprintf("./data/%s.json", group.Username)
-			data, err := channel.GetChannelHistory(ctx, cfg.Limit, &tg.InputPeerChannel{
+
+			data, err := channel.GetChannelHistory(ctx, &tg.InputPeerChannel{
 				ChannelID:  int64(group.ID),
 				AccessHash: int64(group.AccessHash),
 			}, api)
@@ -51,6 +52,7 @@ func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *co
 				if !ok {
 					continue
 				}
+
 				msg.PeerID = group
 				messagesFromFile = append(messagesFromFile, *msg)
 			}
@@ -67,8 +69,8 @@ func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *co
 
 		time.Sleep(time.Minute * 30)
 	}
-
 }
+
 func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []channel.Group, wg *sync.WaitGroup, log *logger.Logger) {
 	defer wg.Done()
 
@@ -81,6 +83,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []
 
 	for {
 		log.Info("Start getting incoming messages")
+
 		messagesFromFile, err := file.GetMessagesFromFile(path)
 		if err != nil {
 			log.Error(err)
@@ -114,6 +117,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []
 func SaveToDb(ctx context.Context, serviceManager *service.Manager, api *tg.Client, log *logger.Logger) {
 	for {
 		log.Info("Start saving messages to db")
+
 		messages, err := file.ParseFromFiles("data")
 		if err != nil {
 			log.Error(err)
@@ -139,6 +143,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, api *tg.Clie
 				replieCandidate, err := serviceManager.Replie.GetReplieByName(replie.Message)
 				if replieCandidate != nil || err != nil {
 					log.Error(err)
+
 					continue
 				}
 
@@ -203,6 +208,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 		go SaveToDb(ctx, serviceManager, api, log)
 
 		waitGroup.Wait()
+
 		return nil
 	}); err != nil {
 		log.Error(err)

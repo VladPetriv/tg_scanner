@@ -1,7 +1,7 @@
 package model
 
 type Message struct {
-	ID        int    `json:"ID"`
-	ChannelID int    `json:"ChannelID"`
-	Title     string `json:"Title"`
+	ID        int    `json:"id"`
+	ChannelID int    `json:"channelId`
+	Title     string `json:"title"`
 }

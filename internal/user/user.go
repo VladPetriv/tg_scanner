@@ -18,6 +18,7 @@ type User struct {
 
 func GetUserInfo(ctx context.Context, userID int, messageID int, cPeer *tg.InputPeerChannel, api *tg.Client) (*User, error) {
 	var user *User
+
 	data, err := api.UsersGetFullUser(ctx, &tg.InputUserFromMessage{
 		Peer:   cPeer,
 		UserID: int64(userID),
@@ -26,8 +27,10 @@ func GetUserInfo(ctx context.Context, userID int, messageID int, cPeer *tg.Input
 	if err != nil {
 		return nil, fmt.Errorf("getting user error: %w", err)
 	}
+
 	for _, u := range data.Users {
 		notEmptyUser, _ := u.AsNotEmpty()
+
 		encodedData, err := json.Marshal(notEmptyUser)
 		if err != nil {
 			return nil, fmt.Errorf("creating JSON error: %w", err)

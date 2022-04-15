@@ -3,8 +3,8 @@ package pg
 import (
 	"database/sql"
 	"fmt"
+
 	"github.com/VladPetriv/tg_scanner/config"
-	_ "github.com/lib/pq"
 )
 
 type DB struct {

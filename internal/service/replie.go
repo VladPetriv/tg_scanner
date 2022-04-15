@@ -7,15 +7,15 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/store"
 )
 
-type ReplieDbService struct {
+type ReplieDBService struct {
 	store *store.Store
 }
 
-func NewReplieDbService(store *store.Store) *ReplieDbService {
-	return &ReplieDbService{store: store}
+func NewReplieDBService(store *store.Store) *ReplieDBService {
+	return &ReplieDBService{store: store}
 }
 
-func (s *ReplieDbService) GetReplies() ([]model.Replie, error) {
+func (s *ReplieDBService) GetReplies() ([]model.Replie, error) {
 	replies, err := s.store.Replie.GetReplies()
 	if err != nil {
 		return nil, fmt.Errorf("[Replie] Service.GetReplies error: %w", err)
@@ -28,8 +28,8 @@ func (s *ReplieDbService) GetReplies() ([]model.Replie, error) {
 	return replies, nil
 }
 
-func (s *ReplieDbService) GetReplie(replieId int) (*model.Replie, error) {
-	replie, err := s.store.Replie.GetReplie(replieId)
+func (s *ReplieDBService) GetReplie(replieID int) (*model.Replie, error) {
+	replie, err := s.store.Replie.GetReplie(replieID)
 	if err != nil {
 		return nil, fmt.Errorf("[Replie] Service.GetReplie error: %w", err)
 	}
@@ -41,7 +41,7 @@ func (s *ReplieDbService) GetReplie(replieId int) (*model.Replie, error) {
 	return replie, nil
 }
 
-func (s *ReplieDbService) GetReplieByName(name string) (*model.Replie, error) {
+func (s *ReplieDBService) GetReplieByName(name string) (*model.Replie, error) {
 	replie, err := s.store.Replie.GetReplieByName(name)
 	if err != nil {
 		return nil, fmt.Errorf("[Replie] Service.GetReplieByName error: %w", err)
@@ -54,17 +54,17 @@ func (s *ReplieDbService) GetReplieByName(name string) (*model.Replie, error) {
 	return replie, nil
 }
 
-func (s *ReplieDbService) CreateReplie(replie *model.Replie) error {
+func (s *ReplieDBService) CreateReplie(replie *model.Replie) error {
 	_, err := s.store.Replie.CreateReplie(replie)
 	if err != nil {
-		return fmt.Errorf("[Replie] Service.CreateReplie error: %v", err)
+		return fmt.Errorf("[Replie] Service.CreateReplie error: %w", err)
 	}
 
 	return nil
 }
 
-func (s *ReplieDbService) DeleteReplie(replieId int) error {
-	err := s.store.Replie.DeleteReplie(replieId)
+func (s *ReplieDBService) DeleteReplie(replieID int) error {
+	err := s.store.Replie.DeleteReplie(replieID)
 	if err != nil {
 		return fmt.Errorf("[Replie] Service.DeleteReplie error: %w", err)
 	}

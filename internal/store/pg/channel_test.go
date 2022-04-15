@@ -1,4 +1,4 @@
-package pg
+package pg_test
 
 import (
 	"database/sql"
@@ -6,6 +6,7 @@ import (
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/VladPetriv/tg_scanner/internal/model"
+	"github.com/VladPetriv/tg_scanner/internal/store/pg"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,7 @@ func TestChannelPg_CreateChannel(t *testing.T) {
 
 	defer db.Close()
 
-	r := NewChannelRepo(&DB{DB: db})
+	r := pg.NewChannelRepo(&pg.DB{DB: db})
 
 	tests := []struct {
 		name    string
@@ -77,7 +78,7 @@ func TestChannelPg_GetChannel(t *testing.T) {
 
 	defer db.Close()
 
-	r := NewChannelRepo(&DB{DB: db})
+	r := pg.NewChannelRepo(&pg.DB{DB: db})
 
 	tests := []struct {
 		name    string
@@ -136,7 +137,7 @@ func TestChannelPg_GetChannels(t *testing.T) {
 
 	defer db.Close()
 
-	r := NewChannelRepo(&DB{DB: db})
+	r := pg.NewChannelRepo(&pg.DB{DB: db})
 
 	tests := []struct {
 		name    string
@@ -195,7 +196,7 @@ func TestChannelPg_GetByName(t *testing.T) {
 
 	defer db.Close()
 
-	r := NewChannelRepo(&DB{DB: db})
+	r := pg.NewChannelRepo(&pg.DB{DB: db})
 
 	tests := []struct {
 		name    string
@@ -253,7 +254,7 @@ func TestChannelPg_DeleteChannel(t *testing.T) {
 
 	defer db.Close()
 
-	r := NewChannelRepo(&DB{DB: db})
+	r := pg.NewChannelRepo(&pg.DB{DB: db})
 
 	tests := []struct {
 		name    string

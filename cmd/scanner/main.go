@@ -9,6 +9,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/service"
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/logger"
+	_ "github.com/lib/pq"
 )
 
 func main() {

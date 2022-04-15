@@ -135,6 +135,7 @@ func GetIncomingMessages(ctx context.Context, user *tg.User, groups []channel.Gr
 		if err != nil {
 			continue
 		}
+
 		for _, group := range groups {
 			if msg.PeerID.ChannelID == group.ID {
 				msg.PeerID = group
@@ -154,6 +155,7 @@ func GetRepliesForMessageBeforeSave(ctx context.Context, message *Message, api *
 	} else {
 		id = message.PeerID.ChannelID
 	}
+
 	replie, err := GetReplies(ctx, message, &tg.InputPeerChannel{
 		ChannelID:  int64(id),
 		AccessHash: int64(message.PeerID.AccessHash),
@@ -164,9 +166,7 @@ func GetRepliesForMessageBeforeSave(ctx context.Context, message *Message, api *
 
 	messageReplie := ProcessRepliesMessage(replie)
 
-	for _, replie := range messageReplie {
-		message.Replies.Messages = append(message.Replies.Messages, replie)
-	}
+	message.Replies.Messages = append(message.Replies.Messages, messageReplie...)
 
 	time.Sleep(time.Second * 2)
 
