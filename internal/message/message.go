@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/gotd/td/tg"
@@ -166,6 +167,8 @@ func GetRepliesForMessageBeforeSave(ctx context.Context, message *Message, api *
 	for _, replie := range messageReplie {
 		message.Replies.Messages = append(message.Replies.Messages, replie)
 	}
+
+	time.Sleep(time.Second * 2)
 
 	return nil
 }

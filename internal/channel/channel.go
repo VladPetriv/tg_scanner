@@ -18,15 +18,14 @@ type Group struct {
 	Username   string
 }
 
-func GetChannelHistory(ctx context.Context, limit int, cPeer tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
+func GetChannelHistory(ctx context.Context, cPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
 	bInt := big.NewInt(10000) // nolint
 
 	value, _ := rand.Int(rand.Reader, bInt)
 
 	result, err := api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{ // nolint
-		Peer:  &cPeer,
-		Hash:  value.Int64(),
-		Limit: limit,
+		Peer: cPeer,
+		Hash: value.Int64(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("getting message from history error: %w", err)
