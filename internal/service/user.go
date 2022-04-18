@@ -40,20 +40,20 @@ func (s *UserDBService) GetUserByUsername(username string) (*model.User, error) 
 	return user, nil
 }
 
-func (s *UserDBService) CreateUser(user *model.User) error {
+func (s *UserDBService) CreateUser(user *model.User) (int, error) {
 	candidate, err := s.store.User.GetUserByUsername(user.Username)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if candidate != nil {
-		return fmt.Errorf("User with username %s is exist", user.Username)
+		return 0, fmt.Errorf("User with username %s is exist", user.Username)
 	}
 
-	_, err = s.store.User.CreateUser(user)
+	id, err := s.store.User.CreateUser(user)
 	if err != nil {
-		return fmt.Errorf("[User] Service.CreateUser error: %w", err)
+		return 0, fmt.Errorf("[User] Service.CreateUser error: %w", err)
 	}
 
-	return nil
+	return id, nil
 }

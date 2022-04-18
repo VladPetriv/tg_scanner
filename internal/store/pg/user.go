@@ -68,5 +68,5 @@ func (repo *UserRepo) CreateUser(user *model.User) (int, error) {
 		return 0, fmt.Errorf("error while creating user: %w", err)
 	}
 
-	return 1, nil
+	return id, nil
 }

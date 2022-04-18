@@ -28,5 +28,5 @@ type ReplieService interface {
 type UserService interface {
 	GetUsers() ([]model.User, error)
 	GetUserByUsername(username string) (*model.User, error)
-	CreateUser(user *model.User) error
+	CreateUser(user *model.User) (int, error)
 }
