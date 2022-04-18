@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/VladPetriv/tg_scanner/internal/channel"
+	"github.com/VladPetriv/tg_scanner/internal/user"
 	"github.com/gotd/td/tg"
 )
 
 type Message struct {
 	ID      int
 	Message string
-	FromID  tg.PeerUser
+	FromID  user.User
 	PeerID  channel.Group
 	Replies Replies
 	ReplyTo ReplyTo
@@ -28,7 +29,7 @@ type Replies struct {
 
 type RepliesMessage struct {
 	ID      int
-	FromID  tg.PeerUser
+	FromID  user.User
 	Message string
 	ReplyTo interface{}
 }
