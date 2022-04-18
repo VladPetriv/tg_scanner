@@ -32,10 +32,10 @@ func TestUserPg_CreateUser(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 
-				mock.ExpectQuery("INSERT INTO user (username, firstname, lastname, photourl) VALUES ($1, $2, $3, $4) RETURNING id;").
-					WithArgs("test", "test", "test", "test.jpg").WillReturnRows(rows)
+				mock.ExpectQuery("INSERT INTO user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;").
+					WithArgs("test", "test test", "test.jpg").WillReturnRows(rows)
 			},
-			input: model.User{Username: "test", FirstName: "test", LastName: "test", PhotoURL: "test.jpg"},
+			input: model.User{Username: "test", FullName: "test test", PhotoURL: "test.jpg"},
 			want:  1,
 		},
 		{
@@ -43,8 +43,8 @@ func TestUserPg_CreateUser(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"})
 
-				mock.ExpectQuery("INSERT INTO user (username, firstname, lastname, photourl) VALUES ($1, $2, $3, $4) RETURNING id;").
-					WithArgs("", "", "", "").WillReturnRows(rows)
+				mock.ExpectQuery("INSERT INTO user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;").
+					WithArgs("", "", "").WillReturnRows(rows)
 			},
 			input:   model.User{},
 			wantErr: true,
@@ -87,22 +87,22 @@ func TestUserPg_GetUsers(t *testing.T) {
 		{
 			name: "Ok",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "username", "firstname", "lastname", "photourl"}).
-					AddRow(1, "test1", "test1", "test1", "test1.jpg").
-					AddRow(2, "test2", "test2", "test2", "test2.jpg")
+				rows := sqlmock.NewRows([]string{"id", "username", "fullname", "photourl"}).
+					AddRow(1, "test1", "test test1", "test1.jpg").
+					AddRow(2, "test2", "test test2", "test2.jpg")
 
 				mock.ExpectQuery("SELECT * FROM user;").
 					WillReturnRows(rows)
 			},
 			want: []model.User{
-				{ID: 1, Username: "test1", FirstName: "test1", LastName: "test1", PhotoURL: "test1.jpg"},
-				{ID: 2, Username: "test2", FirstName: "test2", LastName: "test2", PhotoURL: "test2.jpg"},
+				{ID: 1, Username: "test1", FullName: "test test1", PhotoURL: "test1.jpg"},
+				{ID: 2, Username: "test2", FullName: "test test2", PhotoURL: "test2.jpg"},
 			},
 		},
 		{
 			name: "users not found",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "username", "firstname", "lastname", "photourl"})
+				rows := sqlmock.NewRows([]string{"id", "username", "fullname", "photourl"})
 
 				mock.ExpectQuery("SELECT * FROM user;").
 					WillReturnRows(rows)
@@ -149,25 +149,24 @@ func TestUserPg_GetUserByUsername(t *testing.T) {
 		{
 			name: "Ok",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "username", "firstname", "lastname", "photourl"}).
-					AddRow(1, "test", "test", "test", "test.jpg")
+				rows := sqlmock.NewRows([]string{"id", "username", "fullname", "photourl"}).
+					AddRow(1, "test", "test test", "test.jpg")
 
 				mock.ExpectQuery("SELECT * FROM user WHERE username=$1;").
 					WithArgs("test").WillReturnRows(rows)
 			},
 			input: "test",
 			want: &model.User{
-				ID:        1,
-				Username:  "test",
-				FirstName: "test",
-				LastName:  "test",
-				PhotoURL:  "test.jpg",
+				ID:       1,
+				Username: "test",
+				FullName: "test test",
+				PhotoURL: "test.jpg",
 			},
 		},
 		{
 			name: "Empty fields",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "username", "firstname", "lastname", "photourl"})
+				rows := sqlmock.NewRows([]string{"id", "username", "fullname", "photourl"})
 
 				mock.ExpectQuery("SELECT * FROM user WHERE username=$1;").
 					WithArgs().WillReturnRows(rows)
