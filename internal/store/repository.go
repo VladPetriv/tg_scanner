@@ -27,3 +27,9 @@ type ReplieRepo interface {
 	CreateReplie(replie *model.Replie) (int, error)
 	DeleteReplie(replieID int) error
 }
+
+type UserRepo interface {
+	GetUsers() ([]model.User, error)
+	GetUserByUsername(username string) (*model.User, error)
+	CreateUser(user *model.User) (int, error)
+}
