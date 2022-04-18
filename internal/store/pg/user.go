@@ -56,7 +56,7 @@ func (repo *UserRepo) GetUserByUsername(username string) (*model.User, error) {
 	}
 
 	if user.Username == "" {
-		return nil, fmt.Errorf("user not found")
+		return nil, nil
 	}
 
 	return user, nil

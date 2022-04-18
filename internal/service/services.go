@@ -24,3 +24,9 @@ type ReplieService interface {
 	CreateReplie(replie *model.Replie) error
 	DeleteReplie(replieID int) error
 }
+
+type UserService interface {
+	GetUsers() ([]model.User, error)
+	GetUserByUsername(username string) (*model.User, error)
+	CreateUser(user *model.User) error
+}

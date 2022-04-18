@@ -16,6 +16,7 @@ type Store struct {
 	Channel ChannelRepo
 	Message MessageRepo
 	Replie  ReplieRepo
+	User    UserRepo
 }
 
 func New(cfg config.Config, log *logger.Logger) (*Store, error) {
@@ -31,6 +32,7 @@ func New(cfg config.Config, log *logger.Logger) (*Store, error) {
 		store.Channel = pg.NewChannelRepo(pgDB)
 		store.Message = pg.NewMessageRepo(pgDB)
 		store.Replie = pg.NewReplieRepo(pgDB)
+		store.User = pg.NewUserRepo(pgDB)
 
 		go store.KeepAliveDB(cfg)
 	}

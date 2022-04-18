@@ -171,7 +171,7 @@ func TestUserPg_GetUserByUsername(t *testing.T) {
 				mock.ExpectQuery("SELECT * FROM user WHERE username=$1;").
 					WithArgs().WillReturnRows(rows)
 			},
-			wantErr: true,
+			want: nil,
 		},
 	}
 
