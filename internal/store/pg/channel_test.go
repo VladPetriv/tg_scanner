@@ -7,11 +7,12 @@ import (
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/store/pg"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestChannelPg_CreateChannel(t *testing.T) {
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, err := utils.CreateMock()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
@@ -71,7 +72,7 @@ func TestChannelPg_CreateChannel(t *testing.T) {
 }
 
 func TestChannelPg_GetChannel(t *testing.T) {
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, err := utils.CreateMock()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
@@ -130,7 +131,7 @@ func TestChannelPg_GetChannel(t *testing.T) {
 }
 
 func TestChannelPg_GetChannels(t *testing.T) {
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, err := utils.CreateMock()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
@@ -189,7 +190,7 @@ func TestChannelPg_GetChannels(t *testing.T) {
 }
 
 func TestChannelPg_GetByName(t *testing.T) {
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, err := utils.CreateMock()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
@@ -247,7 +248,7 @@ func TestChannelPg_GetByName(t *testing.T) {
 }
 
 func TestChannelPg_DeleteChannel(t *testing.T) {
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, err := utils.CreateMock()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
