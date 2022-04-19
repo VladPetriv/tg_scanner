@@ -56,22 +56,22 @@ func (s *MessageDBService) GetMessageByName(name string) (*model.Message, error)
 	return message, nil
 }
 
-func (s *MessageDBService) CreateMessage(message *model.Message) error {
+func (s *MessageDBService) CreateMessage(message *model.Message) (int, error) {
 	candidate, err := s.GetMessageByName(message.Title)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if candidate != nil {
-		return fmt.Errorf("message with name %s is exist", message.Title)
+		return 0, fmt.Errorf("message with name %s is exist", message.Title)
 	}
 
-	_, err = s.store.Message.CreateMessage(message)
+	id, err := s.store.Message.CreateMessage(message)
 	if err != nil {
-		return fmt.Errorf("[Message] Service.CreateMessage error: %w", err)
+		return id, fmt.Errorf("[Message] Service.CreateMessage error: %w", err)
 	}
 
-	return nil
+	return id, nil
 }
 
 func (s *MessageDBService) DeleteMessage(messageID int) error {

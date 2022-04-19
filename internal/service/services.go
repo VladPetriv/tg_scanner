@@ -13,7 +13,7 @@ type MessageService interface {
 	GetMessages() ([]model.Message, error)
 	GetMessage(messagelID int) (*model.Message, error)
 	GetMessageByName(name string) (*model.Message, error)
-	CreateMessage(message *model.Message) error
+	CreateMessage(message *model.Message) (int, error)
 	DeleteMessage(messageID int) error
 }
 

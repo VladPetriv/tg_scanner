@@ -14,6 +14,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/message"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/service"
+	"github.com/VladPetriv/tg_scanner/internal/user"
 	"github.com/VladPetriv/tg_scanner/logger"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/tg"
@@ -129,34 +130,41 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, api *tg.Clie
 				log.Error(err)
 			}
 
+			u, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
+				ChannelID:  int64(msg.PeerID.ID),
+				AccessHash: int64(msg.PeerID.AccessHash),
+			}, api)
+			if err != nil {
+				log.Error(err)
+
+				continue
+			}
+
+			msg.FromID = *u
+
 			channel, err := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
 			if err != nil {
 				log.Error(err)
 			}
 
-			err = serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, Title: msg.Message})
+			fullName := fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName)
+			id, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: "test.jpg"})
+			if err != nil {
+				log.Error(err)
+			}
+
+			message_id, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: id, Title: msg.Message})
 			if err != nil {
 				log.Error(err)
 			}
 
 			for _, replie := range msg.Replies.Messages {
-				replieCandidate, err := serviceManager.Replie.GetReplieByName(replie.Message)
-				if replieCandidate != nil || err != nil {
-					log.Error(err)
-
-					continue
-				}
-
-				message, err := serviceManager.Message.GetMessageByName(msg.Message)
-				if err != nil {
-					log.Error(err)
-				}
-
-				err = serviceManager.Replie.CreateReplie(&model.Replie{MessageID: message.ID, Title: replie.Message})
+				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: id, MessageID: message_id, Title: replie.Message})
 				if err != nil {
 					log.Error(err)
 				}
 			}
+
 		}
 		time.Sleep(time.Minute * 15)
 	}

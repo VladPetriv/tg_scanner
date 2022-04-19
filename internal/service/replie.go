@@ -55,7 +55,16 @@ func (s *ReplieDBService) GetReplieByName(name string) (*model.Replie, error) {
 }
 
 func (s *ReplieDBService) CreateReplie(replie *model.Replie) error {
-	_, err := s.store.Replie.CreateReplie(replie)
+	candidate, err := s.GetReplieByName(replie.Title)
+	if err != nil {
+		return err
+	}
+
+	if candidate != nil {
+		return fmt.Errorf("replie with name %s is exist", replie.Title)
+	}
+
+	_, err = s.store.Replie.CreateReplie(replie)
 	if err != nil {
 		return fmt.Errorf("[Replie] Service.CreateReplie error: %w", err)
 	}

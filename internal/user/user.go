@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/gotd/td/tg"
 )
@@ -41,6 +42,7 @@ func GetUserInfo(ctx context.Context, userID int, messageID int, cPeer *tg.Input
 			return nil, fmt.Errorf("unmarshal JSON error: %w", err)
 		}
 	}
+	time.Sleep(time.Second)
 
 	return user, nil
 }
