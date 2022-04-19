@@ -32,7 +32,7 @@ func TestUserPg_CreateUser(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 
-				mock.ExpectQuery("INSERT INTO user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;").
+				mock.ExpectQuery("INSERT INTO tg_user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;").
 					WithArgs("test", "test test", "test.jpg").WillReturnRows(rows)
 			},
 			input: model.User{Username: "test", FullName: "test test", PhotoURL: "test.jpg"},
@@ -43,7 +43,7 @@ func TestUserPg_CreateUser(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"})
 
-				mock.ExpectQuery("INSERT INTO user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;").
+				mock.ExpectQuery("INSERT INTO tg_user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;").
 					WithArgs("", "", "").WillReturnRows(rows)
 			},
 			input:   model.User{},
@@ -91,7 +91,7 @@ func TestUserPg_GetUsers(t *testing.T) {
 					AddRow(1, "test1", "test test1", "test1.jpg").
 					AddRow(2, "test2", "test test2", "test2.jpg")
 
-				mock.ExpectQuery("SELECT * FROM user;").
+				mock.ExpectQuery("SELECT * FROM tg_user;").
 					WillReturnRows(rows)
 			},
 			want: []model.User{
@@ -104,7 +104,7 @@ func TestUserPg_GetUsers(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id", "username", "fullname", "photourl"})
 
-				mock.ExpectQuery("SELECT * FROM user;").
+				mock.ExpectQuery("SELECT * FROM tg_user;").
 					WillReturnRows(rows)
 			},
 			wantErr: true,
@@ -152,7 +152,7 @@ func TestUserPg_GetUserByUsername(t *testing.T) {
 				rows := sqlmock.NewRows([]string{"id", "username", "fullname", "photourl"}).
 					AddRow(1, "test", "test test", "test.jpg")
 
-				mock.ExpectQuery("SELECT * FROM user WHERE username=$1;").
+				mock.ExpectQuery("SELECT * FROM tg_user WHERE username=$1;").
 					WithArgs("test").WillReturnRows(rows)
 			},
 			input: "test",
@@ -168,7 +168,7 @@ func TestUserPg_GetUserByUsername(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id", "username", "fullname", "photourl"})
 
-				mock.ExpectQuery("SELECT * FROM user WHERE username=$1;").
+				mock.ExpectQuery("SELECT * FROM tg_user WHERE username=$1;").
 					WithArgs().WillReturnRows(rows)
 			},
 			want: nil,

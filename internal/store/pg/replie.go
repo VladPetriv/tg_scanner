@@ -24,7 +24,7 @@ func (repo *ReplieRepo) GetReplies() ([]model.Replie, error) {
 	defer rows.Close()
 	for rows.Next() {
 		replie := model.Replie{}
-		err := rows.Scan(&replie.ID, &replie.MessageID, &replie.Title)
+		err := rows.Scan(&replie.ID, &replie.UserID, &replie.MessageID, &replie.Title)
 		if err != nil {
 			continue
 		}
@@ -50,7 +50,7 @@ func (repo *ReplieRepo) GetReplie(replieId int) (*model.Replie, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.Scan(&replie.ID, &replie.MessageID, &replie.Title)
+		err := rows.Scan(&replie.ID, &replie.UserID, &replie.MessageID, &replie.Title)
 		if err != nil {
 			continue
 		}
@@ -74,7 +74,7 @@ func (repo *ReplieRepo) GetReplieByName(name string) (*model.Replie, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.Scan(&replie.ID, &replie.MessageID, &replie.Title)
+		err := rows.Scan(&replie.ID, &replie.UserID, &replie.MessageID, &replie.Title)
 		if err != nil {
 			continue
 		}
@@ -89,7 +89,7 @@ func (repo *ReplieRepo) GetReplieByName(name string) (*model.Replie, error) {
 
 func (repo *ReplieRepo) CreateReplie(replie *model.Replie) (int, error) {
 	var id int
-	row := repo.db.QueryRow("INSERT INTO replie (message_id, title) VALUES ($1, $2) RETURNING id;", replie.MessageID, replie.Title)
+	row := repo.db.QueryRow("INSERT INTO replie (user_id, message_id, title) VALUES ($1, $2, $3) RETURNING id;", replie.UserID, replie.MessageID, replie.Title)
 	if err := row.Scan(&id); err != nil {
 		return 0, fmt.Errorf("error while creating replie: %w", err)
 	}

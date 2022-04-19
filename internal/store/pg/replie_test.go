@@ -32,11 +32,11 @@ func TestRepliePg_CreateReplie(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 
-				mock.ExpectQuery("INSERT INTO replie (message_id, title) VALUES ($1, $2) RETURNING id;").
-					WithArgs(1, "test").WillReturnRows(rows)
+				mock.ExpectQuery("INSERT INTO replie (user_id, message_id, title) VALUES ($1, $2, $3) RETURNING id;").
+					WithArgs(1, 1, "test").WillReturnRows(rows)
 
 			},
-			input: model.Replie{MessageID: 1, Title: "test"},
+			input: model.Replie{UserID: 1, MessageID: 1, Title: "test"},
 			want:  1,
 		},
 		{
@@ -44,7 +44,7 @@ func TestRepliePg_CreateReplie(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"})
 
-				mock.ExpectQuery("INSERT INTO replie (message_id, title) VALUES ($1, $2) RETURNING id;").
+				mock.ExpectQuery("INSERT INTO replie (user_id, message_id, title) VALUES ($1, $2, $3) RETURNING id;").
 					WithArgs().WillReturnRows(rows)
 			},
 			input:   model.Replie{},
@@ -89,19 +89,19 @@ func TestRepliePg_GetReplie(t *testing.T) {
 		{
 			name: "Ok",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "message_id", "title"}).
-					AddRow(1, 1, "test")
+				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title"}).
+					AddRow(1, 1, 1, "test")
 
 				mock.ExpectQuery("SELECT * FROM replie WHERE id=$1;").
 					WithArgs(1).WillReturnRows(rows)
 			},
 			input: 1,
-			want:  &model.Replie{ID: 1, MessageID: 1, Title: "test"},
+			want:  &model.Replie{ID: 1, UserID: 1, MessageID: 1, Title: "test"},
 		},
 		{
 			name: "replie not found",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "message_id", "title"})
+				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title"})
 
 				mock.ExpectQuery("SELECT * FROM replie WHERE id=$1;").
 					WithArgs().WillReturnRows(rows)
@@ -146,16 +146,16 @@ func TestRepliePg_GetReplies(t *testing.T) {
 		{
 			name: "Ok",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "message_id", "title"}).
-					AddRow(1, 1, "test1").
-					AddRow(2, 2, "test2")
+				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title"}).
+					AddRow(1, 1, 1, "test1").
+					AddRow(2, 2, 2, "test2")
 
 				mock.ExpectQuery("SELECT * FROM replie;").
 					WillReturnRows(rows)
 			},
 			want: []model.Replie{
-				{ID: 1, MessageID: 1, Title: "test1"},
-				{ID: 2, MessageID: 2, Title: "test2"},
+				{ID: 1, UserID: 1, MessageID: 1, Title: "test1"},
+				{ID: 2, UserID: 2, MessageID: 2, Title: "test2"},
 			},
 		},
 		{
@@ -207,19 +207,19 @@ func TestRepliePg_GetReplieByName(t *testing.T) {
 		{
 			name: "Ok",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "message_id", "title"}).
-					AddRow(1, 1, "test")
+				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title"}).
+					AddRow(1, 1, 1, "test")
 
 				mock.ExpectQuery("SELECT * FROM replie WHERE title=$1;").
 					WithArgs("test").WillReturnRows(rows)
 			},
 			input: "test",
-			want:  &model.Replie{ID: 1, MessageID: 1, Title: "test"},
+			want:  &model.Replie{ID: 1, UserID: 1, MessageID: 1, Title: "test"},
 		},
 		{
 			name: "replie not found",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "message_id", "title"})
+				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title"})
 
 				mock.ExpectQuery("SELECT * FROM replie WHERE title=$1;").
 					WithArgs().WillReturnRows(rows)
