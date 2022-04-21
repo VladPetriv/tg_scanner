@@ -63,7 +63,7 @@ func (s *MessageDBService) CreateMessage(message *model.Message) (int, error) {
 	}
 
 	if candidate != nil {
-		return 0, fmt.Errorf("message with name %s is exist", message.Title)
+		return candidate.ID, fmt.Errorf("message with name %s is exist", message.Title)
 	}
 
 	id, err := s.store.Message.CreateMessage(message)

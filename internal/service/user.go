@@ -46,10 +46,6 @@ func (s *UserDBService) CreateUser(user *model.User) (int, error) {
 		return 0, err
 	}
 
-	if candidate.FullName == user.FullName {
-		return 0, fmt.Errorf("User with fullname %s is exist", user.FullName)
-	}
-
 	if candidate != nil {
 		return candidate.ID, fmt.Errorf("User with username %s is exist", user.Username)
 	}

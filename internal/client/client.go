@@ -55,6 +55,18 @@ func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *co
 				}
 
 				msg.PeerID = group
+
+				u, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
+					ChannelID:  int64(group.ID),
+					AccessHash: int64(group.AccessHash),
+				}, api)
+				if err != nil {
+					log.Error(err)
+
+					continue
+				}
+
+				msg.FromID = *u
 				messagesFromFile = append(messagesFromFile, *msg)
 			}
 
@@ -130,36 +142,30 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, api *tg.Clie
 				log.Error(err)
 			}
 
-			u, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
-				ChannelID:  int64(msg.PeerID.ID),
-				AccessHash: int64(msg.PeerID.AccessHash),
-			}, api)
-			if err != nil {
-				log.Error(err)
-
-				continue
-			}
-
-			msg.FromID = *u
-
 			channel, err := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
 			if err != nil {
 				log.Error(err)
 			}
 
 			fullName := fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName)
-			id, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: "test.jpg"})
+			user_id, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: "test.jpg"})
 			if err != nil {
 				log.Error(err)
 			}
 
-			message_id, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: id, Title: msg.Message})
+			message_id, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: user_id, Title: msg.Message})
 			if err != nil {
 				log.Error(err)
 			}
 
 			for _, replie := range msg.Replies.Messages {
-				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: id, MessageID: message_id, Title: replie.Message})
+				fullName := fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName)
+				user_id, err := serviceManager.User.CreateUser(&model.User{Username: replie.FromID.Username, FullName: fullName, PhotoURL: "test.jpg"})
+				if err != nil {
+					log.Error(err)
+				}
+
+				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: user_id, MessageID: message_id, Title: replie.Message})
 				if err != nil {
 					log.Error(err)
 				}

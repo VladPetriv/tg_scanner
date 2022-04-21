@@ -55,12 +55,13 @@ func (repo *UserRepo) GetUserByUsername(username string) (*model.User, error) {
 		}
 	}
 
-	if user.Username == "" {
+	if user.Username == "" || user.FullName == "" {
 		return nil, nil
 	}
 
 	return user, nil
 }
+
 func (repo *UserRepo) CreateUser(user *model.User) (int, error) {
 	var id int
 	row := repo.db.QueryRow("INSERT INTO tg_user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;", user.Username, user.FullName, user.PhotoURL)

@@ -60,7 +60,7 @@ func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessag
 			continue
 		}
 
-		repliesMessages := ProcessRepliesMessage(replies)
+		repliesMessages := ProcessRepliesMessage(ctx, replies, channelPeer, api)
 		msg.Replies.Count = len(repliesMessages)
 		msg.Replies.Messages = repliesMessages
 
@@ -87,7 +87,7 @@ func GetReplies(ctx context.Context, message *Message, channelPeer *tg.InputPeer
 	return replies, nil
 }
 
-func ProcessRepliesMessage(replies tg.MessagesMessagesClass) []RepliesMessage {
+func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass, cPeer *tg.InputPeerChannel, api *tg.Client) []RepliesMessage {
 	repliesMessages := make([]RepliesMessage, 0)
 
 	var replieMessage RepliesMessage
@@ -104,21 +104,29 @@ func ProcessRepliesMessage(replies tg.MessagesMessagesClass) []RepliesMessage {
 			continue
 		}
 
+		u, err := user.GetUserInfo(ctx, replieMessage.FromID.UserID, replieMessage.ID, cPeer, api)
+		if err != nil {
+			fmt.Printf("error while getting user info for replies[ProcessRepliesMessage]: %s", err)
+
+			continue
+		}
+
+		replieMessage.FromID = *u
 		repliesMessages = append(repliesMessages, replieMessage)
 	}
 
 	return repliesMessages
 }
 
-func GetIncomingMessages(ctx context.Context, user *tg.User, groups []channel.Group, api *tg.Client) ([]Message, error) {
+func GetIncomingMessages(ctx context.Context, tg_user *tg.User, groups []channel.Group, api *tg.Client) ([]Message, error) {
 	msgs := make([]Message, 0)
 
 	var msg Message
 
 	data, err := api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{ // nolint
 		OffsetPeer: &tg.InputPeerUser{
-			UserID:     user.ID,
-			AccessHash: user.AccessHash,
+			UserID:     tg_user.ID,
+			AccessHash: tg_user.AccessHash,
 		},
 	})
 	if err != nil {
@@ -137,11 +145,25 @@ func GetIncomingMessages(ctx context.Context, user *tg.User, groups []channel.Gr
 			continue
 		}
 
+		// Gettin group info for replie
 		for _, group := range groups {
 			if msg.PeerID.ChannelID == group.ID {
 				msg.PeerID = group
 			}
 		}
+
+		// Getting user info for replie
+		u, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
+			ChannelID:  int64(msg.PeerID.ID),
+			AccessHash: int64(msg.PeerID.AccessHash),
+		}, api)
+		if err != nil {
+			fmt.Printf("error while getting user info for incoming message: %s", err)
+
+			continue
+		}
+
+		msg.FromID = *u
 
 		msgs = append(msgs, msg)
 	}
@@ -150,19 +172,20 @@ func GetIncomingMessages(ctx context.Context, user *tg.User, groups []channel.Gr
 }
 
 func GetRepliesForMessageBeforeSave(ctx context.Context, message *Message, api *tg.Client) error {
-	replie, err := GetReplies(ctx, message, &tg.InputPeerChannel{
+	cPeer := &tg.InputPeerChannel{
 		ChannelID:  int64(message.PeerID.ID),
 		AccessHash: int64(message.PeerID.AccessHash),
-	}, api)
+	}
+	replies, err := GetReplies(ctx, message, cPeer, api)
 	if err != nil {
 		return err
 	}
 
-	messageReplie := ProcessRepliesMessage(replie)
+	messageReplie := ProcessRepliesMessage(ctx, replies, cPeer, api)
 
 	message.Replies.Messages = append(message.Replies.Messages, messageReplie...)
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 3)
 
 	return nil
 }

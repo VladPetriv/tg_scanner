@@ -42,7 +42,7 @@ func GetUserInfo(ctx context.Context, userID int, messageID int, cPeer *tg.Input
 			return nil, fmt.Errorf("unmarshal JSON error: %w", err)
 		}
 	}
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 3)
 
 	return user, nil
 }
