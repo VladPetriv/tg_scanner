@@ -11,6 +11,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
+	"github.com/VladPetriv/tg_scanner/internal/firebase"
 	"github.com/VladPetriv/tg_scanner/internal/message"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/service"
@@ -21,7 +22,7 @@ import (
 )
 
 func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *config.Config, wg *sync.WaitGroup, api *tg.Client, log *logger.Logger) {
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 20)
 	defer wg.Done()
 	for {
 		for _, group := range groups {
@@ -86,6 +87,7 @@ func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *co
 
 func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []channel.Group, wg *sync.WaitGroup, log *logger.Logger) {
 	defer wg.Done()
+	time.Sleep(time.Second * 20)
 
 	path := "./data/incoming.json"
 
@@ -127,7 +129,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []
 	}
 }
 
-func SaveToDb(ctx context.Context, serviceManager *service.Manager, api *tg.Client, log *logger.Logger) {
+func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.Config, api *tg.Client, log *logger.Logger) {
 	for {
 		log.Info("Start saving messages to db")
 
@@ -147,11 +149,34 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, api *tg.Clie
 				log.Error(err)
 			}
 
-			fullName := fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName)
-			user_id, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: "test.jpg"})
+			userPhotoData, err := user.GetUserPhoto(ctx, &msg.FromID, api)
 			if err != nil {
 				log.Error(err)
 			}
+
+			userImage, err := user.DecodeUserPhoto(userPhotoData)
+			if err != nil {
+				log.Error(err)
+			}
+			msg.FromID.Image = *userImage
+
+			fileName, err := file.CreateUserImage(&msg.FromID)
+			if err != nil {
+				log.Error(err)
+			}
+
+			imageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, msg.FromID.Username)
+			if err != nil {
+				log.Error(err)
+			}
+
+			fullName := fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName)
+			user_id, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: imageUrl})
+			if err != nil {
+				log.Error(err)
+			}
+
+			file.DeleteUserImage(&msg.FromID)
 
 			message_id, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: user_id, Title: msg.Message})
 			if err != nil {
@@ -204,9 +229,6 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			return fmt.Errorf("GROUPS_ERROR:%w", err)
 		}
 
-		// Getting incoming messages
-		go GetNewMessage(ctx, uData, api, groups, waitGroup, log)
-
 		// Create files for groups
 		file.CreateFilesForGroups(groups)
 
@@ -218,8 +240,10 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			}
 		}
 
+		go SaveToDb(ctx, serviceManager, cfg, api, log)
+
+		go GetNewMessage(ctx, uData, api, groups, waitGroup, log)
 		go GetMessagesFromHistory(ctx, groups, cfg, waitGroup, api, log)
-		go SaveToDb(ctx, serviceManager, api, log)
 
 		waitGroup.Wait()
 
