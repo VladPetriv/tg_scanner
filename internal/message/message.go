@@ -106,7 +106,7 @@ func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass
 
 		u, err := user.GetUserInfo(ctx, replieMessage.FromID.UserID, replieMessage.ID, cPeer, api)
 		if err != nil {
-			fmt.Printf("error while getting user info for replies[ProcessRepliesMessage]: %s", err)
+			fmt.Printf("error while getting user info for replies[ProcessRepliesMessage]: %s\n", err)
 
 			continue
 		}

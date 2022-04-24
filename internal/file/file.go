@@ -8,6 +8,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/message"
+	"github.com/VladPetriv/tg_scanner/internal/user"
 	"github.com/sirupsen/logrus"
 )
 
@@ -114,6 +115,11 @@ func CreateDirs() error {
 		return fmt.Errorf("create dir error: %w", err)
 	}
 
+	err = os.Mkdir("images", 0o755) // nolint
+	if os.IsNotExist(err) {
+		return fmt.Errorf("create dir error: %w", err)
+	}
+
 	return nil
 }
 
@@ -135,6 +141,7 @@ func ParseFromFiles(path string) ([]message.Message, error) {
 
 		data, err := GetMessagesFromFile(pathToFile)
 		if err != nil {
+			fmt.Printf("%s\n", err)
 			continue
 		}
 
@@ -159,4 +166,28 @@ func ParseFromFiles(path string) ([]message.Message, error) {
 	result := filter.RemoveDuplicateByMessage(messages)
 
 	return result, nil
+}
+
+func CreateUserImage(user *user.User) (string, error) {
+	path := fmt.Sprintf("./images/%s.jpg", user.Username)
+	image, err := os.Create(path)
+	if err != nil {
+		return "", fmt.Errorf("create file error: %w", err)
+	}
+
+	_, err = image.Write(user.Image.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("write file error: %w", err)
+	}
+
+	return path, nil
+}
+
+func DeleteUserImage(user *user.User) error {
+	err := os.Remove(fmt.Sprintf("./images/%s.jpg", user.Username))
+	if err != nil {
+		return fmt.Errorf("remove file error: %w", err)
+	}
+
+	return nil
 }
