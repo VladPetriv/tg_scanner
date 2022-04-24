@@ -5,9 +5,9 @@ CREATE TABLE channel (
 
 CREATE TABLE tg_user (
   id SERIAL PRIMARY KEY,
-  username VARCHAR(255),
-  fullname VARCHAR(255),
-  photourl VARCHAR(255)
+  username VARCHAR(255) UNIQUE NOT NULL,
+  fullname VARCHAR(255) UNIQUE NOT NULL,
+  photourl TEXT NOT NULL 
 );
 
 CREATE TABLE message (
