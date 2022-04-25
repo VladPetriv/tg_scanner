@@ -158,7 +158,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 			if err != nil {
 				log.Error(err)
 			}
-			msg.FromID.Image = *userImage
+			msg.FromID.Image = userImage
 
 			fileName, err := file.CreateUserImage(&msg.FromID)
 			if err != nil {
@@ -176,19 +176,40 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				log.Error(err)
 			}
 
-			file.DeleteUserImage(&msg.FromID)
-
 			message_id, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: user_id, Title: msg.Message})
 			if err != nil {
 				log.Error(err)
 			}
 
 			for _, replie := range msg.Replies.Messages {
-				fullName := fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName)
-				user_id, err := serviceManager.User.CreateUser(&model.User{Username: replie.FromID.Username, FullName: fullName, PhotoURL: "test.jpg"})
+				userRepliePhotoData, err := user.GetUserPhoto(ctx, &replie.FromID, api)
 				if err != nil {
 					log.Error(err)
 				}
+
+				userReplieImage, err := user.DecodeUserPhoto(userRepliePhotoData)
+				if err != nil {
+					log.Error(err)
+				}
+				msg.FromID.Image = userReplieImage
+
+				fileName, err := file.CreateUserImage(&replie.FromID)
+				if err != nil {
+					log.Error(err)
+				}
+
+				imageReplieUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, replie.FromID.Username)
+				if err != nil {
+					log.Error(err)
+				}
+
+				fullName := fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName)
+				user_id, err := serviceManager.User.CreateUser(&model.User{Username: replie.FromID.Username, FullName: fullName, PhotoURL: imageReplieUrl})
+				if err != nil {
+					log.Error(err)
+				}
+
+				file.DeleteUserImage(fileName)
 
 				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: user_id, MessageID: message_id, Title: replie.Message})
 				if err != nil {

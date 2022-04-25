@@ -17,7 +17,7 @@ type User struct {
 	Username   string
 	Photo      tg.UserProfilePhoto
 	AccessHash int
-	Image      UserImage
+	Image      *UserImage
 }
 
 type UserImage struct {
@@ -79,6 +79,10 @@ func GetUserPhoto(ctx context.Context, user *User, api *tg.Client) (tg.UploadFil
 }
 
 func DecodeUserPhoto(photo tg.UploadFileClass) (*UserImage, error) {
+	if photo == nil {
+		return nil, fmt.Errorf("photo is nil")
+	}
+
 	var userImage *UserImage
 
 	js, err := json.Marshal(photo)

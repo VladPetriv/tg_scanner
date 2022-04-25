@@ -169,6 +169,10 @@ func ParseFromFiles(path string) ([]message.Message, error) {
 }
 
 func CreateUserImage(user *user.User) (string, error) {
+	if user.Image == nil {
+		return "", fmt.Errorf("user image is nil")
+	}
+
 	path := fmt.Sprintf("./images/%s.jpg", user.Username)
 	image, err := os.Create(path)
 	if err != nil {
@@ -183,8 +187,8 @@ func CreateUserImage(user *user.User) (string, error) {
 	return path, nil
 }
 
-func DeleteUserImage(user *user.User) error {
-	err := os.Remove(fmt.Sprintf("./images/%s.jpg", user.Username))
+func DeleteUserImage(username string) error {
+	err := os.Remove(fmt.Sprintf("./images/%s.jpg", username))
 	if err != nil {
 		return fmt.Errorf("remove file error: %w", err)
 	}

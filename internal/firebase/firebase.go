@@ -53,6 +53,6 @@ func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, ob
 		return "", fmt.Errorf("closing firebase storage writer error: %w", err)
 	}
 
-	url := fmt.Sprintf("https://firebasestorage.googleapis.com/v0/b/%s/o/%s.jpg?alt=media", cfg.StorageBucket, objectName)
+	url := fmt.Sprintf("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media", cfg.StorageBucket, objectName)
 	return url, nil
 }
