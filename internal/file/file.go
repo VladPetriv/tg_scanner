@@ -8,8 +8,6 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/message"
-	"github.com/VladPetriv/tg_scanner/internal/user"
-	"github.com/sirupsen/logrus"
 )
 
 func WriteMessagesToFile(msgs []message.Message, fileName string) error {
@@ -57,7 +55,8 @@ func GetMessagesFromFile(fileName string) ([]message.Message, error) {
 	return messages, nil
 }
 
-func CreateFilesForGroups(groups []channel.Group) {
+func CreateFilesForGroups(groups []channel.Group) error {
+	groups = append(groups, channel.Group{Username: "incoming"})
 	for _, group := range groups {
 		fileName := fmt.Sprintf("%s.json", group.Username)
 		if _, err := os.Stat("./data/" + fileName); err == nil {
@@ -66,19 +65,20 @@ func CreateFilesForGroups(groups []channel.Group) {
 
 		file, err := os.Create(fileName)
 		if err != nil {
-			logrus.Errorf("create file error: %s", err)
+			return fmt.Errorf("create file error: %s", err)
 		}
 
 		_, err = file.WriteString("[]")
 		if err != nil {
-			logrus.Errorf("write file error: %s", err)
+			return fmt.Errorf("write file error: %s", err)
 		}
 
 		err = os.Rename(fileName, fmt.Sprintf("./data/%s", fileName))
 		if err != nil {
-			logrus.Errorf("rename file error:%s", err)
+			return fmt.Errorf("rename file error:%s", err)
 		}
 	}
+	return nil
 }
 
 func CreateFileForIncoming() error {
@@ -93,15 +93,6 @@ func CreateFileForIncoming() error {
 	}
 
 	return nil
-}
-
-func CreateFileForLogger(path string) (*os.File, error) {
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640) // nolint
-	if err != nil {
-		return nil, fmt.Errorf("open file error: %w", err)
-	}
-
-	return file, nil
 }
 
 func CreateDirs() error {
@@ -166,32 +157,4 @@ func ParseFromFiles(path string) ([]message.Message, error) {
 	result := filter.RemoveDuplicateByMessage(messages)
 
 	return result, nil
-}
-
-func CreateUserImage(user *user.User) (string, error) {
-	if user.Image == nil {
-		return "", fmt.Errorf("user image is nil")
-	}
-
-	path := fmt.Sprintf("./images/%s.jpg", user.Username)
-	image, err := os.Create(path)
-	if err != nil {
-		return "", fmt.Errorf("create file error: %w", err)
-	}
-
-	_, err = image.Write(user.Image.Bytes)
-	if err != nil {
-		return "", fmt.Errorf("write file error: %w", err)
-	}
-
-	return path, nil
-}
-
-func DeleteUserImage(username string) error {
-	err := os.Remove(fmt.Sprintf("./images/%s.jpg", username))
-	if err != nil {
-		return fmt.Errorf("remove file error: %w", err)
-	}
-
-	return nil
 }

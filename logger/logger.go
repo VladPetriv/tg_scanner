@@ -8,7 +8,6 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/sirupsen/logrus"
 )
 
@@ -59,7 +58,7 @@ func Init() {
 		FullTimestamp: true,
 	}
 
-	allFile, err := file.CreateFileForLogger("./logs/all.log")
+	allFile, err := os.OpenFile("./logs/all.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640)
 	if err != nil {
 		panic(fmt.Sprintf("[Error]: %s", err))
 	}
