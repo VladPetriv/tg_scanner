@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/gotd/td/tg"
@@ -95,4 +96,44 @@ func DecodeUserPhoto(photo tg.UploadFileClass) (*UserImage, error) {
 	}
 
 	return userImage, nil
+}
+
+func ProcessUserPhoto(ctx context.Context, user *User, api *tg.Client) (string, error) {
+	userPhotoData, err := GetUserPhoto(ctx, user, api)
+	if err != nil {
+		return "", fmt.Errorf("getting user photo data error: %w", err)
+	}
+
+	userImage, err := DecodeUserPhoto(userPhotoData)
+	if err != nil {
+		return "", fmt.Errorf("decode user photo error: %w", err)
+	}
+
+	user.Image = userImage
+
+	fileName, err := CreateUserImage(user)
+	if err != nil {
+		return "", fmt.Errorf("create user image error: %w", err)
+	}
+
+	return fileName, nil
+}
+
+func CreateUserImage(user *User) (string, error) {
+	if user.Image == nil {
+		return "", fmt.Errorf("user image is nil")
+	}
+
+	path := fmt.Sprintf("./images/%s.jpg", user.Username)
+	image, err := os.Create(path)
+	if err != nil {
+		return "", fmt.Errorf("create file error: %w", err)
+	}
+
+	_, err = image.Write(user.Image.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("write file error: %w", err)
+	}
+
+	return path, nil
 }
