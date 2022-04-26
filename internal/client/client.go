@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -91,11 +92,6 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []
 
 	path := "./data/incoming.json"
 
-	err := file.CreateFileForIncoming()
-	if err != nil {
-		log.Error(err)
-	}
-
 	for {
 		log.Info("Start getting incoming messages")
 
@@ -149,32 +145,23 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				log.Error(err)
 			}
 
-			userPhotoData, err := user.GetUserPhoto(ctx, &msg.FromID, api)
+			fileName, err := user.ProcessUserPhoto(ctx, &msg.FromID, api)
 			if err != nil {
 				log.Error(err)
 			}
 
-			userImage, err := user.DecodeUserPhoto(userPhotoData)
-			if err != nil {
-				log.Error(err)
-			}
-			msg.FromID.Image = userImage
-
-			fileName, err := file.CreateUserImage(&msg.FromID)
-			if err != nil {
-				log.Error(err)
-			}
-
-			imageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, msg.FromID.Username)
+			userImageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, msg.FromID.Username)
 			if err != nil {
 				log.Error(err)
 			}
 
 			fullName := fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName)
-			user_id, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: imageUrl})
+			user_id, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
 			if err != nil {
 				log.Error(err)
 			}
+
+			os.Remove(fmt.Sprintf("./images/%s.jpg", msg.FromID.Username))
 
 			message_id, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: user_id, Title: msg.Message})
 			if err != nil {
@@ -182,34 +169,23 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 			}
 
 			for _, replie := range msg.Replies.Messages {
-				userRepliePhotoData, err := user.GetUserPhoto(ctx, &replie.FromID, api)
+				fileName, err := user.ProcessUserPhoto(ctx, &replie.FromID, api)
 				if err != nil {
 					log.Error(err)
 				}
 
-				userReplieImage, err := user.DecodeUserPhoto(userRepliePhotoData)
-				if err != nil {
-					log.Error(err)
-				}
-				msg.FromID.Image = userReplieImage
-
-				fileName, err := file.CreateUserImage(&replie.FromID)
-				if err != nil {
-					log.Error(err)
-				}
-
-				imageReplieUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, replie.FromID.Username)
+				userImageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, replie.FromID.Username)
 				if err != nil {
 					log.Error(err)
 				}
 
 				fullName := fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName)
-				user_id, err := serviceManager.User.CreateUser(&model.User{Username: replie.FromID.Username, FullName: fullName, PhotoURL: imageReplieUrl})
+				user_id, err := serviceManager.User.CreateUser(&model.User{Username: replie.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
 				if err != nil {
 					log.Error(err)
 				}
 
-				file.DeleteUserImage(fileName)
+				os.Remove(fmt.Sprintf("./images/%s.jpg", msg.FromID.Username))
 
 				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: user_id, MessageID: message_id, Title: replie.Message})
 				if err != nil {
@@ -250,8 +226,10 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			return fmt.Errorf("GROUPS_ERROR:%w", err)
 		}
 
-		// Create files for groups
-		file.CreateFilesForGroups(groups)
+		err = file.CreateFilesForGroups(groups)
+		if err != nil {
+			log.Error(err)
+		}
 
 		// Getting group history
 		for _, group := range groups {
