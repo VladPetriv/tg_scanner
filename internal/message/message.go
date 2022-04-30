@@ -17,7 +17,7 @@ type Message struct {
 	ID      int
 	Message string
 	FromID  user.User
-	PeerID  channel.Group
+	PeerID  channel.Channel
 	Replies Replies
 	ReplyTo ReplyTo
 }
@@ -118,7 +118,7 @@ func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass
 	return repliesMessages
 }
 
-func GetIncomingMessages(ctx context.Context, tg_user *tg.User, groups []channel.Group, api *tg.Client) ([]Message, error) {
+func GetIncomingMessages(ctx context.Context, tg_user *tg.User, channels []channel.Channel, api *tg.Client) ([]Message, error) {
 	msgs := make([]Message, 0)
 
 	var msg Message
@@ -145,10 +145,10 @@ func GetIncomingMessages(ctx context.Context, tg_user *tg.User, groups []channel
 			continue
 		}
 
-		// Gettin group info for replie
-		for _, group := range groups {
-			if msg.PeerID.ChannelID == group.ID {
-				msg.PeerID = group
+		// Getting channel info for replie
+		for _, channel := range channels {
+			if msg.PeerID.ChannelID == channel.ID {
+				msg.PeerID = channel
 			}
 		}
 

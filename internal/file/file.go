@@ -55,10 +55,10 @@ func GetMessagesFromFile(fileName string) ([]message.Message, error) {
 	return messages, nil
 }
 
-func CreateFilesForGroups(groups []channel.Group) error {
-	groups = append(groups, channel.Group{Username: "incoming"})
-	for _, group := range groups {
-		fileName := fmt.Sprintf("%s.json", group.Username)
+func CreateFilesForChannels(channels []channel.Channel) error {
+	channels = append(channels, channel.Channel{Username: "incoming"})
+	for _, channel := range channels {
+		fileName := fmt.Sprintf("%s.json", channel.Username)
 		if _, err := os.Stat("./data/" + fileName); err == nil {
 			continue
 		}

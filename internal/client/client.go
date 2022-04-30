@@ -22,17 +22,17 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *config.Config, wg *sync.WaitGroup, api *tg.Client, log *logger.Logger) {
+func GetMessagesFromHistory(ctx context.Context, channels []channel.Channel, cfg *config.Config, wg *sync.WaitGroup, api *tg.Client, log *logger.Logger) {
 	time.Sleep(time.Second * 20)
 	defer wg.Done()
 	for {
-		for _, group := range groups {
-			log.Infof("Start getting messages from history[%s]", group.Username)
-			fileName := fmt.Sprintf("./data/%s.json", group.Username)
+		for _, chnl := range channels {
+			log.Infof("Start getting messages from history[%s]", chnl.Username)
+			fileName := fmt.Sprintf("./data/%s.json", chnl.Username)
 
 			data, err := channel.GetChannelHistory(ctx, &tg.InputPeerChannel{
-				ChannelID:  int64(group.ID),
-				AccessHash: int64(group.AccessHash),
+				ChannelID:  int64(chnl.ID),
+				AccessHash: int64(chnl.AccessHash),
 			}, api)
 			if err != nil {
 				log.Error(err)
@@ -41,8 +41,8 @@ func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *co
 			modifiedData, _ := data.AsModified()
 
 			messages := message.GetMessagesFromTelegram(ctx, modifiedData, &tg.InputPeerChannel{
-				ChannelID:  int64(group.ID),
-				AccessHash: int64(group.AccessHash),
+				ChannelID:  int64(chnl.ID),
+				AccessHash: int64(chnl.AccessHash),
 			}, api)
 
 			messagesFromFile, err := file.GetMessagesFromFile(fileName)
@@ -56,11 +56,11 @@ func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *co
 					continue
 				}
 
-				msg.PeerID = group
+				msg.PeerID = chnl
 
 				u, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
-					ChannelID:  int64(group.ID),
-					AccessHash: int64(group.AccessHash),
+					ChannelID:  int64(chnl.ID),
+					AccessHash: int64(chnl.AccessHash),
 				}, api)
 				if err != nil {
 					log.Error(err)
@@ -86,7 +86,7 @@ func GetMessagesFromHistory(ctx context.Context, groups []channel.Group, cfg *co
 	}
 }
 
-func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []channel.Group, wg *sync.WaitGroup, log *logger.Logger) {
+func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels []channel.Channel, wg *sync.WaitGroup, log *logger.Logger) {
 	defer wg.Done()
 	time.Sleep(time.Second * 20)
 
@@ -100,7 +100,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, groups []
 			log.Error(err)
 		}
 
-		incomingMessage, err := message.GetIncomingMessages(ctx, user, groups, api)
+		incomingMessage, err := message.GetIncomingMessages(ctx, user, channels, api)
 		if err != nil {
 			log.Error(err)
 		}
@@ -220,20 +220,20 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 		// Get user data
 		uData, _ := user.GetUser().AsNotEmpty()
 
-		// Getting all groups
-		groups, err := channel.GetAllGroups(ctx, api)
+		// Getting all channel
+		channels, err := channel.GetAllChannels(ctx, api)
 		if err != nil {
-			return fmt.Errorf("GROUPS_ERROR:%w", err)
+			return fmt.Errorf("Channel_ERROR:%w", err)
 		}
 
-		err = file.CreateFilesForGroups(groups)
+		err = file.CreateFilesForChannels(channels)
 		if err != nil {
 			log.Error(err)
 		}
 
-		// Getting group history
-		for _, group := range groups {
-			err := serviceManager.Channel.CreateChannel(&model.Channel{Name: group.Username})
+		// Getting channel history
+		for _, channel := range channels {
+			err := serviceManager.Channel.CreateChannel(&model.Channel{Name: channel.Username})
 			if err != nil {
 				log.Error(err)
 			}
@@ -241,8 +241,8 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 
 		go SaveToDb(ctx, serviceManager, cfg, api, log)
 
-		go GetNewMessage(ctx, uData, api, groups, waitGroup, log)
-		go GetMessagesFromHistory(ctx, groups, cfg, waitGroup, api, log)
+		go GetNewMessage(ctx, uData, api, channels, waitGroup, log)
+		go GetMessagesFromHistory(ctx, channels, cfg, waitGroup, api, log)
 
 		waitGroup.Wait()
 

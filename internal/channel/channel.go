@@ -10,7 +10,7 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-type Group struct {
+type Channel struct {
 	ID         int
 	ChannelID  int
 	Title      string
@@ -34,29 +34,29 @@ func GetChannelHistory(ctx context.Context, cPeer *tg.InputPeerChannel, api *tg.
 	return result, nil
 }
 
-func GetAllGroups(ctx context.Context, api *tg.Client) ([]Group, error) {
-	groups := make([]Group, 0)
+func GetAllChannels(ctx context.Context, api *tg.Client) ([]Channel, error) {
+	channels := make([]Channel, 0)
 
 	data, err := api.MessagesGetAllChats(ctx, []int64{})
 	if err != nil {
 		return nil, fmt.Errorf("getting group error: %w", err)
 	}
 
-	var newGroup Group
+	var newChannel Channel
 
-	for _, group := range data.GetChats() {
-		encodedData, err := json.Marshal(group)
+	for _, channel := range data.GetChats() {
+		encodedData, err := json.Marshal(channel)
 		if err != nil {
 			continue
 		}
 
-		err = json.Unmarshal(encodedData, &newGroup)
+		err = json.Unmarshal(encodedData, &newChannel)
 		if err != nil {
 			continue
 		}
 
-		groups = append(groups, newGroup)
+		channels = append(channels, newChannel)
 	}
 
-	return groups, nil
+	return channels, nil
 }
