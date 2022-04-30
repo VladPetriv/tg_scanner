@@ -33,11 +33,11 @@ func TestChannelPg_CreateChannel(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 
-				mock.ExpectQuery("INSERT INTO channel(name) VALUES ($1) RETURNING id;").
-					WithArgs("test").WillReturnRows(rows)
+				mock.ExpectQuery("INSERT INTO channel(name, title, photourl) VALUES ($1, $2, $3) RETURNING id;").
+					WithArgs("test", "test", "test.jpg").WillReturnRows(rows)
 
 			},
-			input: model.Channel{Name: "test"},
+			input: model.Channel{Name: "test", Title: "test", PhotoURL: "test.jpg"},
 			want:  1,
 		},
 		{
@@ -45,8 +45,8 @@ func TestChannelPg_CreateChannel(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"})
 
-				mock.ExpectQuery("INSERT INTO channel(name) VALUES ($1) RETURNING id;").
-					WithArgs("").WillReturnRows(rows)
+				mock.ExpectQuery("INSERT INTO channel(name, title, photourl) VALUES ($1, $2, $3) RETURNING id;").
+					WithArgs("", "", "").WillReturnRows(rows)
 			},
 			input:   model.Channel{},
 			wantErr: true,

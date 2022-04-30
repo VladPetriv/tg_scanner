@@ -85,7 +85,7 @@ func (repo *ChannelPgRepo) GetChannelByName(name string) (*model.Channel, error)
 
 func (repo *ChannelPgRepo) CreateChannel(channel *model.Channel) (int, error) {
 	var id int
-	row := repo.db.QueryRow("INSERT INTO channel(name) VALUES ($1) RETURNING id;", channel.Name)
+	row := repo.db.QueryRow("INSERT INTO channel(name, title, photourl) VALUES ($1, $2, $3) RETURNING id;", channel.Name, channel.Title, channel.PhotoURL)
 
 	if err := row.Scan(&id); err != nil {
 		return 0, fmt.Errorf("error while creating channel: %w", err)

@@ -1,6 +1,8 @@
 CREATE TABLE channel (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(255)
+  name VARCHAR(255),
+  title VARCHAR(255),
+  photourl TEXT NOT NULL
 );
 
 CREATE TABLE tg_user (
