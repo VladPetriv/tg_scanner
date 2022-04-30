@@ -161,7 +161,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				log.Error(err)
 			}
 
-			os.Remove(fmt.Sprintf("./images/%s.jpg", msg.FromID.Username))
+			os.Remove(fmt.Sprintf("images/%s.jpg", msg.FromID.Username))
 
 			message_id, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: user_id, Title: msg.Message})
 			if err != nil {
@@ -185,7 +185,10 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 					log.Error(err)
 				}
 
-				os.Remove(fmt.Sprintf("./images/%s.jpg", msg.FromID.Username))
+				err = os.Remove(fmt.Sprintf("images/%s.jpg", msg.FromID.Username))
+				if err != nil {
+					log.Error(err)
+				}
 
 				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: user_id, MessageID: message_id, Title: replie.Message})
 				if err != nil {
@@ -232,11 +235,23 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 		}
 
 		// Getting channel history
-		for _, channel := range channels {
-			err := serviceManager.Channel.CreateChannel(&model.Channel{Name: channel.Username})
+		for _, chnl := range channels {
+			filename, err := channel.ProcessChannelPhoto(ctx, &chnl, api)
 			if err != nil {
 				log.Error(err)
 			}
+
+			channelImageURL, err := firebase.SendImageToStorage(ctx, cfg, filename, chnl.Username)
+			if err != nil {
+				log.Error(err)
+			}
+
+			err = serviceManager.Channel.CreateChannel(&model.Channel{Name: chnl.Username, Title: chnl.Title, PhotoURL: channelImageURL})
+			if err != nil {
+				log.Error(err)
+			}
+
+			os.Remove(fmt.Sprintf("images/%s.jpg", chnl.Username))
 		}
 
 		go SaveToDb(ctx, serviceManager, cfg, api, log)
