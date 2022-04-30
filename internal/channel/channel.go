@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
 
 	"github.com/gotd/td/tg"
 )
@@ -16,6 +17,11 @@ type Channel struct {
 	Title      string
 	AccessHash int
 	Username   string
+	Photo      tg.ChatPhoto
+	Image      *ChannelImage
+}
+type ChannelImage struct {
+	Bytes []byte
 }
 
 func GetChannelHistory(ctx context.Context, cPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
@@ -45,7 +51,8 @@ func GetAllChannels(ctx context.Context, api *tg.Client) ([]Channel, error) {
 	var newChannel Channel
 
 	for _, channel := range data.GetChats() {
-		encodedData, err := json.Marshal(channel)
+		fullChannel, _ := channel.AsFull()
+		encodedData, err := json.Marshal(fullChannel)
 		if err != nil {
 			continue
 		}
@@ -59,4 +66,87 @@ func GetAllChannels(ctx context.Context, api *tg.Client) ([]Channel, error) {
 	}
 
 	return channels, nil
+}
+
+func GetChannelPhoto(ctx context.Context, channel *Channel, api *tg.Client) (tg.UploadFileClass, error) {
+	var id int
+	if channel.ChannelID == 0 {
+		id = channel.ID
+	} else {
+		id = channel.ChannelID
+	}
+	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
+		Location: &tg.InputPeerPhotoFileLocation{
+			Peer: &tg.InputPeerChannel{
+				ChannelID:  int64(id),
+				AccessHash: int64(channel.AccessHash),
+			},
+			PhotoID: channel.Photo.PhotoID,
+		},
+		Limit: 1024 * 1024,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting channel photo error: %w", err)
+	}
+
+	return data, nil
+}
+
+func DecodeChannelPhoto(photo tg.UploadFileClass) (*ChannelImage, error) {
+	if photo == nil {
+		return nil, fmt.Errorf("photo is nil")
+	}
+
+	var channelImage *ChannelImage
+
+	js, err := json.Marshal(photo)
+	if err != nil {
+		return nil, fmt.Errorf("createing JSON error: %w", err)
+	}
+	err = json.Unmarshal(js, &channelImage)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal JSON error: %w", err)
+	}
+
+	return channelImage, nil
+}
+
+func ProcessChannelPhoto(ctx context.Context, channel *Channel, api *tg.Client) (string, error) {
+	channelPhotoData, err := GetChannelPhoto(ctx, channel, api)
+	if err != nil {
+		return "", fmt.Errorf("getting channel photo data error: %w", err)
+	}
+
+	channelImage, err := DecodeChannelPhoto(channelPhotoData)
+	if err != nil {
+		return "", fmt.Errorf("decode channel photo error: %w", err)
+	}
+
+	channel.Image = channelImage
+
+	fileName, err := CreateChannelImage(channel)
+	if err != nil {
+		return "", fmt.Errorf("create channel image error: %w", err)
+	}
+
+	return fileName, nil
+}
+
+func CreateChannelImage(channel *Channel) (string, error) {
+	if channel.Image == nil {
+		return "", fmt.Errorf("channel image is nil")
+	}
+
+	path := fmt.Sprintf("./images/%s.jpg", channel.Username)
+	image, err := os.Create(path)
+	if err != nil {
+		return "", fmt.Errorf("create file error: %w", err)
+	}
+
+	_, err = image.Write(channel.Image.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("write file error: %w", err)
+	}
+
+	return path, nil
 }
