@@ -92,6 +92,11 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels 
 
 	path := "./data/incoming.json"
 
+	err := file.CreateFileForIncoming()
+	if err != nil {
+		log.Error(err)
+	}
+
 	for {
 		log.Info("Start getting incoming messages")
 
@@ -185,10 +190,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 					log.Error(err)
 				}
 
-				err = os.Remove(fmt.Sprintf("images/%s.jpg", msg.FromID.Username))
-				if err != nil {
-					log.Error(err)
-				}
+				os.Remove(fmt.Sprintf("images/%s.jpg", msg.FromID.Username))
 
 				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: user_id, MessageID: message_id, Title: replie.Message})
 				if err != nil {
@@ -236,6 +238,14 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 
 		// Getting channel history
 		for _, chnl := range channels {
+			candidate, err := serviceManager.Channel.GetChannelByName(chnl.Username)
+			if err != nil {
+				log.Error(err)
+			}
+			if candidate != nil {
+				continue
+			}
+
 			filename, err := channel.ProcessChannelPhoto(ctx, &chnl, api)
 			if err != nil {
 				log.Error(err)

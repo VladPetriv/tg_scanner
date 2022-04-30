@@ -56,7 +56,6 @@ func GetMessagesFromFile(fileName string) ([]message.Message, error) {
 }
 
 func CreateFilesForChannels(channels []channel.Channel) error {
-	channels = append(channels, channel.Channel{Username: "incoming"})
 	for _, channel := range channels {
 		fileName := fmt.Sprintf("%s.json", channel.Username)
 		if _, err := os.Stat("./data/" + fileName); err == nil {
