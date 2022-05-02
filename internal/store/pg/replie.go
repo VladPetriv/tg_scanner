@@ -14,31 +14,6 @@ func NewReplieRepo(db *DB) *ReplieRepo {
 	return &ReplieRepo{db: db}
 }
 
-func (repo *ReplieRepo) GetReplies() ([]model.Replie, error) {
-	replies := make([]model.Replie, 0)
-	rows, err := repo.db.Query("SELECT * FROM replie;")
-	if err != nil {
-		return nil, fmt.Errorf("error while getting replies: %w", err)
-	}
-
-	defer rows.Close()
-	for rows.Next() {
-		replie := model.Replie{}
-		err := rows.Scan(&replie.ID, &replie.UserID, &replie.MessageID, &replie.Title)
-		if err != nil {
-			continue
-		}
-
-		replies = append(replies, replie)
-	}
-
-	if len(replies) == 0 {
-		return nil, fmt.Errorf("replies not found")
-	}
-
-	return replies, nil
-}
-
 func (repo *ReplieRepo) GetReplie(replieId int) (*model.Replie, error) {
 	replie := &model.Replie{}
 
@@ -95,13 +70,4 @@ func (repo *ReplieRepo) CreateReplie(replie *model.Replie) (int, error) {
 	}
 
 	return 1, nil
-}
-
-func (repo *ReplieRepo) DeleteReplie(replieId int) error {
-	_, err := repo.db.Exec("DELETE FROM replie WHERE id=$1;", replieId)
-	if err != nil {
-		return fmt.Errorf("error while deleting replie: %w", err)
-	}
-
-	return nil
 }
