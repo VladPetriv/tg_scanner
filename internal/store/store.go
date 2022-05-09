@@ -25,6 +25,14 @@ func New(cfg config.Config, log *logger.Logger) (*Store, error) {
 		return nil, fmt.Errorf("pg.Dial() failed: %w", err)
 	}
 
+	if pgDB != nil {
+		log.Info("Running migrations...")
+		err := runMigrations(&cfg)
+		if err != nil {
+			return nil, fmt.Errorf("run migrations error: %w", err)
+		}
+	}
+
 	var store Store
 	store.Logger = log
 	if pgDB != nil {
