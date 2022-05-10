@@ -55,7 +55,7 @@ func (s *ChannelDBService) CreateChannel(channel *model.Channel) error {
 
 	_, err = s.store.Channel.CreateChannel(channel)
 	if err != nil {
-		return fmt.Errorf("[Channel] Service error: %w", err)
+		return fmt.Errorf("[Channel] Service.CreateChannel error: %w", err)
 	}
 
 	return nil
