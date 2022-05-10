@@ -23,10 +23,6 @@ func (s *MessageDBService) GetMessage(messageID int) (*model.Message, error) {
 		return nil, fmt.Errorf("[Message] Service.GetMessage error: %w", err)
 	}
 
-	if message == nil {
-		return nil, fmt.Errorf("message not found")
-	}
-
 	return message, nil
 }
 
