@@ -23,7 +23,6 @@ func (repo *ReplieRepo) GetReplie(replieId int) (*model.Replie, error) {
 	}
 
 	defer rows.Close()
-
 	for rows.Next() {
 		err := rows.Scan(&replie.ID, &replie.UserID, &replie.MessageID, &replie.Title)
 		if err != nil {
