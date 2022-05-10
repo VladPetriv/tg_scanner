@@ -2,7 +2,6 @@ package service_test
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/VladPetriv/tg_scanner/internal/model"
@@ -134,7 +133,6 @@ func TestMessageService_CreateMessage(t *testing.T) {
 		tt.mock(&messageRepo)
 
 		got, err := messageService.CreateMessage(tt.input)
-		fmt.Println(got)
 		if tt.wantErr {
 			assert.Error(t, err)
 			assert.Equal(t, tt.err.Error(), err.Error())
