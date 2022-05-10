@@ -14,31 +14,6 @@ func NewUserRepo(db *DB) *UserRepo {
 	return &UserRepo{db: db}
 }
 
-func (repo *UserRepo) GetUsers() ([]model.User, error) {
-	users := make([]model.User, 0)
-	rows, err := repo.db.Query("SELECT * FROM tg_user;")
-	if err != nil {
-		return nil, fmt.Errorf("error while getting users: %w", err)
-	}
-
-	defer rows.Close()
-	for rows.Next() {
-		user := model.User{}
-		err := rows.Scan(&user.ID, &user.Username, &user.FullName, &user.PhotoURL)
-		if err != nil {
-			continue
-		}
-
-		users = append(users, user)
-	}
-
-	if len(users) == 0 {
-		return nil, fmt.Errorf("users not found")
-	}
-
-	return users, nil
-}
-
 func (repo *UserRepo) GetUserByUsername(username string) (*model.User, error) {
 	user := &model.User{}
 
