@@ -32,9 +32,7 @@ Please create a dir "configs" with file ".config.env" which have this fields:
 Starting an application locally:
 
 ```bash
- go mod download
-
- make migrate_up 
+ go mod download 
 
  make start #Or you can use go run ./cmd/scanner/main.go
 ```
@@ -53,4 +51,13 @@ Starting with docker-compose:
  docker-compose build
 
  docker-compose up #After it enter code which telegram send to you
+```
+
+Running tests
+
+
+```bash
+ #Before start run: make mock
+
+ make test
 ```
