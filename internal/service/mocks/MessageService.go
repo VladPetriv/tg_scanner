@@ -31,6 +31,20 @@ func (_m *MessageService) CreateMessage(message *model.Message) (int, error) {
 	return r0, r1
 }
 
+// DeleteMessageByID provides a mock function with given fields: messageID
+func (_m *MessageService) DeleteMessageByID(messageID int) error {
+	ret := _m.Called(messageID)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(int) error); ok {
+		r0 = rf(messageID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // GetMessage provides a mock function with given fields: messagelID
 func (_m *MessageService) GetMessage(messagelID int) (*model.Message, error) {
 	ret := _m.Called(messagelID)
@@ -70,6 +84,29 @@ func (_m *MessageService) GetMessageByName(name string) (*model.Message, error) 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(name)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetMessagesWithRepliesCount provides a mock function with given fields:
+func (_m *MessageService) GetMessagesWithRepliesCount() ([]model.Message, error) {
+	ret := _m.Called()
+
+	var r0 []model.Message
+	if rf, ok := ret.Get(0).(func() []model.Message); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.Message)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}
