@@ -25,12 +25,12 @@ func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, ob
 	opt := option.WithCredentialsFile(cfg.SecretPath)
 	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
-		return "", fmt.Errorf("createing firebase app error: %w", err)
+		return "", fmt.Errorf("creating firebase app error: %w", err)
 	}
 
 	client, err := app.Storage(ctx)
 	if err != nil {
-		return "", fmt.Errorf("createing firebase storage error: %w", err)
+		return "", fmt.Errorf("creating firebase storage error: %w", err)
 	}
 
 	bucket, err := client.DefaultBucket()

@@ -22,7 +22,7 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-func GetMessagesFromHistory(ctx context.Context, channels []channel.Channel, cfg *config.Config, wg *sync.WaitGroup, api *tg.Client, log *logger.Logger) {
+func GetMessagesFromHistory(ctx context.Context, channels []channel.Channel, wg *sync.WaitGroup, api *tg.Client, log *logger.Logger) {
 	time.Sleep(time.Second * 20)
 	defer wg.Done()
 	for {
@@ -161,14 +161,14 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 			}
 
 			fullName := fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName)
-			user_id, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
+			userID, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
 			if err != nil {
 				log.Error(err)
 			}
 
 			os.Remove(fmt.Sprintf("images/%s.jpg", msg.FromID.Username))
 
-			message_id, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: user_id, Title: msg.Message})
+			messageID, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: userID, Title: msg.Message})
 			if err != nil {
 				log.Error(err)
 			}
@@ -185,14 +185,14 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				}
 
 				fullName := fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName)
-				user_id, err := serviceManager.User.CreateUser(&model.User{Username: replie.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
+				userID, err := serviceManager.User.CreateUser(&model.User{Username: replie.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
 				if err != nil {
 					log.Error(err)
 				}
 
 				os.Remove(fmt.Sprintf("images/%s.jpg", msg.FromID.Username))
 
-				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: user_id, MessageID: message_id, Title: replie.Message})
+				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: userID, MessageID: messageID, Title: replie.Message})
 				if err != nil {
 					log.Error(err)
 				}
@@ -200,6 +200,30 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 
 		}
 		time.Sleep(time.Minute * 15)
+	}
+}
+
+func RemoveMessageWithOutReplies(serviceManager *service.Manager, log *logger.Logger) {
+	for {
+		log.Infof("Start remove messages without replies")
+		messages, err := serviceManager.Message.GetMessagesWithRepliesCount()
+		if err != nil {
+			log.Error(err)
+		}
+
+		for _, message := range messages {
+			if message.RepliesCount == 0 {
+				err := serviceManager.Message.DeleteMessageByID(message.ID)
+				if err != nil {
+					log.Error(err)
+				}
+				continue
+			}
+
+			continue
+		}
+
+		time.Sleep(time.Minute * 60)
 	}
 }
 
@@ -267,7 +291,8 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 		go SaveToDb(ctx, serviceManager, cfg, api, log)
 
 		go GetNewMessage(ctx, uData, api, channels, waitGroup, log)
-		go GetMessagesFromHistory(ctx, channels, cfg, waitGroup, api, log)
+		go GetMessagesFromHistory(ctx, channels, waitGroup, api, log)
+		go RemoveMessageWithOutReplies(serviceManager, log)
 
 		waitGroup.Wait()
 
