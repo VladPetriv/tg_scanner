@@ -16,6 +16,8 @@ type MessageRepo interface {
 	GetMessage(messageID int) (*model.Message, error)
 	GetMessageByName(name string) (*model.Message, error)
 	CreateMessage(message *model.Message) (int, error)
+	DeleteMessageByID(messageID int) (int, error)
+	GetMessagesWithRepliesCount() ([]model.Message, error)
 }
 
 //go:generate mockery --dir . --name ReplieRepo --output ./mocks

@@ -69,3 +69,40 @@ func (repo *MessageRepo) CreateMessage(message *model.Message) (int, error) {
 
 	return id, nil
 }
+
+func (repo *MessageRepo) DeleteMessageByID(messageID int) (int, error) {
+	var id int
+
+	row := repo.db.QueryRow("DELETE FROM message WHERE id=$1 RETURNING id;", messageID)
+	if err := row.Scan(&id); err != nil {
+		return id, fmt.Errorf("error while deleting message: %w", err)
+	}
+
+	return id, nil
+}
+
+func (repo *MessageRepo) GetMessagesWithRepliesCount() ([]model.Message, error) {
+	messages := make([]model.Message, 0)
+
+	rows, err := repo.db.Query("SELECT m.id, COUNT(r.id) FROM message m LEFT JOIN replie r ON r.message_id = m.id GROUP BY m.id ORDER BY m.id;")
+	if err != nil {
+		return nil, fmt.Errorf("error while getting messages with replies count: %w", err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		message := model.Message{}
+		err := rows.Scan(&message.ID, &message.RepliesCount)
+		if err != nil {
+			continue
+		}
+
+		messages = append(messages, message)
+	}
+
+	if len(messages) == 0 {
+		return nil, nil
+	}
+
+	return messages, nil
+}

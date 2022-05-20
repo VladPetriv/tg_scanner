@@ -14,6 +14,8 @@ type MessageService interface {
 	GetMessage(messagelID int) (*model.Message, error)
 	GetMessageByName(name string) (*model.Message, error)
 	CreateMessage(message *model.Message) (int, error)
+	DeleteMessageByID(messageID int) error
+	GetMessagesWithRepliesCount() ([]model.Message, error)
 }
 
 //go:generate mockery --dir . --name ReplieService --output ./mocks

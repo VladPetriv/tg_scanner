@@ -56,3 +56,25 @@ func (s *MessageDBService) CreateMessage(message *model.Message) (int, error) {
 
 	return id, nil
 }
+
+func (s *MessageDBService) DeleteMessageByID(messageID int) error {
+	_, err := s.store.Message.DeleteMessageByID(messageID)
+	if err != nil {
+		return fmt.Errorf("[Message] Service.DeleteMessageByID error: %w", err)
+	}
+
+	return nil
+}
+
+func (s *MessageDBService) GetMessagesWithRepliesCount() ([]model.Message, error) {
+	messages, err := s.store.Message.GetMessagesWithRepliesCount()
+	if err != nil {
+		return nil, fmt.Errorf("[Message] Service.GetMessagesWithRepliesCount error: %w", err)
+	}
+
+	if messages == nil {
+		return nil, fmt.Errorf("messages not found")
+	}
+
+	return messages, nil
+}
