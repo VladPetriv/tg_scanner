@@ -202,3 +202,59 @@ func TestMessageService_GetMessageByName(t *testing.T) {
 		messageRepo.AssertExpectations(t)
 	}
 }
+
+func TestMessageService_GetMessagesWithReplies(t *testing.T) {
+	messages := []model.Message{
+		{ID: 1, RepliesCount: 2},
+		{ID: 2, RepliesCount: 13},
+	}
+
+	tests := []struct {
+		name    string
+		mock    func(messageRepo *mocks.MessageRepo)
+		want    []model.Message
+		wantErr bool
+		err     error
+	}{
+		{
+			name: "Ok: [Messages found]",
+			mock: func(messageRepo *mocks.MessageRepo) {
+				messageRepo.On("GetMessagesWithRepliesCount").Return(messages, nil)
+			},
+			want: messages,
+		},
+		{
+			name: "Error: [Messages not found]",
+			mock: func(messageRepo *mocks.MessageRepo) {
+				messageRepo.On("GetMessagesWithRepliesCount").Return(nil, nil)
+			},
+			wantErr: true,
+			err:     errors.New("messages not found"),
+		},
+		{
+			name: "Error: [Store error]",
+			mock: func(messageRepo *mocks.MessageRepo) {
+				messageRepo.On("GetMessagesWithRepliesCount").Return(nil, errors.New("error while getting messages with replies count: some error"))
+			},
+			wantErr: true,
+			err:     errors.New("[Message] Service.GetMessagesWithRepliesCount error: error while getting messages with replies count: some error"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Logf("running: %s", tt.name)
+
+		messageRepo := &mocks.MessageRepo{}
+		messageService := service.NewMessageDBService(&store.Store{Message: messageRepo})
+		tt.mock(messageRepo)
+
+		got, err := messageService.GetMessagesWithRepliesCount()
+		if tt.wantErr {
+			assert.Error(t, err)
+			assert.Equal(t, tt.err.Error(), err.Error())
+		} else {
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		}
+	}
+}
