@@ -183,3 +183,71 @@ func TestMessagePg_GetMessageByName(t *testing.T) {
 		})
 	}
 }
+
+func TestMessagePg_GetMessagesWithReplies(t *testing.T) {
+	db, mock, err := utils.CreateMock()
+	if err != nil {
+		t.Errorf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+
+	defer db.Close()
+
+	r := NewMessageRepo(&DB{DB: db})
+
+	tests := []struct {
+		name    string
+		mock    func()
+		want    []model.Message
+		wantErr bool
+	}{
+		{
+			name: "Ok: [Replies found]",
+			mock: func() {
+				rows := sqlmock.NewRows([]string{"id", "count"}).
+					AddRow(1, 5).
+					AddRow(2, 1)
+
+				mock.ExpectQuery("SELECT m.id, COUNT(r.id) FROM message m LEFT JOIN replie r ON r.message_id = m.id GROUP BY m.id ORDER BY m.id;").
+					WillReturnRows(rows)
+			},
+			want: []model.Message{
+				{ID: 1, RepliesCount: 5},
+				{ID: 2, RepliesCount: 1},
+			},
+		},
+		{
+			name: "Error: [Replies not found]",
+			mock: func() {
+				rows := sqlmock.NewRows([]string{"id", "count"})
+
+				mock.ExpectQuery("SELECT m.id, COUNT(r.id) FROM message m LEFT JOIN replie r ON r.message_id = m.id GROUP BY m.id ORDER BY m.id;").
+					WillReturnRows(rows)
+			},
+			want: nil,
+		},
+		{
+			name: "Error: [PQ error]",
+			mock: func() {
+				mock.ExpectQuery("SELECT m.id, COUNT(r.id) FROM message m LEFT JOIN replie r ON r.message_id = m.id GROUP BY m.id ORDER BY m.id;").
+					WillReturnError(sqlmock.ErrCancelled)
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mock()
+
+			got, err := r.GetMessagesWithRepliesCount()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.want, got)
+			}
+
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
