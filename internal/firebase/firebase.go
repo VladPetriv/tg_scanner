@@ -54,5 +54,6 @@ func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, ob
 	}
 
 	url := fmt.Sprintf("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media", cfg.StorageBucket, objectName)
+
 	return url, nil
 }

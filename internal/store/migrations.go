@@ -10,17 +10,22 @@ import (
 )
 
 func runMigrations(cfg *config.Config) error {
+	var connectionString string
+
 	if cfg.MigrationsPath == "" {
 		return nil
 	}
 
-	m, err := migrate.New(
-		cfg.MigrationsPath,
-		fmt.Sprintf(
+	if cfg.DatabaseURL == "" {
+		connectionString = fmt.Sprintf(
 			"postgresql://%s:%s@%s:5432/%s?sslmode=disable",
 			cfg.PgUser, cfg.PgPassword, cfg.PgHost, cfg.PgDb,
-		),
-	)
+		)
+	} else {
+		connectionString = cfg.DatabaseURL
+	}
+
+	m, err := migrate.New(cfg.MigrationsPath, connectionString)
 	if err != nil {
 		return fmt.Errorf("create migrations error: %w", err)
 	}

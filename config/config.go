@@ -14,6 +14,7 @@ type Config struct {
 	PgPassword     string
 	PgHost         string
 	PgDb           string
+	DatabaseURL    string
 	MigrationsPath string
 	ProjectID      string
 	StorageBucket  string
@@ -32,6 +33,7 @@ func Get() (*Config, error) {
 		PgPassword:     os.Getenv("POSTGRES_PASSWORD"),
 		PgDb:           os.Getenv("POSTGRES_DB"),
 		PgHost:         os.Getenv("POSTGRES_HOST"),
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		MigrationsPath: os.Getenv("MIGRATIONS_PATH"),
 		ProjectID:      os.Getenv("PROJECT_ID"),
 		StorageBucket:  os.Getenv("STORAGE_BUCKET"),
