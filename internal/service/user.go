@@ -34,12 +34,12 @@ func (s *UserDBService) CreateUser(user *model.User) (int, error) {
 	}
 
 	if candidate != nil {
-		return candidate.ID, fmt.Errorf("User with username %s is exist", user.Username)
+		return candidate.ID, fmt.Errorf("user with username %s is exist", user.Username)
 	}
 
 	id, err := s.store.User.CreateUser(user)
 	if err != nil {
-		return 0, fmt.Errorf("[User] Service.CreateUser error: %w", err)
+		return id, fmt.Errorf("[User] Service.CreateUser error: %w", err)
 	}
 
 	return id, nil

@@ -98,7 +98,7 @@ func TestUserService_CreateUser(t *testing.T) {
 			},
 			input:   input,
 			wantErr: true,
-			err:     errors.New("User with username test is exist"),
+			err:     errors.New("user with username test is exist"),
 		},
 	}
 

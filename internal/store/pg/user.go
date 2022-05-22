@@ -41,7 +41,7 @@ func (repo *UserRepo) CreateUser(user *model.User) (int, error) {
 	var id int
 	row := repo.db.QueryRow("INSERT INTO tg_user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;", user.Username, user.FullName, user.PhotoURL)
 	if err := row.Scan(&id); err != nil {
-		return 0, fmt.Errorf("error while creating user: %w", err)
+		return id, fmt.Errorf("error while creating user: %w", err)
 	}
 
 	return id, nil

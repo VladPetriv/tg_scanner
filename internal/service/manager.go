@@ -15,7 +15,7 @@ type Manager struct {
 
 func NewManager(store *store.Store) (*Manager, error) {
 	if store == nil {
-		return nil, fmt.Errorf("No store provided")
+		return nil, fmt.Errorf("no store provided")
 	}
 
 	return &Manager{

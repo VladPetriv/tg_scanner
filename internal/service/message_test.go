@@ -128,9 +128,9 @@ func TestMessageService_CreateMessage(t *testing.T) {
 	for _, tt := range tests {
 		t.Logf("running: %s", tt.name)
 
-		messageRepo := *&mocks.MessageRepo{}
-		messageService := service.NewMessageDBService(&store.Store{Message: &messageRepo})
-		tt.mock(&messageRepo)
+		messageRepo := &mocks.MessageRepo{}
+		messageService := service.NewMessageDBService(&store.Store{Message: messageRepo})
+		tt.mock(messageRepo)
 
 		got, err := messageService.CreateMessage(tt.input)
 		if tt.wantErr {
