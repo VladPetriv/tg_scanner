@@ -166,8 +166,6 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				log.Error(err)
 			}
 
-			os.Remove(fmt.Sprintf("images/%s.jpg", msg.FromID.Username))
-
 			messageID, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: userID, Title: msg.Message})
 			if err != nil {
 				log.Error(err)
@@ -190,15 +188,13 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 					log.Error(err)
 				}
 
-				os.Remove(fmt.Sprintf("images/%s.jpg", msg.FromID.Username))
-
 				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: userID, MessageID: messageID, Title: replie.Message})
 				if err != nil {
 					log.Error(err)
 				}
 			}
-
 		}
+
 		time.Sleep(time.Minute * 15)
 	}
 }

@@ -55,5 +55,10 @@ func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, ob
 
 	url := fmt.Sprintf("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media", cfg.StorageBucket, objectName)
 
+	err = os.Remove(path)
+	if err != nil {
+		return "", fmt.Errorf("error while deleting image")
+	}
+
 	return url, nil
 }
