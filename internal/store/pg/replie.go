@@ -68,5 +68,5 @@ func (repo *ReplieRepo) CreateReplie(replie *model.Replie) (int, error) {
 		return 0, fmt.Errorf("error while creating replie: %w", err)
 	}
 
-	return 1, nil
+	return id, nil
 }

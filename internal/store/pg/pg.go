@@ -25,12 +25,12 @@ func Dial(cfg config.Config) (*DB, error) {
 
 	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
-		return nil, fmt.Errorf("Error while create connection to db: %w", err)
+		return nil, fmt.Errorf("error while create connection to db: %w", err)
 	}
 
 	_, err = db.Exec("SELECT 1;")
 	if err != nil {
-		return nil, fmt.Errorf("Error while send request to db: %w", err)
+		return nil, fmt.Errorf("error while send request to db: %w", err)
 	}
 
 	return &DB{db}, nil

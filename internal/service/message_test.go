@@ -110,7 +110,7 @@ func TestMessageService_CreateMessage(t *testing.T) {
 			input:   input,
 			want:    0,
 			wantErr: true,
-			err:     errors.New("[Message] Service.GetMessageByName error: error while getting message: some error"),
+			err:     errors.New("[Message] Service.CreateMessage [GetMessageByName] error: error while getting message: some error"),
 		},
 		{
 			name: "Error: [Store error]",

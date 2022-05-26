@@ -17,8 +17,8 @@ CREATE TABLE message (
   channel_id INT NOT NULL,
   user_id INT NOT NULL,
   title TEXT,
-  CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channel(id),
-  CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES tg_user(id)
+  CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channel(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES tg_user(id) ON DELETE CASCADE
 );
 
 CREATE TABLE replie (
@@ -26,6 +26,6 @@ CREATE TABLE replie (
   message_id INT NOT NULL,
   user_id INT NOT NULL,
   title TEXT,
-  CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES message(id),
-  CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES tg_user(id)
+  CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES message(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES tg_user(id) ON DELETE CASCADE
 );

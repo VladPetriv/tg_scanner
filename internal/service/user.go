@@ -20,6 +20,7 @@ func (s *UserDBService) GetUserByUsername(username string) (*model.User, error) 
 	if err != nil {
 		return nil, fmt.Errorf("[User] Service.GetUserByUsername error: %w", err)
 	}
+
 	if user == nil {
 		return nil, nil
 	}
@@ -28,9 +29,9 @@ func (s *UserDBService) GetUserByUsername(username string) (*model.User, error) 
 }
 
 func (s *UserDBService) CreateUser(user *model.User) (int, error) {
-	candidate, err := s.store.User.GetUserByUsername(user.Username)
+	candidate, err := s.GetUserByUsername(user.Username)
 	if err != nil {
-		return 0, err
+		return candidate.ID, err
 	}
 
 	if candidate != nil {

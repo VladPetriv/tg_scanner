@@ -40,12 +40,12 @@ func (s *MessageDBService) GetMessageByName(name string) (*model.Message, error)
 }
 
 func (s *MessageDBService) CreateMessage(message *model.Message) (int, error) {
-	candidate, err := s.GetMessageByName(message.Title)
+	candidate, err := s.store.Message.GetMessageByName(message.Title)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("[Message] Service.CreateMessage [GetMessageByName] error: %w", err)
 	}
 
-	if candidate != nil {
+	if candidate != nil && candidate.ChannelID == message.ChannelID {
 		return candidate.ID, fmt.Errorf("message with name %s is exist", message.Title)
 	}
 
