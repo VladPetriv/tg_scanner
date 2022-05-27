@@ -29,6 +29,10 @@ func (s *UserDBService) GetUserByUsername(username string) (*model.User, error) 
 }
 
 func (s *UserDBService) CreateUser(user *model.User) (int, error) {
+	if user.Username == "" {
+		return 0, fmt.Errorf("username length should be more")
+	}
+
 	candidate, err := s.GetUserByUsername(user.Username)
 	if err != nil {
 		return candidate.ID, err

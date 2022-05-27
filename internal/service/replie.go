@@ -42,12 +42,16 @@ func (s *ReplieDBService) GetReplieByName(name string) (*model.Replie, error) {
 }
 
 func (s *ReplieDBService) CreateReplie(replie *model.Replie) error {
+	if replie.Title == "" {
+		return fmt.Errorf("title length should be more")
+	}
+
 	candidate, err := s.GetReplieByName(replie.Title)
 	if err != nil {
 		return err
 	}
 
-	if candidate != nil {
+	if candidate != nil && candidate.MessageID == replie.MessageID && candidate.UserID == replie.UserID {
 		return fmt.Errorf("replie with name %s is exist", replie.Title)
 	}
 
