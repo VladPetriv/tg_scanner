@@ -3,7 +3,6 @@ package logger
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"runtime"
@@ -63,7 +62,7 @@ func Init() {
 		panic(fmt.Sprintf("[Error]: %s", err))
 	}
 
-	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
+	log.SetOutput(io.Discard) // Send all logs to nowhere by default
 
 	log.AddHook(&writerHook{
 		Writer:    []io.Writer{allFile, os.Stdout},
