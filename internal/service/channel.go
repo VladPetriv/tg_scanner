@@ -1,10 +1,9 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/store"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
 
 type ChannelDBService struct {
@@ -20,11 +19,15 @@ func NewChannelDBService(store *store.Store) *ChannelDBService {
 func (s *ChannelDBService) GetChannel(channelID int) (*model.Channel, error) {
 	channel, err := s.store.Channel.GetChannel(channelID)
 	if err != nil {
-		return nil, fmt.Errorf("[Channel] Service.GetChannel error: %w", err)
+		return nil, &utils.ServiceError{
+			ServiceName:       "Channel",
+			ServiceMethodName: "GetChannel",
+			ErrorValue:        err,
+		}
 	}
 
 	if channel == nil {
-		return nil, fmt.Errorf("channel not found")
+		return nil, &utils.NotFoundError{Name: "channel"}
 	}
 
 	return channel, nil
@@ -33,7 +36,11 @@ func (s *ChannelDBService) GetChannel(channelID int) (*model.Channel, error) {
 func (s *ChannelDBService) GetChannelByName(name string) (*model.Channel, error) {
 	channel, err := s.store.Channel.GetChannelByName(name)
 	if err != nil {
-		return nil, fmt.Errorf("[Channel] Service.GetChannelByName error: %w", err)
+		return nil, &utils.ServiceError{
+			ServiceName:       "Channel",
+			ServiceMethodName: "GetChannelByName",
+			ErrorValue:        err,
+		}
 	}
 
 	if channel == nil {
@@ -50,12 +57,16 @@ func (s *ChannelDBService) CreateChannel(channel *model.Channel) error {
 	}
 
 	if candidate != nil {
-		return fmt.Errorf("channel with name %s is exist", channel.Name)
+		return &utils.RecordIsExistError{RecordName: "channel", Name: channel.Name}
 	}
 
 	_, err = s.store.Channel.CreateChannel(channel)
 	if err != nil {
-		return fmt.Errorf("[Channel] Service.CreateChannel error: %w", err)
+		return &utils.ServiceError{
+			ServiceName:       "Channel",
+			ServiceMethodName: "CreateChannel",
+			ErrorValue:        err,
+		}
 	}
 
 	return nil

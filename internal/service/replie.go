@@ -5,6 +5,7 @@ import (
 
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/store"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
 
 type ReplieDBService struct {
@@ -18,11 +19,15 @@ func NewReplieDBService(store *store.Store) *ReplieDBService {
 func (s *ReplieDBService) GetReplie(replieID int) (*model.Replie, error) {
 	replie, err := s.store.Replie.GetReplie(replieID)
 	if err != nil {
-		return nil, fmt.Errorf("[Replie] Service.GetReplie error: %w", err)
+		return nil, &utils.ServiceError{
+			ServiceName:       "Replie",
+			ServiceMethodName: "GetReplie",
+			ErrorValue:        err,
+		}
 	}
 
 	if replie == nil {
-		return nil, fmt.Errorf("replie not found")
+		return nil, &utils.NotFoundError{Name: "replie"}
 	}
 
 	return replie, nil
@@ -31,7 +36,11 @@ func (s *ReplieDBService) GetReplie(replieID int) (*model.Replie, error) {
 func (s *ReplieDBService) GetReplieByName(name string) (*model.Replie, error) {
 	replie, err := s.store.Replie.GetReplieByName(name)
 	if err != nil {
-		return nil, fmt.Errorf("[Replie] Service.GetReplieByName error: %w", err)
+		return nil, &utils.ServiceError{
+			ServiceName:       "Replie",
+			ServiceMethodName: "GetReplieByName",
+			ErrorValue:        err,
+		}
 	}
 
 	if replie == nil {
@@ -52,12 +61,16 @@ func (s *ReplieDBService) CreateReplie(replie *model.Replie) error {
 	}
 
 	if candidate != nil {
-		return fmt.Errorf("replie with name %s is exist", replie.Title)
+		return &utils.RecordIsExistError{RecordName: "replie", Name: replie.Title}
 	}
 
 	_, err = s.store.Replie.CreateReplie(replie)
 	if err != nil {
-		return fmt.Errorf("[Replie] Service.CreateReplie error: %w", err)
+		return &utils.ServiceError{
+			ServiceName:       "Replie",
+			ServiceMethodName: "CreateReplie",
+			ErrorValue:        err,
+		}
 	}
 
 	return nil

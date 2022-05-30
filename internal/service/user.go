@@ -5,6 +5,7 @@ import (
 
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/store"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
 
 type UserDBService struct {
@@ -18,7 +19,11 @@ func NewUserDBService(store *store.Store) *UserDBService {
 func (s *UserDBService) GetUserByUsername(username string) (*model.User, error) {
 	user, err := s.store.User.GetUserByUsername(username)
 	if err != nil {
-		return nil, fmt.Errorf("[User] Service.GetUserByUsername error: %w", err)
+		return nil, &utils.ServiceError{
+			ServiceName:       "User",
+			ServiceMethodName: "GetUserByUsername",
+			ErrorValue:        err,
+		}
 	}
 
 	if user == nil {
@@ -39,12 +44,16 @@ func (s *UserDBService) CreateUser(user *model.User) (int, error) {
 	}
 
 	if candidate != nil {
-		return candidate.ID, fmt.Errorf("user with username %s is exist", user.Username)
+		return candidate.ID, &utils.RecordIsExistError{RecordName: "user", Name: user.Username}
 	}
 
 	id, err := s.store.User.CreateUser(user)
 	if err != nil {
-		return id, fmt.Errorf("[User] Service.CreateUser error: %w", err)
+		return id, &utils.ServiceError{
+			ServiceName:       "User",
+			ServiceMethodName: "CreateUser",
+			ErrorValue:        err,
+		}
 	}
 
 	return id, nil
