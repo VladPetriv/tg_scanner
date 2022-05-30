@@ -17,6 +17,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/service"
 	"github.com/VladPetriv/tg_scanner/internal/user"
 	"github.com/VladPetriv/tg_scanner/logger"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/tg"
 )
@@ -145,9 +146,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 			}
 
 			channel, err := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			fileName, err := user.ProcessUserPhoto(ctx, &msg.FromID, api)
 			if err != nil {
@@ -161,14 +160,10 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 
 			fullName := fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName)
 			userID, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			messageID, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: userID, Title: msg.Message})
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			for _, replie := range msg.Replies.Messages {
 				fileName, err := user.ProcessUserPhoto(ctx, &replie.FromID, api)
@@ -183,14 +178,10 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 
 				fullName := fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName)
 				userID, err := serviceManager.User.CreateUser(&model.User{Username: replie.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
-				if err != nil {
-					log.Error(err)
-				}
+				utils.CheckError(err, log)
 
 				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: userID, MessageID: messageID, Title: replie.Message})
-				if err != nil {
-					log.Error(err)
-				}
+				utils.CheckError(err, log)
 			}
 		}
 
@@ -202,16 +193,13 @@ func RemoveMessageWithOutReplies(serviceManager *service.Manager, log *logger.Lo
 	for {
 		log.Infof("Start remove messages without replies")
 		messages, err := serviceManager.Message.GetMessagesWithRepliesCount()
-		if err != nil {
-			log.Error(err)
-		}
+		utils.CheckError(err, log)
 
 		for _, message := range messages {
 			if message.RepliesCount == 0 {
 				err := serviceManager.Message.DeleteMessageByID(message.ID)
-				if err != nil {
-					log.Error(err)
-				}
+				utils.CheckError(err, log)
+
 				continue
 			}
 
@@ -258,9 +246,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 		// Getting channel history
 		for _, chnl := range channels {
 			candidate, err := serviceManager.Channel.GetChannelByName(chnl.Username)
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			if candidate != nil {
 				continue
@@ -277,14 +263,11 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			}
 
 			err = serviceManager.Channel.CreateChannel(&model.Channel{Name: chnl.Username, Title: chnl.Title, PhotoURL: channelImageURL})
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 		}
 
 		go SaveToDb(ctx, serviceManager, cfg, api, log)
-
 		go GetNewMessage(ctx, uData, api, channels, waitGroup, log)
 		go GetMessagesFromHistory(ctx, channels, waitGroup, api, log)
 		go RemoveMessageWithOutReplies(serviceManager, log)
