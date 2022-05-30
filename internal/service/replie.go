@@ -52,7 +52,6 @@ func (s *ReplieDBService) CreateReplie(replie *model.Replie) error {
 	}
 
 	if candidate != nil {
-		fmt.Printf("Hello from not unique: %+v\n - %+v\n", candidate, replie)
 		return fmt.Errorf("replie with name %s is exist", replie.Title)
 	}
 
