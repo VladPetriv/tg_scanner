@@ -51,7 +51,8 @@ func (s *ReplieDBService) CreateReplie(replie *model.Replie) error {
 		return err
 	}
 
-	if candidate != nil && candidate.MessageID == replie.MessageID && candidate.UserID == replie.UserID {
+	if candidate != nil {
+		fmt.Printf("Hello from not unique: %+v\n - %+v\n", candidate, replie)
 		return fmt.Errorf("replie with name %s is exist", replie.Title)
 	}
 

@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -262,6 +261,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			if err != nil {
 				log.Error(err)
 			}
+
 			if candidate != nil {
 				continue
 			}
@@ -281,7 +281,6 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 				log.Error(err)
 			}
 
-			os.Remove(fmt.Sprintf("images/%s.jpg", chnl.Username))
 		}
 
 		go SaveToDb(ctx, serviceManager, cfg, api, log)
