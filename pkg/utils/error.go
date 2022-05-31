@@ -14,9 +14,7 @@ func CheckError(err error, log *logger.Logger) {
 	switch t := err.(type) {
 	case *RecordIsExistError:
 		log.Warn(t)
-	case *NotFoundError:
-		log.Error(t)
-	case *ServiceError:
+	case *NotFoundError, *ServiceError, *CreateError, *GettingError:
 		log.Error(t)
 	default:
 		log.Info(t)
@@ -48,4 +46,22 @@ type ServiceError struct {
 
 func (s *ServiceError) Error() string {
 	return fmt.Sprintf("[%s] Service.%s error: %s", s.ServiceName, s.ServiceMethodName, s.ErrorValue)
+}
+
+type CreateError struct {
+	Name       string
+	ErrorValue error
+}
+
+func (c *CreateError) Error() string {
+	return fmt.Sprintf("create %s error: %s", c.Name, c.ErrorValue)
+}
+
+type GettingError struct {
+	Name       string
+	ErrorValue error
+}
+
+func (g *GettingError) Error() string {
+	return fmt.Sprintf("get %s error: %s", g.Name, g.ErrorValue)
 }
