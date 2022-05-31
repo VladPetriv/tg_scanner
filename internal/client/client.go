@@ -143,10 +143,19 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 			utils.CheckError(err, log)
 
 			fullName := fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName)
-			userID, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
+			userID, err := serviceManager.User.CreateUser(&model.User{
+				Username: msg.FromID.Username,
+				FullName: fullName,
+				PhotoURL: userImageUrl,
+			})
 			utils.CheckError(err, log)
 
-			messageID, err := serviceManager.Message.CreateMessage(&model.Message{ChannelID: channel.ID, UserID: userID, Title: msg.Message})
+			messageID, err := serviceManager.Message.CreateMessage(&model.Message{
+				ChannelID:  channel.ID,
+				UserID:     userID,
+				Title:      msg.Message,
+				MessageURL: fmt.Sprintf("https://t.me/%s/%d", msg.PeerID.Username, msg.ID),
+			})
 			utils.CheckError(err, log)
 
 			for _, replie := range msg.Replies.Messages {
@@ -157,10 +166,18 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				utils.CheckError(err, log)
 
 				fullName := fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName)
-				userID, err := serviceManager.User.CreateUser(&model.User{Username: replie.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
+				userID, err := serviceManager.User.CreateUser(&model.User{
+					Username: replie.FromID.Username,
+					FullName: fullName,
+					PhotoURL: userImageUrl,
+				})
 				utils.CheckError(err, log)
 
-				err = serviceManager.Replie.CreateReplie(&model.Replie{UserID: userID, MessageID: messageID, Title: replie.Message})
+				err = serviceManager.Replie.CreateReplie(&model.Replie{
+					UserID:    userID,
+					MessageID: messageID,
+					Title:     replie.Message,
+				})
 				utils.CheckError(err, log)
 			}
 		}
