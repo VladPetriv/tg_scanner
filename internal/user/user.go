@@ -50,6 +50,7 @@ func GetUserInfo(ctx context.Context, userID int, messageID int, cPeer *tg.Input
 			return nil, fmt.Errorf("unmarshal JSON error: %w", err)
 		}
 	}
+
 	time.Sleep(time.Second * 3)
 
 	return user, nil
@@ -60,6 +61,7 @@ func GetUserPhoto(ctx context.Context, user *User, api *tg.Client) (tg.UploadFil
 	if user.ID == 0 {
 		id = user.UserID
 	}
+
 	id = user.ID
 
 	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
@@ -90,6 +92,7 @@ func DecodeUserPhoto(photo tg.UploadFileClass) (*UserImage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("createing JSON error: %w", err)
 	}
+
 	err = json.Unmarshal(js, &userImage)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal JSON error: %w", err)

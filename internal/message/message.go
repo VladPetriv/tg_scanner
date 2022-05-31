@@ -176,6 +176,7 @@ func GetRepliesForMessageBeforeSave(ctx context.Context, message *Message, api *
 		ChannelID:  int64(message.PeerID.ID),
 		AccessHash: int64(message.PeerID.AccessHash),
 	}
+
 	replies, err := GetReplies(ctx, message, cPeer, api)
 	if err != nil {
 		return err

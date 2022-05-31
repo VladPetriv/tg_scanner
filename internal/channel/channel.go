@@ -20,6 +20,7 @@ type Channel struct {
 	Photo      tg.ChatPhoto
 	Image      *ChannelImage
 }
+
 type ChannelImage struct {
 	Bytes []byte
 }
@@ -75,6 +76,7 @@ func GetChannelPhoto(ctx context.Context, channel *Channel, api *tg.Client) (tg.
 	} else {
 		id = channel.ChannelID
 	}
+
 	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
 		Location: &tg.InputPeerPhotoFileLocation{
 			Peer: &tg.InputPeerChannel{
@@ -103,6 +105,7 @@ func DecodeChannelPhoto(photo tg.UploadFileClass) (*ChannelImage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("createing JSON error: %w", err)
 	}
+
 	err = json.Unmarshal(js, &channelImage)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal JSON error: %w", err)
