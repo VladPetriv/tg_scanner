@@ -8,6 +8,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/message"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
 
 func WriteMessagesToFile(msgs []message.Message, fileName string) error {
@@ -18,7 +19,7 @@ func WriteMessagesToFile(msgs []message.Message, fileName string) error {
 
 	messages, err := json.Marshal(msgs)
 	if err != nil {
-		return fmt.Errorf("error while createing json: %w", err)
+		return &utils.CreateError{Name: "JSON", ErrorValue: err}
 	}
 
 	_, err = file.Write(messages)
@@ -39,12 +40,12 @@ func GetMessagesFromFile(fileName string) ([]message.Message, error) {
 
 	err = json.Unmarshal(data, &messages)
 	if err != nil {
-		return nil, fmt.Errorf("create JSON error: %w", err)
+		return nil, &utils.CreateError{Name: "JSON", ErrorValue: err}
 	}
 
 	file, err := os.Create(fileName)
 	if err != nil {
-		return nil, fmt.Errorf("create file error: %w", err)
+		return nil, &utils.CreateError{Name: "file", ErrorValue: err}
 	}
 
 	_, err = file.WriteString("")
@@ -64,7 +65,7 @@ func CreateFilesForChannels(channels []channel.Channel) error {
 
 		file, err := os.Create(fileName)
 		if err != nil {
-			return fmt.Errorf("create file error: %s", err)
+			return &utils.CreateError{Name: "file", ErrorValue: err}
 		}
 
 		_, err = file.WriteString("[]")
@@ -83,7 +84,7 @@ func CreateFilesForChannels(channels []channel.Channel) error {
 func CreateFileForIncoming() error {
 	file, err := os.Create("./data/incoming.json")
 	if os.IsNotExist(err) {
-		return fmt.Errorf("create file error: %w", err)
+		return &utils.CreateError{Name: "file", ErrorValue: err}
 	}
 
 	_, err = file.WriteString("[]")
@@ -95,19 +96,13 @@ func CreateFileForIncoming() error {
 }
 
 func CreateDirs() error {
-	err := os.Mkdir("data", 0o755) // nolint
-	if os.IsNotExist(err) {
-		return fmt.Errorf("create dir error: %w", err)
-	}
+	dirs := [3]string{"data", "logs", "images"}
 
-	err = os.Mkdir("logs", 0o755) // nolint
-	if os.IsNotExist(err) {
-		return fmt.Errorf("create dir error: %w", err)
-	}
-
-	err = os.Mkdir("images", 0o755) // nolint
-	if os.IsNotExist(err) {
-		return fmt.Errorf("create dir error: %w", err)
+	for _, dir := range dirs {
+		err := os.Mkdir(dir, 0o755) // nolint
+		if os.IsNotExist(err) {
+			return &utils.CreateError{Name: "dir", ErrorValue: err}
+		}
 	}
 
 	return nil

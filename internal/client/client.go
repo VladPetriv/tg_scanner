@@ -34,9 +34,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []channel.Channel, wg 
 				ChannelID:  int64(chnl.ID),
 				AccessHash: int64(chnl.AccessHash),
 			}, api)
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			modifiedData, _ := data.AsModified()
 
@@ -46,9 +44,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []channel.Channel, wg 
 			}, api)
 
 			messagesFromFile, err := file.GetMessagesFromFile(fileName)
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			for _, msg := range messages {
 				msg, ok := filter.Messages(&msg)
@@ -63,7 +59,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []channel.Channel, wg 
 					AccessHash: int64(chnl.AccessHash),
 				}, api)
 				if err != nil {
-					log.Error(err)
+					utils.CheckError(err, log)
 
 					continue
 				}
@@ -75,9 +71,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []channel.Channel, wg 
 			result := filter.RemoveDuplicateByMessage(messagesFromFile)
 
 			err = file.WriteMessagesToFile(result, fileName)
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			time.Sleep(time.Second * 10)
 		}
@@ -106,9 +100,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels 
 		}
 
 		incomingMessage, err := message.GetIncomingMessages(ctx, user, channels, api)
-		if err != nil {
-			log.Error(err)
-		}
+		utils.CheckError(err, log)
 
 		for index := range incomingMessage {
 			msg, ok := filter.Messages(&incomingMessage[index])
@@ -122,9 +114,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels 
 		result := filter.RemoveDuplicateByMessage(messagesFromFile)
 
 		err = file.WriteMessagesToFile(result, path)
-		if err != nil {
-			log.Error(err)
-		}
+		utils.CheckError(err, log)
 
 		time.Sleep(time.Minute) // nolint
 	}
@@ -141,22 +131,16 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 
 		for _, msg := range messages {
 			err := message.GetRepliesForMessageBeforeSave(ctx, &msg, api)
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			channel, err := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
 			utils.CheckError(err, log)
 
 			fileName, err := user.ProcessUserPhoto(ctx, &msg.FromID, api)
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			userImageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, msg.FromID.Username)
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			fullName := fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName)
 			userID, err := serviceManager.User.CreateUser(&model.User{Username: msg.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
@@ -167,14 +151,10 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 
 			for _, replie := range msg.Replies.Messages {
 				fileName, err := user.ProcessUserPhoto(ctx, &replie.FromID, api)
-				if err != nil {
-					log.Error(err)
-				}
+				utils.CheckError(err, log)
 
 				userImageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, replie.FromID.Username)
-				if err != nil {
-					log.Error(err)
-				}
+				utils.CheckError(err, log)
 
 				fullName := fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName)
 				userID, err := serviceManager.User.CreateUser(&model.User{Username: replie.FromID.Username, FullName: fullName, PhotoURL: userImageUrl})
@@ -192,6 +172,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 func RemoveMessageWithOutReplies(serviceManager *service.Manager, log *logger.Logger) {
 	for {
 		log.Infof("Start remove messages without replies")
+
 		messages, err := serviceManager.Message.GetMessagesWithRepliesCount()
 		utils.CheckError(err, log)
 
@@ -214,7 +195,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 	// Create new client
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
 	if err != nil {
-		log.Errorf("ERROR_WHILE_CREATING_CLIENT:%s", err)
+		log.Error(&utils.CreateError{Name: "telegram client", ErrorValue: err})
 	}
 
 	// Create API
@@ -234,9 +215,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 
 		// Getting all channel
 		channels, err := channel.GetAllChannels(ctx, api)
-		if err != nil {
-			return fmt.Errorf("Channel_ERROR:%w", err)
-		}
+		utils.CheckError(err, log)
 
 		err = file.CreateFilesForChannels(channels)
 		if err != nil {
@@ -253,14 +232,10 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			}
 
 			filename, err := channel.ProcessChannelPhoto(ctx, &chnl, api)
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			channelImageURL, err := firebase.SendImageToStorage(ctx, cfg, filename, chnl.Username)
-			if err != nil {
-				log.Error(err)
-			}
+			utils.CheckError(err, log)
 
 			err = serviceManager.Channel.CreateChannel(&model.Channel{Name: chnl.Username, Title: chnl.Title, PhotoURL: channelImageURL})
 			utils.CheckError(err, log)

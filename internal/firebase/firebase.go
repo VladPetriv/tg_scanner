@@ -8,6 +8,7 @@ import (
 
 	firebase "firebase.google.com/go"
 	"github.com/VladPetriv/tg_scanner/config"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"google.golang.org/api/option"
 )
 
@@ -25,17 +26,17 @@ func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, ob
 	opt := option.WithCredentialsFile(cfg.SecretPath)
 	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
-		return "", fmt.Errorf("creating firebase app error: %w", err)
+		return "", &utils.CreateError{Name: "firebase appication", ErrorValue: err}
 	}
 
 	client, err := app.Storage(ctx)
 	if err != nil {
-		return "", fmt.Errorf("creating firebase storage error: %w", err)
+		return "", &utils.CreateError{Name: "firebase storage", ErrorValue: err}
 	}
 
 	bucket, err := client.DefaultBucket()
 	if err != nil {
-		return "", fmt.Errorf("getting default bucket error: %w", err)
+		return "", &utils.GettingError{Name: "default bucket", ErrorValue: err}
 	}
 
 	storageWriter := bucket.Object(objectName).NewWriter(ctx)

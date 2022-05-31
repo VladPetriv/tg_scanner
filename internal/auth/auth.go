@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/VladPetriv/tg_scanner/config"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
 	"github.com/gotd/td/tg"
@@ -45,7 +46,7 @@ func (a TermAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
 
 	code, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
-		return "", fmt.Errorf("ERROR_WHILE_CREATE_INPUT:%w", err)
+		return "", &utils.CreateError{Name: "new reader", ErrorValue: err}
 	}
 
 	return strings.TrimSpace(code), nil

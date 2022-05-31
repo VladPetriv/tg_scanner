@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/user"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"github.com/gotd/td/tg"
 )
 
@@ -81,7 +81,7 @@ func GetReplies(ctx context.Context, message *Message, channelPeer *tg.InputPeer
 		Hash:  value.Int64(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error while getting replies:%w", err)
+		return nil, &utils.GettingError{Name: "replies", ErrorValue: err}
 	}
 
 	return replies, nil
@@ -106,8 +106,6 @@ func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass
 
 		u, err := user.GetUserInfo(ctx, replieMessage.FromID.UserID, replieMessage.ID, cPeer, api)
 		if err != nil {
-			fmt.Printf("error while getting user info for replies[ProcessRepliesMessage]: %s\n", err)
-
 			continue
 		}
 
@@ -130,7 +128,7 @@ func GetIncomingMessages(ctx context.Context, tg_user *tg.User, channels []chann
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error while getting incoming message: %w", err)
+		return nil, &utils.GettingError{Name: "incoming messages", ErrorValue: err}
 	}
 
 	modifiedData, _ := data.AsModified()
@@ -158,8 +156,6 @@ func GetIncomingMessages(ctx context.Context, tg_user *tg.User, channels []chann
 			AccessHash: int64(msg.PeerID.AccessHash),
 		}, api)
 		if err != nil {
-			fmt.Printf("error while getting user info for incoming message: %s", err)
-
 			continue
 		}
 

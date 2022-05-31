@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"github.com/gotd/td/tg"
 )
 
@@ -34,7 +35,7 @@ func GetUserInfo(ctx context.Context, userID int, messageID int, cPeer *tg.Input
 		MsgID:  messageID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("getting user error: %w", err)
+		return nil, &utils.GettingError{Name: "user from telegram", ErrorValue: err}
 	}
 
 	for _, u := range data.Users {
@@ -42,7 +43,7 @@ func GetUserInfo(ctx context.Context, userID int, messageID int, cPeer *tg.Input
 
 		encodedData, err := json.Marshal(notEmptyUser)
 		if err != nil {
-			return nil, fmt.Errorf("creating JSON error: %w", err)
+			return nil, &utils.CreateError{Name: "JSON", ErrorValue: err}
 		}
 
 		err = json.Unmarshal(encodedData, &user)
@@ -75,7 +76,7 @@ func GetUserPhoto(ctx context.Context, user *User, api *tg.Client) (tg.UploadFil
 		Limit: 1024 * 1024,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("getting user photo error: %w", err)
+		return nil, &utils.GettingError{Name: "user photo", ErrorValue: err}
 	}
 
 	return data, nil
@@ -90,7 +91,7 @@ func DecodeUserPhoto(photo tg.UploadFileClass) (*UserImage, error) {
 
 	js, err := json.Marshal(photo)
 	if err != nil {
-		return nil, fmt.Errorf("createing JSON error: %w", err)
+		return nil, &utils.CreateError{Name: "JSON", ErrorValue: err}
 	}
 
 	err = json.Unmarshal(js, &userImage)
@@ -104,7 +105,7 @@ func DecodeUserPhoto(photo tg.UploadFileClass) (*UserImage, error) {
 func ProcessUserPhoto(ctx context.Context, user *User, api *tg.Client) (string, error) {
 	userPhotoData, err := GetUserPhoto(ctx, user, api)
 	if err != nil {
-		return "", fmt.Errorf("getting user photo data error: %w", err)
+		return "", err
 	}
 
 	userImage, err := DecodeUserPhoto(userPhotoData)
@@ -114,26 +115,26 @@ func ProcessUserPhoto(ctx context.Context, user *User, api *tg.Client) (string, 
 
 	user.Image = userImage
 
-	fileName, err := CreateUserImage(user)
+	fileName, err := CreateUserPhoto(user)
 	if err != nil {
-		return "", fmt.Errorf("create user image error: %w", err)
+		return "", err
 	}
 
 	return fileName, nil
 }
 
-func CreateUserImage(user *User) (string, error) {
+func CreateUserPhoto(user *User) (string, error) {
 	if user.Image == nil {
 		return "", fmt.Errorf("user image is nil")
 	}
 
 	path := fmt.Sprintf("./images/%s.jpg", user.Username)
-	image, err := os.Create(path)
+	photo, err := os.Create(path)
 	if err != nil {
-		return "", fmt.Errorf("create file error: %w", err)
+		return "", &utils.CreateError{Name: "user photo", ErrorValue: err}
 	}
 
-	_, err = image.Write(user.Image.Bytes)
+	_, err = photo.Write(user.Image.Bytes)
 	if err != nil {
 		return "", fmt.Errorf("write file error: %w", err)
 	}

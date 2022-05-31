@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"github.com/gotd/td/tg"
 )
 
@@ -35,7 +36,7 @@ func GetChannelHistory(ctx context.Context, cPeer *tg.InputPeerChannel, api *tg.
 		Hash: value.Int64(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("getting message from history error: %w", err)
+		return nil, &utils.GettingError{Name: "messages from history", ErrorValue: err}
 	}
 
 	return result, nil
@@ -46,7 +47,7 @@ func GetAllChannels(ctx context.Context, api *tg.Client) ([]Channel, error) {
 
 	data, err := api.MessagesGetAllChats(ctx, []int64{})
 	if err != nil {
-		return nil, fmt.Errorf("getting group error: %w", err)
+		return nil, &utils.GettingError{Name: "channels", ErrorValue: err}
 	}
 
 	var newChannel Channel
@@ -88,7 +89,7 @@ func GetChannelPhoto(ctx context.Context, channel *Channel, api *tg.Client) (tg.
 		Limit: 1024 * 1024,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("getting channel photo error: %w", err)
+		return nil, &utils.GettingError{Name: "channel photo", ErrorValue: err}
 	}
 
 	return data, nil
@@ -103,7 +104,7 @@ func DecodeChannelPhoto(photo tg.UploadFileClass) (*ChannelImage, error) {
 
 	js, err := json.Marshal(photo)
 	if err != nil {
-		return nil, fmt.Errorf("createing JSON error: %w", err)
+		return nil, &utils.CreateError{Name: "JSON", ErrorValue: err}
 	}
 
 	err = json.Unmarshal(js, &channelImage)
@@ -117,7 +118,7 @@ func DecodeChannelPhoto(photo tg.UploadFileClass) (*ChannelImage, error) {
 func ProcessChannelPhoto(ctx context.Context, channel *Channel, api *tg.Client) (string, error) {
 	channelPhotoData, err := GetChannelPhoto(ctx, channel, api)
 	if err != nil {
-		return "", fmt.Errorf("getting channel photo data error: %w", err)
+		return "", err
 	}
 
 	channelImage, err := DecodeChannelPhoto(channelPhotoData)
@@ -129,7 +130,7 @@ func ProcessChannelPhoto(ctx context.Context, channel *Channel, api *tg.Client) 
 
 	fileName, err := CreateChannelImage(channel)
 	if err != nil {
-		return "", fmt.Errorf("create channel image error: %w", err)
+		return "", &utils.CreateError{Name: "channel image", ErrorValue: err}
 	}
 
 	return fileName, nil
@@ -143,7 +144,7 @@ func CreateChannelImage(channel *Channel) (string, error) {
 	path := fmt.Sprintf("./images/%s.jpg", channel.Username)
 	image, err := os.Create(path)
 	if err != nil {
-		return "", fmt.Errorf("create file error: %w", err)
+		return "", &utils.CreateError{Name: "file", ErrorValue: err}
 	}
 
 	_, err = image.Write(channel.Image.Bytes)
