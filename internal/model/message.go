@@ -5,5 +5,6 @@ type Message struct {
 	ChannelID    int    `json:"channelId"`
 	UserID       int    `json:"userId"`
 	Title        string `json:"title"`
+	MessageURL   string `json:"messageURL"`
 	RepliesCount int
 }
