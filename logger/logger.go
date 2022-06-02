@@ -10,28 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type writerHook struct {
-	Writer    []io.Writer
-	LogLevels []logrus.Level
-}
-
-func (hook *writerHook) Fire(entry *logrus.Entry) error {
-	line, err := entry.String()
-	if err != nil {
-		return fmt.Errorf("ERROR_WHILE_GETTING_STRING:%w", err)
-	}
-
-	for _, w := range hook.Writer {
-		_, err = w.Write([]byte(line))
-	}
-
-	return err // nolint
-}
-
-func (hook *writerHook) Levels() []logrus.Level {
-	return hook.LogLevels
-}
-
 var e *logrus.Entry // nolint
 
 type Logger struct {
@@ -62,12 +40,7 @@ func Init() {
 		panic(fmt.Sprintf("[Error]: %s", err))
 	}
 
-	log.SetOutput(io.Discard) // Send all logs to nowhere by default
-
-	log.AddHook(&writerHook{
-		Writer:    []io.Writer{allFile, os.Stdout},
-		LogLevels: logrus.AllLevels,
-	})
+	log.SetOutput(io.MultiWriter(allFile, os.Stdout))
 
 	log.SetLevel(logrus.TraceLevel)
 

@@ -204,7 +204,7 @@ func RemoveMessageWithOutReplies(serviceManager *service.Manager, log *logger.Lo
 			continue
 		}
 
-		time.Sleep(time.Minute * 60)
+		time.Sleep(time.Minute * 30)
 	}
 }
 
