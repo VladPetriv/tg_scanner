@@ -31,10 +31,10 @@ func TestMessagePg_CreateMessage(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 
-				mock.ExpectQuery("INSERT INTO message(channel_id, user_id, title) VALUES ($1, $2, $3) RETURNING id;").
-					WithArgs(1, 1, "test").WillReturnRows(rows)
+				mock.ExpectQuery("INSERT INTO message(channel_id, user_id, title, message_url) VALUES ($1, $2, $3, $4) RETURNING id;").
+					WithArgs(1, 1, "test", "test.com").WillReturnRows(rows)
 			},
-			input: model.Message{ChannelID: 1, UserID: 1, Title: "test"},
+			input: model.Message{ChannelID: 1, UserID: 1, Title: "test", MessageURL: "test.com"},
 			want:  1,
 		},
 		{
@@ -42,7 +42,7 @@ func TestMessagePg_CreateMessage(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"})
 
-				mock.ExpectQuery("INSERT INTO message(channel_id, user_id, title) VALUES ($1, $2, $3) RETURNING id;").
+				mock.ExpectQuery("INSERT INTO message(channel_id, user_id, title, message_url) VALUES ($1, $2, $3, $4) RETURNING id;").
 					WithArgs().WillReturnRows(rows)
 			},
 			input:   model.Message{},
