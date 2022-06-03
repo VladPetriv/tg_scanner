@@ -60,7 +60,7 @@ func (s *ReplieDBService) CreateReplie(replie *model.Replie) error {
 		return err
 	}
 
-	if candidate != nil {
+	if candidate != nil && candidate.MessageID != replie.MessageID {
 		return &utils.RecordIsExistError{RecordName: "replie", Name: replie.Title}
 	}
 
