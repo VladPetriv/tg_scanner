@@ -4,44 +4,21 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
 
-	"github.com/VladPetriv/tg_scanner/internal/channel"
+	"github.com/VladPetriv/tg_scanner/internal/file"
+	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/user"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"github.com/gotd/td/tg"
 )
 
-type Message struct {
-	ID      int
-	Message string
-	FromID  user.User
-	PeerID  channel.Channel
-	Replies Replies
-	ReplyTo ReplyTo
-}
+func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, channelPeer *tg.InputPeerChannel, api *tg.Client) []model.TgMessage { // nolint
+	var msg model.TgMessage
 
-type Replies struct {
-	Count    int
-	Messages []RepliesMessage
-}
-
-type RepliesMessage struct {
-	ID      int
-	FromID  user.User
-	Message string
-	ReplyTo interface{}
-}
-
-type ReplyTo struct {
-	ReplyToMsgID int
-}
-
-func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, channelPeer *tg.InputPeerChannel, api *tg.Client) []Message { // nolint
-	var msg Message
-
-	result := make([]Message, 0)
+	result := make([]model.TgMessage, 0)
 	messages := data.GetMessages()
 
 	for _, message := range messages {
@@ -70,7 +47,7 @@ func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessag
 	return result
 }
 
-func GetReplies(ctx context.Context, message *Message, channelPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
+func GetReplies(ctx context.Context, message *model.TgMessage, channelPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
 	bInt := big.NewInt(10000) // nolint
 
 	value, _ := rand.Int(rand.Reader, bInt)
@@ -87,10 +64,10 @@ func GetReplies(ctx context.Context, message *Message, channelPeer *tg.InputPeer
 	return replies, nil
 }
 
-func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass, cPeer *tg.InputPeerChannel, api *tg.Client) []RepliesMessage {
-	repliesMessages := make([]RepliesMessage, 0)
+func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass, cPeer *tg.InputPeerChannel, api *tg.Client) []model.TgRepliesMessage {
+	repliesMessages := make([]model.TgRepliesMessage, 0)
 
-	var replieMessage RepliesMessage
+	var replieMessage model.TgRepliesMessage
 
 	data, _ := replies.AsModified()
 	for _, replie := range data.GetMessages() {
@@ -116,10 +93,10 @@ func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass
 	return repliesMessages
 }
 
-func GetIncomingMessages(ctx context.Context, tg_user *tg.User, channels []channel.Channel, api *tg.Client) ([]Message, error) {
-	msgs := make([]Message, 0)
+func GetIncomingMessages(ctx context.Context, tg_user *tg.User, channels []model.TgChannel, api *tg.Client) ([]model.TgMessage, error) {
+	msgs := make([]model.TgMessage, 0)
 
-	var msg Message
+	var msg model.TgMessage
 
 	data, err := api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{ // nolint
 		OffsetPeer: &tg.InputPeerUser{
@@ -167,7 +144,7 @@ func GetIncomingMessages(ctx context.Context, tg_user *tg.User, channels []chann
 	return msgs, nil
 }
 
-func GetRepliesForMessageBeforeSave(ctx context.Context, message *Message, api *tg.Client) error {
+func GetRepliesForMessageBeforeSave(ctx context.Context, message *model.TgMessage, api *tg.Client) error {
 	cPeer := &tg.InputPeerChannel{
 		ChannelID:  int64(message.PeerID.ID),
 		AccessHash: int64(message.PeerID.AccessHash),
@@ -185,4 +162,43 @@ func GetRepliesForMessageBeforeSave(ctx context.Context, message *Message, api *
 	time.Sleep(time.Second * 3)
 
 	return nil
+}
+
+func GetMessagePhoto(ctx context.Context, message *model.TgMessage, api *tg.Client) (tg.UploadFileClass, error) {
+	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
+		Location: &tg.InputPeerPhotoFileLocation{
+			Peer: &tg.InputPeerUser{
+				UserID:     int64(message.FromID.ID),
+				AccessHash: int64(message.FromID.AccessHash),
+			},
+			PhotoID: message.Media.Photo.GetID(),
+		},
+		Limit: 1024 * 1024,
+	})
+	if err != nil {
+		return nil, &utils.GettingError{Name: "message photo", ErrorValue: err}
+	}
+
+	return data, nil
+}
+
+func ProcessMessagePhoto(ctx context.Context, message *model.TgMessage, api *tg.Client) (string, error) {
+	messagePhotoData, err := GetMessagePhoto(ctx, message, api)
+	if err != nil {
+		return "", err
+	}
+
+	messageImage, err := file.DecodePhoto(messagePhotoData)
+	if err != nil {
+		return "", fmt.Errorf("decode message photo error: %w", err)
+	}
+
+	message.Image = messageImage
+
+	fileName, err := file.CreatePhoto(messageImage, fmt.Sprint(message.ID))
+	if err != nil {
+		return "", err
+	}
+
+	return fileName, nil
 }

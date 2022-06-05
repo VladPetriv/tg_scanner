@@ -22,7 +22,7 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-func GetMessagesFromHistory(ctx context.Context, channels []channel.Channel, wg *sync.WaitGroup, api *tg.Client, log *logger.Logger) {
+func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg *sync.WaitGroup, api *tg.Client, log *logger.Logger) {
 	time.Sleep(time.Second * 20)
 	defer wg.Done()
 	for {
@@ -80,7 +80,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []channel.Channel, wg 
 	}
 }
 
-func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels []channel.Channel, wg *sync.WaitGroup, log *logger.Logger) {
+func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels []model.TgChannel, wg *sync.WaitGroup, log *logger.Logger) {
 	defer wg.Done()
 	time.Sleep(time.Second * 20)
 
