@@ -126,7 +126,7 @@ func ParseFromFiles(path string) ([]model.TgMessage, error) {
 
 		data, err := GetMessagesFromFile(pathToFile)
 		if err != nil {
-			fmt.Printf("%s\n", err)
+			fmt.Printf("%s - %s\n", file.Name(), err)
 			continue
 		}
 

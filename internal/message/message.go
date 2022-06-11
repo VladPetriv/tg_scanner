@@ -4,11 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"time"
 
-	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/user"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
@@ -162,43 +160,4 @@ func GetRepliesForMessageBeforeSave(ctx context.Context, message *model.TgMessag
 	time.Sleep(time.Second * 3)
 
 	return nil
-}
-
-func GetMessagePhoto(ctx context.Context, message *model.TgMessage, api *tg.Client) (tg.UploadFileClass, error) {
-	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
-		Location: &tg.InputPeerPhotoFileLocation{
-			Peer: &tg.InputPeerUser{
-				UserID:     int64(message.FromID.ID),
-				AccessHash: int64(message.FromID.AccessHash),
-			},
-			PhotoID: message.Media.Photo.GetID(),
-		},
-		Limit: 1024 * 1024,
-	})
-	if err != nil {
-		return nil, &utils.GettingError{Name: "message photo", ErrorValue: err}
-	}
-
-	return data, nil
-}
-
-func ProcessMessagePhoto(ctx context.Context, message *model.TgMessage, api *tg.Client) (string, error) {
-	messagePhotoData, err := GetMessagePhoto(ctx, message, api)
-	if err != nil {
-		return "", err
-	}
-
-	messageImage, err := file.DecodePhoto(messagePhotoData)
-	if err != nil {
-		return "", fmt.Errorf("decode message photo error: %w", err)
-	}
-
-	message.Image = messageImage
-
-	fileName, err := file.CreatePhoto(messageImage, fmt.Sprint(message.ID))
-	if err != nil {
-		return "", err
-	}
-
-	return fileName, nil
 }
