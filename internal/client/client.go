@@ -34,7 +34,9 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg 
 				ChannelID:  int64(chnl.ID),
 				AccessHash: int64(chnl.AccessHash),
 			}, api)
-			utils.CheckError(err, log)
+			if err != nil {
+				log.Error(err)
+			}
 
 			modifiedData, _ := data.AsModified()
 
@@ -44,7 +46,9 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg 
 			}, api)
 
 			messagesFromFile, err := file.GetMessagesFromFile(fileName)
-			utils.CheckError(err, log)
+			if err != nil {
+				log.Error(err)
+			}
 
 			for _, msg := range messages {
 				msg, ok := filter.Messages(&msg)
@@ -59,7 +63,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg 
 					AccessHash: int64(chnl.AccessHash),
 				}, api)
 				if err != nil {
-					utils.CheckError(err, log)
+					log.Error(err)
 
 					continue
 				}
@@ -71,7 +75,9 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg 
 			result := filter.RemoveDuplicateByMessage(messagesFromFile)
 
 			err = file.WriteMessagesToFile(result, fileName)
-			utils.CheckError(err, log)
+			if err != nil {
+				log.Error(err)
+			}
 
 			time.Sleep(time.Second * 10)
 		}
@@ -100,7 +106,9 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels 
 		}
 
 		incomingMessage, err := message.GetIncomingMessages(ctx, user, channels, api)
-		utils.CheckError(err, log)
+		if err != nil {
+			log.Error(err)
+		}
 
 		for index := range incomingMessage {
 			msg, ok := filter.Messages(&incomingMessage[index])
@@ -114,7 +122,9 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels 
 		result := filter.RemoveDuplicateByMessage(messagesFromFile)
 
 		err = file.WriteMessagesToFile(result, path)
-		utils.CheckError(err, log)
+		if err != nil {
+			log.Error(err)
+		}
 
 		time.Sleep(time.Minute) // nolint
 	}
@@ -131,24 +141,30 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 
 		for _, msg := range messages {
 			err := message.GetRepliesForMessageBeforeSave(ctx, &msg, api)
-			utils.CheckError(err, log)
+			if err != nil {
+				log.Error(err)
+			}
 
-			channel, err := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
-			utils.CheckError(err, log)
+			channel, _ := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
 
 			fileName, err := user.ProcessUserPhoto(ctx, &msg.FromID, api)
-			utils.CheckError(err, log)
+			if err != nil {
+				log.Error(err)
+			}
 
 			userImageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, msg.FromID.Username)
-			utils.CheckError(err, log)
+			if err != nil {
+				log.Error(err)
+			}
 
-			fullName := fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName)
 			userID, err := serviceManager.User.CreateUser(&model.User{
 				Username: msg.FromID.Username,
-				FullName: fullName,
+				FullName: fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName),
 				PhotoURL: userImageUrl,
 			})
-			utils.CheckError(err, log)
+			if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
+				log.Error(err)
+			}
 
 			messageID, err := serviceManager.Message.CreateMessage(&model.Message{
 				ChannelID:  channel.ID,
@@ -156,29 +172,38 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				Title:      msg.Message,
 				MessageURL: fmt.Sprintf("https://t.me/%s/%d", msg.PeerID.Username, msg.ID),
 			})
-			utils.CheckError(err, log)
+			if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
+				log.Error(err)
+			}
 
 			for _, replie := range msg.Replies.Messages {
 				fileName, err := user.ProcessUserPhoto(ctx, &replie.FromID, api)
-				utils.CheckError(err, log)
+				if err != nil {
+					log.Error(err)
+				}
 
 				userImageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, replie.FromID.Username)
-				utils.CheckError(err, log)
+				if err != nil {
+					log.Error(err)
+				}
 
-				fullName := fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName)
 				userID, err := serviceManager.User.CreateUser(&model.User{
 					Username: replie.FromID.Username,
-					FullName: fullName,
+					FullName: fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName),
 					PhotoURL: userImageUrl,
 				})
-				utils.CheckError(err, log)
+				if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
+					log.Error(err)
+				}
 
 				err = serviceManager.Replie.CreateReplie(&model.Replie{
 					UserID:    userID,
 					MessageID: messageID,
 					Title:     replie.Message,
 				})
-				utils.CheckError(err, log)
+				if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
+					log.Error(err)
+				}
 			}
 		}
 
@@ -191,12 +216,16 @@ func RemoveMessageWithOutReplies(serviceManager *service.Manager, log *logger.Lo
 		log.Infof("Start remove messages without replies")
 
 		messages, err := serviceManager.Message.GetMessagesWithRepliesCount()
-		utils.CheckError(err, log)
+		if err != nil {
+			log.Warn(err)
+		}
 
 		for _, message := range messages {
 			if message.RepliesCount == 0 {
 				err := serviceManager.Message.DeleteMessageByID(message.ID)
-				utils.CheckError(err, log)
+				if err != nil {
+					log.Warn(err)
+				}
 
 				continue
 			}
@@ -232,7 +261,9 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 
 		// Getting all channel
 		channels, err := channel.GetAllChannels(ctx, api)
-		utils.CheckError(err, log)
+		if err != nil {
+			log.Error(err)
+		}
 
 		err = file.CreateFilesForChannels(channels)
 		if err != nil {
@@ -241,22 +272,25 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 
 		// Getting channel history
 		for _, chnl := range channels {
-			candidate, err := serviceManager.Channel.GetChannelByName(chnl.Username)
-			utils.CheckError(err, log)
-
+			candidate, _ := serviceManager.Channel.GetChannelByName(chnl.Username)
 			if candidate != nil {
 				continue
 			}
 
 			filename, err := channel.ProcessChannelPhoto(ctx, &chnl, api)
-			utils.CheckError(err, log)
+			if err != nil {
+				log.Error(err)
+			}
 
 			channelImageURL, err := firebase.SendImageToStorage(ctx, cfg, filename, chnl.Username)
-			utils.CheckError(err, log)
+			if err != nil {
+				log.Error(err)
+			}
 
 			err = serviceManager.Channel.CreateChannel(&model.Channel{Name: chnl.Username, Title: chnl.Title, PhotoURL: channelImageURL})
-			utils.CheckError(err, log)
-
+			if err != nil {
+				log.Error(err)
+			}
 		}
 
 		go SaveToDb(ctx, serviceManager, cfg, api, log)

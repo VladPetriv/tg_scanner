@@ -2,24 +2,7 @@ package utils
 
 import (
 	"fmt"
-
-	"github.com/VladPetriv/tg_scanner/logger"
 )
-
-func CheckError(err error, log *logger.Logger) {
-	if err == nil {
-		return
-	}
-
-	switch t := err.(type) {
-	case *RecordIsExistError:
-		log.Warn(t)
-	case *NotFoundError, *ServiceError, *CreateError, *GettingError:
-		log.Error(t)
-	default:
-		log.Info(t)
-	}
-}
 
 type NotFoundError struct {
 	Name string
