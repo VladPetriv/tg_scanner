@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/VladPetriv/tg_scanner/internal/channel"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
-	"github.com/VladPetriv/tg_scanner/internal/message"
+	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
+	"github.com/gotd/td/tg"
 )
 
-func WriteMessagesToFile(msgs []message.Message, fileName string) error {
+func WriteMessagesToFile(msgs []model.TgMessage, fileName string) error {
 	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644) // nolint
 	if err != nil {
 		return fmt.Errorf("error while open file: %w", err)
@@ -30,8 +30,8 @@ func WriteMessagesToFile(msgs []message.Message, fileName string) error {
 	return nil
 }
 
-func GetMessagesFromFile(fileName string) ([]message.Message, error) {
-	var messages []message.Message
+func GetMessagesFromFile(fileName string) ([]model.TgMessage, error) {
+	var messages []model.TgMessage
 
 	data, err := os.ReadFile(fileName)
 	if err != nil {
@@ -56,7 +56,7 @@ func GetMessagesFromFile(fileName string) ([]message.Message, error) {
 	return messages, nil
 }
 
-func CreateFilesForChannels(channels []channel.Channel) error {
+func CreateFilesForChannels(channels []model.TgChannel) error {
 	for _, channel := range channels {
 		fileName := fmt.Sprintf("%s.json", channel.Username)
 		if _, err := os.Stat("./data/" + fileName); err == nil {
@@ -108,8 +108,8 @@ func CreateDirs() error {
 	return nil
 }
 
-func ParseFromFiles(path string) ([]message.Message, error) {
-	var messages []message.Message
+func ParseFromFiles(path string) ([]model.TgMessage, error) {
+	var messages []model.TgMessage
 
 	dir, err := os.Open(path)
 	if err != nil {
@@ -126,7 +126,7 @@ func ParseFromFiles(path string) ([]message.Message, error) {
 
 		data, err := GetMessagesFromFile(pathToFile)
 		if err != nil {
-			fmt.Printf("%s\n", err)
+			fmt.Printf("%s - %s\n", file.Name(), err)
 			continue
 		}
 
@@ -151,4 +151,43 @@ func ParseFromFiles(path string) ([]message.Message, error) {
 	result := filter.RemoveDuplicateByMessage(messages)
 
 	return result, nil
+}
+
+func DecodePhoto(photo tg.UploadFileClass) (*model.Image, error) {
+	if photo == nil {
+		return nil, fmt.Errorf("photo is nil")
+	}
+
+	var img *model.Image
+
+	js, err := json.Marshal(photo)
+	if err != nil {
+		return nil, &utils.CreateError{Name: "JSON", ErrorValue: err}
+	}
+
+	err = json.Unmarshal(js, &img)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal JSON error: %w", err)
+	}
+
+	return img, nil
+}
+
+func CreatePhoto(img *model.Image, name string) (string, error) {
+	if img == nil {
+		return "", fmt.Errorf("image is nil")
+	}
+
+	path := fmt.Sprintf("./images/%s.jpg", name)
+	photo, err := os.Create(path)
+	if err != nil {
+		return "", &utils.CreateError{Name: "photo", ErrorValue: err}
+	}
+
+	_, err = photo.Write(img.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("write file error: %w", err)
+	}
+
+	return path, nil
 }
