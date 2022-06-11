@@ -63,7 +63,11 @@ func (repo *ReplieRepo) GetReplieByName(name string) (*model.Replie, error) {
 
 func (repo *ReplieRepo) CreateReplie(replie *model.Replie) (int, error) {
 	var id int
-	row := repo.db.QueryRow("INSERT INTO replie (user_id, message_id, title) VALUES ($1, $2, $3) RETURNING id;", replie.UserID, replie.MessageID, replie.Title)
+
+	row := repo.db.QueryRow(
+		"INSERT INTO replie (user_id, message_id, title) VALUES ($1, $2, $3) RETURNING id;",
+		replie.UserID, replie.MessageID, replie.Title,
+	)
 	if err := row.Scan(&id); err != nil {
 		return 0, fmt.Errorf("error while creating replie: %w", err)
 	}

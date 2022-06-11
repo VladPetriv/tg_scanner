@@ -64,8 +64,8 @@ func (repo *MessageRepo) CreateMessage(message *model.Message) (int, error) {
 	var id int
 
 	row := repo.db.QueryRow(
-		"INSERT INTO message(channel_id, user_id, title, message_url) VALUES ($1, $2, $3, $4) RETURNING id;",
-		message.ChannelID, message.UserID, message.Title, message.MessageURL,
+		"INSERT INTO message(channel_id, user_id, title, message_url, image) VALUES ($1, $2, $3, $4, $5) RETURNING id;",
+		message.ChannelID, message.UserID, message.Title, message.MessageURL, message.Image,
 	)
 	if err := row.Scan(&id); err != nil {
 		return 0, fmt.Errorf("error while creating message: %w", err)

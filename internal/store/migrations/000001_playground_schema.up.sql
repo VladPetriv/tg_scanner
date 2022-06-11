@@ -16,8 +16,9 @@ CREATE TABLE message (
   id SERIAL PRIMARY KEY,
   channel_id INT NOT NULL,
   user_id INT NOT NULL,
-  message_url TEXT,
   title TEXT,
+  message_url TEXT,
+  image TEXT,
   CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channel(id) ON DELETE CASCADE,
   CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES tg_user(id) ON DELETE CASCADE
 );
