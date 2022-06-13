@@ -4,9 +4,11 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
 
+	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/user"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
@@ -160,4 +162,97 @@ func GetRepliesForMessageBeforeSave(ctx context.Context, message *model.TgMessag
 	time.Sleep(time.Second * 3)
 
 	return nil
+}
+
+func GetMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Client) (tg.UploadFileClass, error) {
+
+	lenght := len(msg.Media.Photo.Sizes) - 1
+
+	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
+		Location: &tg.InputPhotoFileLocation{
+			ID:            msg.Media.Photo.ID,
+			AccessHash:    msg.Media.Photo.AccessHash,
+			FileReference: msg.Media.Photo.FileReference,
+			ThumbSize:     msg.Media.Photo.Sizes[lenght].GetType(),
+		},
+		Offset: 0,
+		Limit:  1024 * 1024,
+	})
+	if err != nil {
+		return nil, &utils.GettingError{Name: "message photo", ErrorValue: err}
+	}
+
+	return data, nil
+}
+
+func ProcessMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Client) (string, error) {
+	status, err := CheckMessagePhotoStatus(ctx, msg, api)
+	if err != nil {
+		return "", err
+	}
+
+	if !status {
+		return "", &utils.NotFoundError{Name: "photo in message"}
+	}
+
+	messagePhotoData, err := GetMessagePhoto(ctx, msg, api)
+	if err != nil {
+		return "", err
+	}
+
+	messageImage, err := file.DecodePhoto(messagePhotoData)
+	if err != nil {
+		return "", fmt.Errorf("decode message photo error: %w", err)
+	}
+
+	filename, err := file.CreatePhoto(messageImage, fmt.Sprint(msg.ID))
+	if err != nil {
+		return "", err
+	}
+
+	return filename, err
+}
+
+func CheckMessagePhotoStatus(ctx context.Context, msg *model.TgMessage, api *tg.Client) (bool, error) {
+	request := &tg.ChannelsGetMessagesRequest{
+		Channel: &tg.InputChannel{
+			ChannelID:  int64(msg.PeerID.ID),
+			AccessHash: int64(msg.PeerID.AccessHash),
+		},
+		ID: []tg.InputMessageClass{&tg.InputMessageID{ID: msg.ID}},
+	}
+
+	data, err := api.ChannelsGetMessages(ctx, request)
+	if err != nil {
+		return false, &utils.GettingError{Name: "messages by channel peer", ErrorValue: err}
+	}
+
+	messages, _ := data.(*tg.MessagesChannelMessages)
+
+	for _, m := range messages.GetMessages() {
+		message, ok := m.(*tg.Message)
+		if !ok {
+			continue
+		}
+
+		if message.Media != nil {
+			media, ok := message.Media.(*tg.MessageMediaPhoto)
+			if !ok {
+				continue
+			}
+
+			photo, ok := media.GetPhoto()
+			if !ok {
+				continue
+			}
+
+			if photo != nil {
+				return true, nil
+			}
+
+			return false, nil
+		}
+	}
+
+	return false, nil
 }

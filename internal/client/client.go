@@ -166,11 +166,26 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				log.Error(err)
 			}
 
+			var messageImageUrl string
+
+			if msg.Media.Photo != nil {
+				filename, err := message.ProcessMessagePhoto(ctx, &msg, api)
+				if err != nil {
+					log.Error(err)
+				}
+
+				messageImageUrl, err = firebase.SendImageToStorage(ctx, cfg, filename, fmt.Sprint(msg.ID))
+				if err != nil {
+					log.Error(err)
+				}
+			}
+
 			messageID, err := serviceManager.Message.CreateMessage(&model.Message{
 				ChannelID:  channel.ID,
 				UserID:     userID,
 				Title:      msg.Message,
 				MessageURL: fmt.Sprintf("https://t.me/%s/%d", msg.PeerID.Username, msg.ID),
+				Image:      messageImageUrl,
 			})
 			if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
 				log.Error(err)

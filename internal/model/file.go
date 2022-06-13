@@ -5,7 +5,13 @@ import "github.com/gotd/td/tg"
 type Image struct {
 	Bytes []byte
 }
-
 type Media struct {
-	Photo *tg.Photo `json:"Photo"`
+	Photo *Photo `json:"Photo"`
+}
+
+type Photo struct {
+	ID            int64
+	AccessHash    int64
+	FileReference []byte
+	Sizes         []tg.PhotoSize
 }
