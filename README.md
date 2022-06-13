@@ -6,8 +6,8 @@ tg_scanner is an application which can parse question and replies from you teleg
 
 Application will always create a few dirs:
   - logs - for logs file
-  - images - for saving and getting user images before save to firebase
-  - data - for saving and getting messages and replies from telegram before save to PostgreSQL
+  - images - for saving and getting user, message images before save to firebase
+  - data - for saving and getting data from telegram before save to PostgreSQL
 
 ## Technology
 
@@ -16,13 +16,20 @@ Go, GoTD, PostgreSQL, Testify, go-sqlmock, firebase-admin-go
 ## Before start
 
 Please create a dir "configs" with file ".config.env" which have this fields:
+
+### Telegram:
 - APP_ID = Telegram app id
 - APP_HASH = Telegram app hash
 - PHONE = Telegram phone number 
-- PASSWORD = Password to telegram [You must have it in telegram]
+- PASSWORD = Password to telegram
+
+### PostgreSQL:
 - POSTGRES_USER = Postgresql username
 - POSTGRES_PASSWORD = Postgresql password
 - POSTGRES_DB = Postgresql database name
+- DATABASE_URL = You can also use it for describe PostgreSQL path
+
+### Firebase:
 - PROJECT_ID = Project id from firebase
 - STORAGE_BUCKET = Storage bucket name from firebase
 - SECRET_PATH = Path to your secret key from firebase
