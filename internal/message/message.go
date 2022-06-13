@@ -165,12 +165,15 @@ func GetRepliesForMessageBeforeSave(ctx context.Context, message *model.TgMessag
 }
 
 func GetMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Client) (tg.UploadFileClass, error) {
+
+	lenght := len(msg.Media.Photo.Sizes) - 1
+
 	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
 		Location: &tg.InputPhotoFileLocation{
-			ID:            int64(msg.Media.Photo.ID),
-			AccessHash:    int64(msg.Media.Photo.AccessHash),
+			ID:            msg.Media.Photo.ID,
+			AccessHash:    msg.Media.Photo.AccessHash,
 			FileReference: msg.Media.Photo.FileReference,
-			ThumbSize:     msg.Media.Photo.Sizes[1].GetType(),
+			ThumbSize:     msg.Media.Photo.Sizes[lenght].GetType(),
 		},
 		Offset: 0,
 		Limit:  1024 * 1024,
@@ -183,6 +186,15 @@ func GetMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Client) 
 }
 
 func ProcessMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Client) (string, error) {
+	status, err := CheckMessagePhotoStatus(ctx, msg, api)
+	if err != nil {
+		return "", err
+	}
+
+	if !status {
+		return "", &utils.NotFoundError{Name: "photo in message"}
+	}
+
 	messagePhotoData, err := GetMessagePhoto(ctx, msg, api)
 	if err != nil {
 		return "", err
@@ -199,4 +211,48 @@ func ProcessMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Clie
 	}
 
 	return filename, err
+}
+
+func CheckMessagePhotoStatus(ctx context.Context, msg *model.TgMessage, api *tg.Client) (bool, error) {
+	request := &tg.ChannelsGetMessagesRequest{
+		Channel: &tg.InputChannel{
+			ChannelID:  int64(msg.PeerID.ID),
+			AccessHash: int64(msg.PeerID.AccessHash),
+		},
+		ID: []tg.InputMessageClass{&tg.InputMessageID{ID: msg.ID}},
+	}
+
+	data, err := api.ChannelsGetMessages(ctx, request)
+	if err != nil {
+		return false, &utils.GettingError{Name: "messages by channel peer", ErrorValue: err}
+	}
+
+	messages, _ := data.(*tg.MessagesChannelMessages)
+
+	for _, m := range messages.GetMessages() {
+		message, ok := m.(*tg.Message)
+		if !ok {
+			continue
+		}
+
+		if message.Media != nil {
+			media, ok := message.Media.(*tg.MessageMediaPhoto)
+			if !ok {
+				continue
+			}
+
+			photo, ok := media.GetPhoto()
+			if !ok {
+				continue
+			}
+
+			if photo != nil {
+				return true, nil
+			}
+
+			return false, nil
+		}
+	}
+
+	return false, nil
 }

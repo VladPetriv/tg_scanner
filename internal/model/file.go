@@ -10,8 +10,8 @@ type Media struct {
 }
 
 type Photo struct {
-	ID            int
-	AccessHash    int
+	ID            int64
+	AccessHash    int64
 	FileReference []byte
 	Sizes         []tg.PhotoSize
 }
