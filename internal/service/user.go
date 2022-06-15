@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
@@ -34,9 +32,7 @@ func (s *UserDBService) GetUserByUsername(username string) (*model.User, error) 
 }
 
 func (s *UserDBService) CreateUser(user *model.User) (int, error) {
-	if user.Username == "" {
-		return 0, fmt.Errorf("username length should be more")
-	}
+	utils.ValidateTelegramUser(user)
 
 	candidate, err := s.GetUserByUsername(user.Username)
 	if err != nil {
