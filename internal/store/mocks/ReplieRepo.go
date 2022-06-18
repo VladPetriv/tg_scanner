@@ -31,29 +31,6 @@ func (_m *ReplieRepo) CreateReplie(replie *model.Replie) (int, error) {
 	return r0, r1
 }
 
-// GetReplie provides a mock function with given fields: replieID
-func (_m *ReplieRepo) GetReplie(replieID int) (*model.Replie, error) {
-	ret := _m.Called(replieID)
-
-	var r0 *model.Replie
-	if rf, ok := ret.Get(0).(func(int) *model.Replie); ok {
-		r0 = rf(replieID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Replie)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(int) error); ok {
-		r1 = rf(replieID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetReplieByName provides a mock function with given fields: name
 func (_m *ReplieRepo) GetReplieByName(name string) (*model.Replie, error) {
 	ret := _m.Called(name)

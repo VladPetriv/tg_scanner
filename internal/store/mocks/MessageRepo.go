@@ -52,29 +52,6 @@ func (_m *MessageRepo) DeleteMessageByID(messageID int) (int, error) {
 	return r0, r1
 }
 
-// GetMessage provides a mock function with given fields: messageID
-func (_m *MessageRepo) GetMessage(messageID int) (*model.Message, error) {
-	ret := _m.Called(messageID)
-
-	var r0 *model.Message
-	if rf, ok := ret.Get(0).(func(int) *model.Message); ok {
-		r0 = rf(messageID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Message)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(int) error); ok {
-		r1 = rf(messageID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetMessageByName provides a mock function with given fields: name
 func (_m *MessageRepo) GetMessageByName(name string) (*model.Message, error) {
 	ret := _m.Called(name)
