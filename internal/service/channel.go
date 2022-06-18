@@ -16,23 +16,6 @@ func NewChannelDBService(store *store.Store) *ChannelDBService {
 	}
 }
 
-func (s *ChannelDBService) GetChannel(channelID int) (*model.Channel, error) {
-	channel, err := s.store.Channel.GetChannel(channelID)
-	if err != nil {
-		return nil, &utils.ServiceError{
-			ServiceName:       "Channel",
-			ServiceMethodName: "GetChannel",
-			ErrorValue:        err,
-		}
-	}
-
-	if channel == nil {
-		return nil, &utils.NotFoundError{Name: "channel"}
-	}
-
-	return channel, nil
-}
-
 func (s *ChannelDBService) GetChannelByName(name string) (*model.Channel, error) {
 	channel, err := s.store.Channel.GetChannelByName(name)
 	if err != nil {

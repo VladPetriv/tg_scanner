@@ -1,9 +1,8 @@
 package pg
 
 import (
-	"fmt"
-
 	"github.com/VladPetriv/tg_scanner/internal/model"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
 
 type UserRepo struct {
@@ -19,7 +18,7 @@ func (repo *UserRepo) GetUserByUsername(username string) (*model.User, error) {
 
 	rows, err := repo.db.Query("SELECT * FROM tg_user WHERE username=$1;", username)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting user by username: %w", err)
+		return nil, &utils.GettingError{Name: "user by username", ErrorValue: err}
 	}
 
 	defer rows.Close()
@@ -40,9 +39,12 @@ func (repo *UserRepo) GetUserByUsername(username string) (*model.User, error) {
 func (repo *UserRepo) CreateUser(user *model.User) (int, error) {
 	var id int
 
-	row := repo.db.QueryRow("INSERT INTO tg_user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;", user.Username, user.FullName, user.PhotoURL)
+	row := repo.db.QueryRow(
+		"INSERT INTO tg_user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;",
+		user.Username, user.FullName, user.PhotoURL,
+	)
 	if err := row.Scan(&id); err != nil {
-		return id, fmt.Errorf("error while creating user: %w", err)
+		return id, &utils.CreateError{Name: "user", ErrorValue: err}
 	}
 
 	return id, nil

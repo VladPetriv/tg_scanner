@@ -16,23 +16,6 @@ func NewReplieDBService(store *store.Store) *ReplieDBService {
 	return &ReplieDBService{store: store}
 }
 
-func (s *ReplieDBService) GetReplie(replieID int) (*model.Replie, error) {
-	replie, err := s.store.Replie.GetReplie(replieID)
-	if err != nil {
-		return nil, &utils.ServiceError{
-			ServiceName:       "Replie",
-			ServiceMethodName: "GetReplie",
-			ErrorValue:        err,
-		}
-	}
-
-	if replie == nil {
-		return nil, &utils.NotFoundError{Name: "replie"}
-	}
-
-	return replie, nil
-}
-
 func (s *ReplieDBService) GetReplieByName(name string) (*model.Replie, error) {
 	replie, err := s.store.Replie.GetReplieByName(name)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/VladPetriv/tg_scanner/internal/model"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
 
 type MessageRepo struct {
@@ -14,35 +15,12 @@ func NewMessageRepo(db *DB) *MessageRepo {
 	return &MessageRepo{db: db}
 }
 
-func (repo *MessageRepo) GetMessage(messageID int) (*model.Message, error) {
-	message := &model.Message{}
-
-	rows, err := repo.db.Query("SELECT * FROM message WHERE id=$1;", messageID)
-	if err != nil {
-		return nil, fmt.Errorf("error while getting message: %w", err)
-	}
-
-	defer rows.Close()
-	for rows.Next() {
-		err := rows.Scan(&message.ID, &message.UserID, &message.ChannelID, &message.Title)
-		if err != nil {
-			continue
-		}
-	}
-
-	if message.Title == "" {
-		return nil, fmt.Errorf("message not found")
-	}
-
-	return message, nil
-}
-
 func (repo *MessageRepo) GetMessageByName(name string) (*model.Message, error) {
 	message := &model.Message{}
 
 	rows, err := repo.db.Query("SELECT * FROM message WHERE title=$1;", name)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting message: %w", err)
+		return nil, &utils.GettingError{Name: "message by name", ErrorValue: err}
 	}
 
 	defer rows.Close()
@@ -68,7 +46,7 @@ func (repo *MessageRepo) CreateMessage(message *model.Message) (int, error) {
 		message.ChannelID, message.UserID, message.Title, message.MessageURL, message.Image,
 	)
 	if err := row.Scan(&id); err != nil {
-		return 0, fmt.Errorf("error while creating message: %w", err)
+		return id, &utils.CreateError{Name: "message", ErrorValue: err}
 	}
 
 	return id, nil
@@ -90,7 +68,7 @@ func (repo *MessageRepo) GetMessagesWithRepliesCount() ([]model.Message, error) 
 
 	rows, err := repo.db.Query("SELECT m.id, COUNT(r.id) FROM message m LEFT JOIN replie r ON r.message_id = m.id GROUP BY m.id ORDER BY m.id;")
 	if err != nil {
-		return nil, fmt.Errorf("error while getting messages with replies count: %w", err)
+		return nil, &utils.GettingError{Name: "messages with replies count", ErrorValue: err}
 	}
 
 	defer rows.Close()

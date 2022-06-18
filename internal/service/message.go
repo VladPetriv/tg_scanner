@@ -16,23 +16,6 @@ func NewMessageDBService(store *store.Store) *MessageDBService {
 	}
 }
 
-func (s *MessageDBService) GetMessage(messageID int) (*model.Message, error) {
-	message, err := s.store.Message.GetMessage(messageID)
-	if err != nil {
-		return nil, &utils.ServiceError{
-			ServiceName:       "Message",
-			ServiceMethodName: "GetMessage",
-			ErrorValue:        err,
-		}
-	}
-
-	if message == nil {
-		return nil, &utils.NotFoundError{Name: "message"}
-	}
-
-	return message, nil
-}
-
 func (s *MessageDBService) GetMessageByName(name string) (*model.Message, error) {
 	message, err := s.store.Message.GetMessageByName(name)
 	if err != nil {
@@ -51,13 +34,9 @@ func (s *MessageDBService) GetMessageByName(name string) (*model.Message, error)
 }
 
 func (s *MessageDBService) CreateMessage(message *model.Message) (int, error) {
-	candidate, err := s.store.Message.GetMessageByName(message.Title)
+	candidate, err := s.GetMessageByName(message.Title)
 	if err != nil {
-		return 0, &utils.ServiceError{
-			ServiceName:       "Message",
-			ServiceMethodName: "CreateMessage [GetMessageByName]",
-			ErrorValue:        err,
-		}
+		return 0, err
 	}
 
 	if candidate != nil && candidate.ChannelID == message.ChannelID {
@@ -100,7 +79,7 @@ func (s *MessageDBService) GetMessagesWithRepliesCount() ([]model.Message, error
 	}
 
 	if messages == nil {
-		return nil, &utils.NotFoundError{Name: "messages"}
+		return nil, &utils.NotFoundError{Name: "messages with replies count"}
 	}
 
 	return messages, nil
