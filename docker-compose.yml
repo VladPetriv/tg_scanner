@@ -7,7 +7,7 @@ services:
       - ./configs/.config.env
     build:
       context: .
-    command: ./wait-for-postgres.sh db ./todo-app
+    command: ./wait-for-postgres.sh db ./scanner
     depends_on:
       - postgres
     tty: true
