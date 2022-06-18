@@ -1,10 +1,11 @@
-package pg
+package pg_test
 
 import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/VladPetriv/tg_scanner/internal/model"
+	"github.com/VladPetriv/tg_scanner/internal/store/pg"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +18,7 @@ func TestRepliePg_CreateReplie(t *testing.T) {
 
 	defer db.Close()
 
-	r := NewReplieRepo(&DB{DB: db})
+	r := pg.NewReplieRepo(&pg.DB{DB: db})
 
 	tests := []struct {
 		name    string
@@ -67,65 +68,6 @@ func TestRepliePg_CreateReplie(t *testing.T) {
 		})
 	}
 }
-
-func TestRepliePg_GetReplie(t *testing.T) {
-	db, mock, err := utils.CreateMock()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-
-	defer db.Close()
-
-	r := NewReplieRepo(&DB{DB: db})
-
-	tests := []struct {
-		name    string
-		mock    func()
-		input   int
-		want    *model.Replie
-		wantErr bool
-	}{
-		{
-			name: "Ok",
-			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title"}).
-					AddRow(1, 1, 1, "test")
-
-				mock.ExpectQuery("SELECT * FROM replie WHERE id=$1;").
-					WithArgs(1).WillReturnRows(rows)
-			},
-			input: 1,
-			want:  &model.Replie{ID: 1, UserID: 1, MessageID: 1, Title: "test"},
-		},
-		{
-			name: "replie not found",
-			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title"})
-
-				mock.ExpectQuery("SELECT * FROM replie WHERE id=$1;").
-					WithArgs().WillReturnRows(rows)
-			},
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mock()
-
-			got, err := r.GetReplie(tt.input)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
-			}
-
-			assert.NoError(t, mock.ExpectationsWereMet())
-		})
-	}
-}
-
 func TestRepliePg_GetReplieByName(t *testing.T) {
 	db, mock, err := utils.CreateMock()
 	if err != nil {
@@ -134,7 +76,7 @@ func TestRepliePg_GetReplieByName(t *testing.T) {
 
 	defer db.Close()
 
-	r := NewReplieRepo(&DB{DB: db})
+	r := pg.NewReplieRepo(&pg.DB{DB: db})
 
 	tests := []struct {
 		name    string

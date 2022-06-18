@@ -1,13 +1,14 @@
 package service_test
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/service"
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/internal/store/mocks"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +24,8 @@ func TestUserService_GetUserByUsername(t *testing.T) {
 		{
 			name: "Ok: [User found]",
 			mock: func(userRepo *mocks.UserRepo) {
-				userRepo.On("GetUserByUsername", "test").Return(&model.User{ID: 1, Username: "test", FullName: "test test", PhotoURL: "test.jpg"}, nil)
+				userRepo.On("GetUserByUsername", "test").
+					Return(&model.User{ID: 1, Username: "test", FullName: "test test", PhotoURL: "test.jpg"}, nil)
 			},
 			input: "test",
 			want:  &model.User{ID: 1, Username: "test", FullName: "test test", PhotoURL: "test.jpg"},
@@ -31,7 +33,8 @@ func TestUserService_GetUserByUsername(t *testing.T) {
 		{
 			name: "Error [User not found]",
 			mock: func(userRepo *mocks.UserRepo) {
-				userRepo.On("GetUserByUsername", "test").Return(nil, nil)
+				userRepo.On("GetUserByUsername", "test").
+					Return(nil, nil)
 			},
 			input: "test",
 			want:  nil,
@@ -39,11 +42,16 @@ func TestUserService_GetUserByUsername(t *testing.T) {
 		{
 			name: "Error: [Store error]",
 			mock: func(userRepo *mocks.UserRepo) {
-				userRepo.On("GetUserByUsername", "test").Return(nil, errors.New("error while getting user: some error"))
+				userRepo.On("GetUserByUsername", "test").
+					Return(nil, &utils.GettingError{Name: "user", ErrorValue: fmt.Errorf("some error")})
 			},
 			input:   "test",
 			wantErr: true,
-			err:     errors.New("[User] Service.GetUserByUsername error: error while getting user: some error"),
+			err: &utils.ServiceError{
+				ServiceName:       "User",
+				ServiceMethodName: "GetUserByUsername",
+				ErrorValue:        fmt.Errorf("get user error: some error"),
+			},
 		},
 	}
 
@@ -85,8 +93,11 @@ func TestUserService_CreateUser(t *testing.T) {
 		{
 			name: "Ok: [User created]",
 			mock: func(userRepo *mocks.UserRepo) {
-				userRepo.On("GetUserByUsername", input.Username).Return(nil, nil)
-				userRepo.On("CreateUser", input).Return(1, nil)
+				userRepo.On("GetUserByUsername", input.Username).
+					Return(nil, nil)
+
+				userRepo.On("CreateUser", input).
+					Return(1, nil)
 			},
 			input: input,
 			want:  1,
@@ -94,11 +105,12 @@ func TestUserService_CreateUser(t *testing.T) {
 		{
 			name: "Error: [User is exist]",
 			mock: func(userRepo *mocks.UserRepo) {
-				userRepo.On("GetUserByUsername", input.Username).Return(input, nil)
+				userRepo.On("GetUserByUsername", input.Username).
+					Return(input, nil)
 			},
 			input:   input,
 			wantErr: true,
-			err:     errors.New("user with name test is exist"),
+			err:     &utils.RecordIsExistError{RecordName: "user", Name: "test"},
 		},
 	}
 
