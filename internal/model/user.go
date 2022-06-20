@@ -10,12 +10,12 @@ type User struct {
 }
 
 type TgUser struct {
-	ID         int
-	UserID     int
+	ID         int64
+	UserID     int64
+	AccessHash int64
 	FirstName  string
 	LastName   string
 	Username   string
 	Photo      tg.UserProfilePhoto
-	AccessHash int
 	Image      *Image
 }

@@ -10,10 +10,10 @@ type Channel struct {
 }
 
 type TgChannel struct {
-	ID         int
-	ChannelID  int
+	ID         int64
+	ChannelID  int64
 	Title      string
-	AccessHash int
+	AccessHash int64
 	Username   string
 	Photo      tg.ChatPhoto
 	Image      *Image

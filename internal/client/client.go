@@ -24,15 +24,17 @@ import (
 
 func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg *sync.WaitGroup, api *tg.Client, log *logger.Logger) {
 	time.Sleep(time.Second * 20)
+
 	defer wg.Done()
+
 	for {
 		for _, chnl := range channels {
 			log.Infof("Start getting messages from history[%s]", chnl.Username)
 			fileName := fmt.Sprintf("./data/%s.json", chnl.Username)
 
 			data, err := channel.GetChannelHistory(ctx, &tg.InputPeerChannel{
-				ChannelID:  int64(chnl.ID),
-				AccessHash: int64(chnl.AccessHash),
+				ChannelID:  chnl.ID,
+				AccessHash: chnl.AccessHash,
 			}, api)
 			if err != nil {
 				log.Error(err)
@@ -41,8 +43,8 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg 
 			modifiedData, _ := data.AsModified()
 
 			messages := message.GetMessagesFromTelegram(ctx, modifiedData, &tg.InputPeerChannel{
-				ChannelID:  int64(chnl.ID),
-				AccessHash: int64(chnl.AccessHash),
+				ChannelID:  chnl.ID,
+				AccessHash: chnl.AccessHash,
 			}, api)
 
 			messagesFromFile, err := file.GetMessagesFromFile(fileName)
@@ -59,8 +61,8 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg 
 				msg.PeerID = chnl
 
 				u, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
-					ChannelID:  int64(chnl.ID),
-					AccessHash: int64(chnl.AccessHash),
+					ChannelID:  chnl.ID,
+					AccessHash: chnl.AccessHash,
 				}, api)
 				if err != nil {
 					log.Error(err)
@@ -253,7 +255,6 @@ func RemoveMessageWithOutReplies(serviceManager *service.Manager, log *logger.Lo
 }
 
 func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config.Config, log *logger.Logger) {
-	// Create new client
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
 	if err != nil {
 		log.Error(&utils.CreateError{Name: "telegram client", ErrorValue: err})

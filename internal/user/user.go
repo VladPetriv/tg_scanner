@@ -12,12 +12,14 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-func GetUserInfo(ctx context.Context, userID int, messageID int, cPeer *tg.InputPeerChannel, api *tg.Client) (*model.TgUser, error) {
+var userImageSize int = 1024 * 1024
+
+func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.InputPeerChannel, api *tg.Client) (*model.TgUser, error) {
 	var user *model.TgUser
 
 	data, err := api.UsersGetFullUser(ctx, &tg.InputUserFromMessage{
 		Peer:   cPeer,
-		UserID: int64(userID),
+		UserID: userID,
 		MsgID:  messageID,
 	})
 	if err != nil {
@@ -44,7 +46,7 @@ func GetUserInfo(ctx context.Context, userID int, messageID int, cPeer *tg.Input
 }
 
 func GetUserPhoto(ctx context.Context, user *model.TgUser, api *tg.Client) (tg.UploadFileClass, error) {
-	var id int
+	var id int64
 	if user.ID == 0 {
 		id = user.UserID
 	}
@@ -54,12 +56,12 @@ func GetUserPhoto(ctx context.Context, user *model.TgUser, api *tg.Client) (tg.U
 	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
 		Location: &tg.InputPeerPhotoFileLocation{
 			Peer: &tg.InputPeerUser{
-				UserID:     int64(id),
-				AccessHash: int64(user.AccessHash),
+				UserID:     id,
+				AccessHash: user.AccessHash,
 			},
 			PhotoID: user.Photo.PhotoID,
 		},
-		Limit: 1024 * 1024,
+		Limit: userImageSize,
 	})
 	if err != nil {
 		return nil, &utils.GettingError{Name: "user photo", ErrorValue: err}

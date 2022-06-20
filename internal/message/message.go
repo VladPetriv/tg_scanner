@@ -15,6 +15,8 @@ import (
 	"github.com/gotd/td/tg"
 )
 
+var messageImageSize int = 1024 * 1024
+
 func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, channelPeer *tg.InputPeerChannel, api *tg.Client) []model.TgMessage { // nolint
 	var msg model.TgMessage
 
@@ -129,8 +131,8 @@ func GetIncomingMessages(ctx context.Context, tg_user *tg.User, channels []model
 
 		// Getting user info for replie
 		u, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
-			ChannelID:  int64(msg.PeerID.ID),
-			AccessHash: int64(msg.PeerID.AccessHash),
+			ChannelID:  msg.PeerID.ID,
+			AccessHash: msg.PeerID.AccessHash,
 		}, api)
 		if err != nil {
 			continue
@@ -146,8 +148,8 @@ func GetIncomingMessages(ctx context.Context, tg_user *tg.User, channels []model
 
 func GetRepliesForMessageBeforeSave(ctx context.Context, message *model.TgMessage, api *tg.Client) error {
 	cPeer := &tg.InputPeerChannel{
-		ChannelID:  int64(message.PeerID.ID),
-		AccessHash: int64(message.PeerID.AccessHash),
+		ChannelID:  message.PeerID.ID,
+		AccessHash: message.PeerID.AccessHash,
 	}
 
 	replies, err := GetReplies(ctx, message, cPeer, api)
@@ -176,7 +178,7 @@ func GetMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Client) 
 			ThumbSize:     msg.Media.Photo.Sizes[lenght].GetType(),
 		},
 		Offset: 0,
-		Limit:  1024 * 1024,
+		Limit:  messageImageSize,
 	})
 	if err != nil {
 		return nil, &utils.GettingError{Name: "message photo", ErrorValue: err}
@@ -216,8 +218,8 @@ func ProcessMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Clie
 func CheckMessagePhotoStatus(ctx context.Context, msg *model.TgMessage, api *tg.Client) (bool, error) {
 	request := &tg.ChannelsGetMessagesRequest{
 		Channel: &tg.InputChannel{
-			ChannelID:  int64(msg.PeerID.ID),
-			AccessHash: int64(msg.PeerID.AccessHash),
+			ChannelID:  msg.PeerID.ID,
+			AccessHash: msg.PeerID.AccessHash,
 		},
 		ID: []tg.InputMessageClass{&tg.InputMessageID{ID: msg.ID}},
 	}
