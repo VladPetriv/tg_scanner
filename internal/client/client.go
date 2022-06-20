@@ -74,7 +74,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg 
 				messagesFromFile = append(messagesFromFile, *msg)
 			}
 
-			result := filter.RemoveDuplicateByMessage(messagesFromFile)
+			result := filter.RemoveDuplicateInMessage(messagesFromFile)
 
 			err = file.WriteMessagesToFile(result, fileName)
 			if err != nil {
@@ -121,7 +121,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels 
 			messagesFromFile = append(messagesFromFile, *msg)
 		}
 
-		result := filter.RemoveDuplicateByMessage(messagesFromFile)
+		result := filter.RemoveDuplicateInMessage(messagesFromFile)
 
 		err = file.WriteMessagesToFile(result, path)
 		if err != nil {
@@ -146,6 +146,8 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 			if err != nil {
 				log.Error(err)
 			}
+
+			filter.RemoveDuplicateInReplies(&msg.Replies)
 
 			channel, _ := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
 

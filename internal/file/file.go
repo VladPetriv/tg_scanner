@@ -148,7 +148,7 @@ func ParseFromFiles(path string) ([]model.TgMessage, error) {
 		messages = append(messages, data...)
 	}
 
-	result := filter.RemoveDuplicateByMessage(messages)
+	result := filter.RemoveDuplicateInMessage(messages)
 
 	return result, nil
 }

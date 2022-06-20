@@ -18,17 +18,35 @@ func Messages(msg *model.TgMessage) (*model.TgMessage, bool) {
 	return nil, false
 }
 
-func RemoveDuplicateByMessage(msgs []model.TgMessage) []model.TgMessage {
-	allKeys := make(map[string]bool)
+func RemoveDuplicateInMessage(msgs []model.TgMessage) []model.TgMessage {
+	allMessages := make(map[string]bool)
 	messages := make([]model.TgMessage, 0)
 
-	for _, item := range msgs {
-		if _, value := allKeys[item.Message]; !value {
-			allKeys[item.Message] = true
+	for _, m := range msgs {
+		if _, status := allMessages[m.Message]; !status {
+			allMessages[m.Message] = true
 
-			messages = append(messages, item)
+			messages = append(messages, m)
 		}
 	}
 
 	return messages
+}
+
+func RemoveDuplicateInReplies(replie *model.TgReplies) {
+	if replie.Count == 0 {
+		return
+	}
+	allReplies := make(map[string]bool)
+	replies := make([]model.TgRepliesMessage, 0)
+
+	for _, r := range replie.Messages {
+		if _, status := allReplies[r.Message]; !status {
+			allReplies[r.Message] = true
+
+			replies = append(replies, r)
+		}
+	}
+
+	replie.Messages = replies
 }
