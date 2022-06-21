@@ -22,10 +22,16 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg *sync.WaitGroup, api *tg.Client, log *logger.Logger) {
-	time.Sleep(time.Second * 20)
+// Timeouts
+var (
+	historyTimeout  time.Duration = time.Minute * 30
+	removeTimeout   time.Duration = time.Minute * 30
+	saveTimeout     time.Duration = time.Minute * 15
+	incomingTimeout time.Duration = time.Minute
+)
 
-	defer wg.Done()
+func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, api *tg.Client, log *logger.Logger) {
+	time.Sleep(time.Second * 20)
 
 	for {
 		for _, chnl := range channels {
@@ -60,7 +66,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg 
 
 				msg.PeerID = chnl
 
-				u, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
+				messageAuthor, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
 					ChannelID:  chnl.ID,
 					AccessHash: chnl.AccessHash,
 				}, api)
@@ -70,7 +76,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg 
 					continue
 				}
 
-				msg.FromID = *u
+				msg.FromID = *messageAuthor
 				messagesFromFile = append(messagesFromFile, *msg)
 			}
 
@@ -84,12 +90,11 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, wg 
 			time.Sleep(time.Second * 10)
 		}
 
-		time.Sleep(time.Minute * 30)
+		time.Sleep(historyTimeout)
 	}
 }
 
-func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels []model.TgChannel, wg *sync.WaitGroup, log *logger.Logger) {
-	defer wg.Done()
+func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels []model.TgChannel, log *logger.Logger) {
 	time.Sleep(time.Second * 20)
 
 	path := "./data/incoming.json"
@@ -128,7 +133,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels 
 			log.Error(err)
 		}
 
-		time.Sleep(time.Minute) // nolint
+		time.Sleep(incomingTimeout)
 	}
 }
 
@@ -226,7 +231,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 			}
 		}
 
-		time.Sleep(time.Minute * 15)
+		time.Sleep(saveTimeout)
 	}
 }
 
@@ -252,7 +257,7 @@ func RemoveMessageWithOutReplies(serviceManager *service.Manager, log *logger.Lo
 			continue
 		}
 
-		time.Sleep(time.Minute * 30)
+		time.Sleep(removeTimeout)
 	}
 }
 
@@ -272,7 +277,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			return fmt.Errorf("AUTH_ERROR:%w", err)
 		}
 
-		waitGroup.Add(3) // nolint
+		waitGroup.Add(4)
 
 		// Get user data
 		uData, _ := user.GetUser().AsNotEmpty()
@@ -312,8 +317,8 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 		}
 
 		go SaveToDb(ctx, serviceManager, cfg, api, log)
-		go GetNewMessage(ctx, uData, api, channels, waitGroup, log)
-		go GetMessagesFromHistory(ctx, channels, waitGroup, api, log)
+		go GetNewMessage(ctx, uData, api, channels, log)
+		go GetMessagesFromHistory(ctx, channels, api, log)
 		go RemoveMessageWithOutReplies(serviceManager, log)
 
 		waitGroup.Wait()
