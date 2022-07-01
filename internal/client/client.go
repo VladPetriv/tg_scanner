@@ -169,7 +169,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 			userID, err := serviceManager.User.CreateUser(&model.User{
 				Username: msg.FromID.Username,
 				FullName: fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName),
-				PhotoURL: userImageUrl,
+				ImageURL: userImageUrl,
 			})
 			if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
 				log.Error(err)
@@ -194,7 +194,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				UserID:     userID,
 				Title:      msg.Message,
 				MessageURL: fmt.Sprintf("https://t.me/%s/%d", msg.PeerID.Username, msg.ID),
-				Image:      messageImageUrl,
+				ImageURL:   messageImageUrl,
 			})
 			if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
 				log.Error(err)
@@ -214,7 +214,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				userID, err := serviceManager.User.CreateUser(&model.User{
 					Username: replie.FromID.Username,
 					FullName: fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName),
-					PhotoURL: userImageUrl,
+					ImageURL: userImageUrl,
 				})
 				if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
 					log.Error(err)
@@ -310,7 +310,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 				log.Error(err)
 			}
 
-			err = serviceManager.Channel.CreateChannel(&model.Channel{Name: chnl.Username, Title: chnl.Title, PhotoURL: channelImageURL})
+			err = serviceManager.Channel.CreateChannel(&model.Channel{Name: chnl.Username, Title: chnl.Title, ImageURL: channelImageURL})
 			if err != nil {
 				log.Error(err)
 			}

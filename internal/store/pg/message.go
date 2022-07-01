@@ -25,7 +25,7 @@ func (repo *MessageRepo) GetMessageByName(name string) (*model.Message, error) {
 
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&message.ID, &message.UserID, &message.ChannelID, &message.Title)
+		err := rows.Scan(&message.ID, &message.UserID, &message.ChannelID, &message.Title, &message.ImageURL)
 		if err != nil {
 			continue
 		}
@@ -42,8 +42,8 @@ func (repo *MessageRepo) CreateMessage(message *model.Message) (int, error) {
 	var id int
 
 	row := repo.db.QueryRow(
-		"INSERT INTO message(channel_id, user_id, title, message_url, image) VALUES ($1, $2, $3, $4, $5) RETURNING id;",
-		message.ChannelID, message.UserID, message.Title, message.MessageURL, message.Image,
+		"INSERT INTO message(channel_id, user_id, title, message_url, imageurl) VALUES ($1, $2, $3, $4, $5) RETURNING id;",
+		message.ChannelID, message.UserID, message.Title, message.MessageURL, message.ImageURL,
 	)
 	if err := row.Scan(&id); err != nil {
 		return id, &utils.CreateError{Name: "message", ErrorValue: err}

@@ -32,10 +32,10 @@ func TestMessagePg_CreateMessage(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 
-				mock.ExpectQuery("INSERT INTO message(channel_id, user_id, title, message_url, image) VALUES ($1, $2, $3, $4, $5) RETURNING id;").
+				mock.ExpectQuery("INSERT INTO message(channel_id, user_id, title, message_url, imageurl) VALUES ($1, $2, $3, $4, $5) RETURNING id;").
 					WithArgs(1, 1, "test", "test.com", "test.jpg").WillReturnRows(rows)
 			},
-			input: model.Message{ChannelID: 1, UserID: 1, Title: "test", MessageURL: "test.com", Image: "test.jpg"},
+			input: model.Message{ChannelID: 1, UserID: 1, Title: "test", MessageURL: "test.com", ImageURL: "test.jpg"},
 			want:  1,
 		},
 		{
@@ -43,7 +43,7 @@ func TestMessagePg_CreateMessage(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"})
 
-				mock.ExpectQuery("INSERT INTO message(channel_id, user_id, title, message_url, image) VALUES ($1, $2, $3, $4, $5) RETURNING id;").
+				mock.ExpectQuery("INSERT INTO message(channel_id, user_id, title, message_url, imageurl) VALUES ($1, $2, $3, $4, $5) RETURNING id;").
 					WithArgs().WillReturnRows(rows)
 			},
 			input:   model.Message{},
@@ -88,19 +88,19 @@ func TestMessagePg_GetMessageByName(t *testing.T) {
 		{
 			name: "ok",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "user_id", "channel_id", "title"}).
-					AddRow(1, 1, 1, "test1")
+				rows := sqlmock.NewRows([]string{"id", "user_id", "channel_id", "title", "imageurl"}).
+					AddRow(1, 1, 1, "test1", "test.jpg")
 
 				mock.ExpectQuery("SELECT * FROM message WHERE title=$1;").
 					WithArgs("test1").WillReturnRows(rows)
 			},
 			input: "test1",
-			want:  &model.Message{ID: 1, UserID: 1, ChannelID: 1, Title: "test1"},
+			want:  &model.Message{ID: 1, UserID: 1, ChannelID: 1, Title: "test1", ImageURL: "test.jpg"},
 		},
 		{
 			name: "message not found",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "user_id", "channel_id", "title"})
+				rows := sqlmock.NewRows([]string{"id", "user_id", "channel_id", "title", "imageurl"})
 
 				mock.ExpectQuery("SELECT * FROM message WHERE title=$1;").
 					WithArgs().WillReturnRows(rows)

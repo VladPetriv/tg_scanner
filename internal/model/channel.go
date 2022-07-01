@@ -6,7 +6,7 @@ type Channel struct {
 	ID       int    `json:"id"`
 	Name     string `json:"name"`
 	Title    string `json:"title"`
-	PhotoURL string `json:"photoUrl"`
+	ImageURL string `json:"imageUrl"`
 }
 
 type TgChannel struct {

@@ -16,7 +16,7 @@ func TestChannelService_CreateChannel(t *testing.T) {
 	input := &model.Channel{
 		Name:     "test",
 		Title:    "test",
-		PhotoURL: "test.jpg",
+		ImageURL: "test.jpg",
 	}
 
 	tests := []struct {
@@ -114,10 +114,10 @@ func TestChannelService_GetChannelByName(t *testing.T) {
 			name: "Ok: [Channel found]",
 			mock: func(channelRepo *mocks.ChannelRepo) {
 				channelRepo.On("GetChannelByName", "test").
-					Return(&model.Channel{ID: 1, Name: "test", Title: "test", PhotoURL: "test.jpg"}, nil)
+					Return(&model.Channel{ID: 1, Name: "test", Title: "test", ImageURL: "test.jpg"}, nil)
 			},
 			input: "test",
-			want:  &model.Channel{ID: 1, Name: "test", Title: "test", PhotoURL: "test.jpg"},
+			want:  &model.Channel{ID: 1, Name: "test", Title: "test", ImageURL: "test.jpg"},
 		},
 		{
 			name: "Error: [Channel not found]",

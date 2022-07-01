@@ -23,7 +23,7 @@ func (repo *UserRepo) GetUserByUsername(username string) (*model.User, error) {
 
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&user.ID, &user.Username, &user.FullName, &user.PhotoURL)
+		err := rows.Scan(&user.ID, &user.Username, &user.FullName, &user.ImageURL)
 		if err != nil {
 			continue
 		}
@@ -40,8 +40,8 @@ func (repo *UserRepo) CreateUser(user *model.User) (int, error) {
 	var id int
 
 	row := repo.db.QueryRow(
-		"INSERT INTO tg_user (username, fullname, photourl) VALUES ($1, $2, $3) RETURNING id;",
-		user.Username, user.FullName, user.PhotoURL,
+		"INSERT INTO tg_user (username, fullname, imageurl) VALUES ($1, $2, $3) RETURNING id;",
+		user.Username, user.FullName, user.ImageURL,
 	)
 	if err := row.Scan(&id); err != nil {
 		return id, &utils.CreateError{Name: "user", ErrorValue: err}

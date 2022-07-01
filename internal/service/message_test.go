@@ -17,6 +17,7 @@ func TestMessageService_CreateMessage(t *testing.T) {
 		ChannelID: 1,
 		UserID:    1,
 		Title:     "test",
+		ImageURL:  "test.jpg",
 	}
 
 	tests := []struct {
@@ -107,6 +108,14 @@ func TestMessageService_CreateMessage(t *testing.T) {
 }
 
 func TestMessageService_GetMessageByName(t *testing.T) {
+	data := &model.Message{
+		ID:        1,
+		ChannelID: 1,
+		UserID:    1,
+		Title:     "test",
+		ImageURL:  "test.jpg",
+	}
+
 	tests := []struct {
 		name    string
 		mock    func(messageRepo *mocks.MessageRepo)
@@ -119,11 +128,10 @@ func TestMessageService_GetMessageByName(t *testing.T) {
 			name: "Ok: [Message found]",
 			mock: func(messageRepo *mocks.MessageRepo) {
 				messageRepo.On("GetMessageByName", "test").
-					Return(&model.Message{ID: 1, ChannelID: 1, UserID: 1, Title: "test"}, nil)
-
+					Return(data, nil)
 			},
 			input: "test",
-			want:  &model.Message{ID: 1, ChannelID: 1, UserID: 1, Title: "test"},
+			want:  &model.Message{ID: 1, ChannelID: 1, UserID: 1, Title: "test", ImageURL: "test.jpg"},
 		},
 		{
 			name: "Error: [Message not found]",

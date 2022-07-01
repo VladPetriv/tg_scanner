@@ -13,6 +13,13 @@ import (
 )
 
 func TestUserService_GetUserByUsername(t *testing.T) {
+	data := &model.User{
+		ID:       1,
+		Username: "test",
+		FullName: "test test",
+		ImageURL: "test.jpg",
+	}
+
 	tests := []struct {
 		name    string
 		mock    func(userRepo *mocks.UserRepo)
@@ -25,10 +32,10 @@ func TestUserService_GetUserByUsername(t *testing.T) {
 			name: "Ok: [User found]",
 			mock: func(userRepo *mocks.UserRepo) {
 				userRepo.On("GetUserByUsername", "test").
-					Return(&model.User{ID: 1, Username: "test", FullName: "test test", PhotoURL: "test.jpg"}, nil)
+					Return(data, nil)
 			},
 			input: "test",
-			want:  &model.User{ID: 1, Username: "test", FullName: "test test", PhotoURL: "test.jpg"},
+			want:  &model.User{ID: 1, Username: "test", FullName: "test test", ImageURL: "test.jpg"},
 		},
 		{
 			name: "Error [User not found]",
@@ -76,10 +83,10 @@ func TestUserService_GetUserByUsername(t *testing.T) {
 }
 
 func TestUserService_CreateUser(t *testing.T) {
-	input := &model.User{
+	data := &model.User{
 		Username: "test",
 		FullName: "test test",
-		PhotoURL: "test.jpg",
+		ImageURL: "test.jpg",
 	}
 
 	tests := []struct {
@@ -93,22 +100,22 @@ func TestUserService_CreateUser(t *testing.T) {
 		{
 			name: "Ok: [User created]",
 			mock: func(userRepo *mocks.UserRepo) {
-				userRepo.On("GetUserByUsername", input.Username).
+				userRepo.On("GetUserByUsername", data.Username).
 					Return(nil, nil)
 
-				userRepo.On("CreateUser", input).
+				userRepo.On("CreateUser", data).
 					Return(1, nil)
 			},
-			input: input,
+			input: data,
 			want:  1,
 		},
 		{
 			name: "Error: [User is exist]",
 			mock: func(userRepo *mocks.UserRepo) {
-				userRepo.On("GetUserByUsername", input.Username).
-					Return(input, nil)
+				userRepo.On("GetUserByUsername", data.Username).
+					Return(data, nil)
 			},
-			input:   input,
+			input:   data,
 			wantErr: true,
 			err:     &utils.RecordIsExistError{RecordName: "user", Name: "test"},
 		},
