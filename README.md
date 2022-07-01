@@ -28,6 +28,7 @@ Please create a dir "configs" with file ".config.env" which have this fields:
 - POSTGRES_PASSWORD = Postgresql password
 - POSTGRES_DB = Postgresql database name
 - DATABASE_URL = You can also use it for describe PostgreSQL path
+- MIGRATIONS_PATH = Path to file with migrations
 
 ### Firebase:
 - PROJECT_ID = Project id from firebase
