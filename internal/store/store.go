@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/store/pg"
-	"github.com/VladPetriv/tg_scanner/logger"
+	"github.com/VladPetriv/tg_scanner/pkg/config"
+	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
 type Store struct {

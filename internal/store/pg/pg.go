@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/VladPetriv/tg_scanner/config"
+	"github.com/VladPetriv/tg_scanner/pkg/config"
 )
 
 type DB struct {

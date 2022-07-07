@@ -5,12 +5,12 @@ import (
 
 	_ "github.com/lib/pq"
 
-	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/client"
 	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/service"
 	"github.com/VladPetriv/tg_scanner/internal/store"
-	"github.com/VladPetriv/tg_scanner/logger"
+	"github.com/VladPetriv/tg_scanner/pkg/config"
+	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
 func main() {
