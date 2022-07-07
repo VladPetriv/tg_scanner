@@ -24,9 +24,6 @@ Please create a dir "configs" with file ".config.env" which have this fields:
 - PASSWORD = Password to telegram
 
 ### PostgreSQL:
-- POSTGRES_USER = Postgresql username
-- POSTGRES_PASSWORD = Postgresql password
-- POSTGRES_DB = Postgresql database name
 - DATABASE_URL = You can also use it for describe PostgreSQL path
 - MIGRATIONS_PATH = Path to file with migrations
 
@@ -34,6 +31,9 @@ Please create a dir "configs" with file ".config.env" which have this fields:
 - PROJECT_ID = Project id from firebase
 - STORAGE_BUCKET = Storage bucket name from firebase
 - SECRET_PATH = Path to your secret key from firebase
+
+### Logger:
+- LOG_LEVEL = Log level which logger should handler
 
 ## Usage
 
