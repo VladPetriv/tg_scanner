@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gotd/td/tg"
+
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
-	"github.com/gotd/td/tg"
 )
 
 func WriteMessagesToFile(msgs []model.TgMessage, fileName string) error {

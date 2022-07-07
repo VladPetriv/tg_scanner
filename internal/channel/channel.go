@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/gotd/td/tg"
+
 	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
-	"github.com/gotd/td/tg"
 )
 
 var channelImageSize int = 1024 * 1024

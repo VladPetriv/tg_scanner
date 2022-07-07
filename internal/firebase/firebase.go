@@ -7,9 +7,10 @@ import (
 	"os"
 
 	firebase "firebase.google.com/go"
+	"google.golang.org/api/option"
+
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
-	"google.golang.org/api/option"
 )
 
 func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, objectName string) (string, error) {

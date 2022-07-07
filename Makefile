@@ -5,9 +5,9 @@ include ./configs/.config.env
 build:
 	go build -o scanner ./cmd/scanner/main.go
 
-.PHONY: start
+.PHONY: run
 
-start:
+run:
 	go run ./cmd/scanner/main.go
 
 .PHONY: migrate_up

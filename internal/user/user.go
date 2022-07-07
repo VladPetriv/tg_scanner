@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gotd/td/tg"
+
 	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
-	"github.com/gotd/td/tg"
 )
 
 var userImageSize int = 1024 * 1024
@@ -47,11 +48,12 @@ func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.Inp
 
 func GetUserPhoto(ctx context.Context, user *model.TgUser, api *tg.Client) (tg.UploadFileClass, error) {
 	var id int64
+
 	if user.ID == 0 {
 		id = user.UserID
+	} else {
+		id = user.ID
 	}
-
-	id = user.ID
 
 	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
 		Location: &tg.InputPeerPhotoFileLocation{

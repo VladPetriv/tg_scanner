@@ -6,6 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gotd/td/telegram"
+	"github.com/gotd/td/tg"
+
 	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/auth"
 	"github.com/VladPetriv/tg_scanner/internal/channel"
@@ -18,8 +21,6 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/user"
 	"github.com/VladPetriv/tg_scanner/logger"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
-	"github.com/gotd/td/telegram"
-	"github.com/gotd/td/tg"
 )
 
 // Timeouts

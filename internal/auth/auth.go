@@ -8,11 +8,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/VladPetriv/tg_scanner/config"
-	"github.com/VladPetriv/tg_scanner/pkg/utils"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
 	"github.com/gotd/td/tg"
+
+	"github.com/VladPetriv/tg_scanner/config"
+	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
 
 type noSignUp struct{}
