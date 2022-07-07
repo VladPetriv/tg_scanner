@@ -10,15 +10,12 @@ import (
 type Config struct {
 	Phone          string
 	Password       string
-	PgUser         string
-	PgPassword     string
-	PgHost         string
-	PgDb           string
 	DatabaseURL    string
 	MigrationsPath string
 	ProjectID      string
 	StorageBucket  string
 	SecretPath     string
+	LogLever       string
 }
 
 func Get() (*Config, error) {
@@ -29,14 +26,11 @@ func Get() (*Config, error) {
 	return &Config{
 		Phone:          os.Getenv("PHONE"),
 		Password:       os.Getenv("PASSWORD"),
-		PgUser:         os.Getenv("POSTGRES_USER"),
-		PgPassword:     os.Getenv("POSTGRES_PASSWORD"),
-		PgDb:           os.Getenv("POSTGRES_DB"),
-		PgHost:         os.Getenv("POSTGRES_HOST"),
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		MigrationsPath: os.Getenv("MIGRATIONS_PATH"),
 		ProjectID:      os.Getenv("PROJECT_ID"),
 		StorageBucket:  os.Getenv("STORAGE_BUCKET"),
 		SecretPath:     os.Getenv("SECRET_PATH"),
+		LogLever:       os.Getenv("LOG_LEVEL"),
 	}, nil
 }
