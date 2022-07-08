@@ -15,7 +15,7 @@ type Config struct {
 	ProjectID      string
 	StorageBucket  string
 	SecretPath     string
-	LogLever       string
+	LogLevel       string
 }
 
 func Get() (*Config, error) {
@@ -31,6 +31,6 @@ func Get() (*Config, error) {
 		ProjectID:      os.Getenv("PROJECT_ID"),
 		StorageBucket:  os.Getenv("STORAGE_BUCKET"),
 		SecretPath:     os.Getenv("SECRET_PATH"),
-		LogLever:       os.Getenv("LOG_LEVEL"),
+		LogLevel:       os.Getenv("LOG_LEVEL"),
 	}, nil
 }

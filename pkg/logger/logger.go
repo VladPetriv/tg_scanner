@@ -7,6 +7,7 @@ import (
 	"path"
 	"runtime"
 
+	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,32 +18,43 @@ type Logger struct {
 }
 
 func Get() *Logger {
-	Init()
+	cfg, err := config.Get()
+	if err != nil {
+		panic(err)
+	}
+
+	Init(cfg.LogLevel)
 
 	return &Logger{e}
 }
 
-func Init() {
+func Init(logLevel string) {
+	level, err := logrus.ParseLevel(logLevel)
+	if err != nil {
+		panic(err)
+	}
+
 	log := logrus.New()
+
 	log.SetReportCaller(true)
-	log.Formatter = &logrus.TextFormatter{ // nolint
+
+	log.Formatter = &logrus.JSONFormatter{ // nolint
 		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 			filename := path.Base(f.File)
 
 			return fmt.Sprintf("%s:%d", filename, f.Line), fmt.Sprintf("%s()", f.Function)
 		},
-		DisableColors: false,
-		FullTimestamp: true,
+		PrettyPrint: true,
 	}
 
-	allFile, err := os.OpenFile("./logs/all.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640)
+	file, err := os.OpenFile("./logs/all.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640)
 	if err != nil {
-		panic(fmt.Sprintf("[Error]: %s", err))
+		panic(fmt.Sprintf("failed to open file with logs: %s", err))
 	}
 
-	log.SetOutput(io.MultiWriter(allFile, os.Stdout))
+	log.SetOutput(io.MultiWriter(file, os.Stdout))
 
-	log.SetLevel(logrus.TraceLevel)
+	log.SetLevel(level)
 
 	e = logrus.NewEntry(log)
 }
