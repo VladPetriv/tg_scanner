@@ -14,29 +14,25 @@ import (
 )
 
 func main() {
-	// Create needed dirs
 	err := file.CreateDirs()
 	if err != nil {
 		panic(err)
 	}
 
-	// Initialize logger
 	log := logger.Get()
 
-	// Initialize config
 	cfg, err := config.Get()
 	if err != nil {
 		log.Panic(err)
 	}
+
 	var waitGroup sync.WaitGroup
 
-	// Initialize store
-	store, err := store.New(*cfg, log)
+	store, err := store.New(cfg, log)
 	if err != nil {
 		log.Error(err)
 	}
 
-	// Initialize service manager
 	serviceManager, err := service.NewManager(store)
 	if err != nil {
 		log.Error(err)

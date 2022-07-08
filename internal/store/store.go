@@ -19,7 +19,7 @@ type Store struct {
 	User    UserRepo
 }
 
-func New(cfg config.Config, log *logger.Logger) (*Store, error) {
+func New(cfg *config.Config, log *logger.Logger) (*Store, error) {
 	pgDB, err := pg.Dial(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("pg.Dial() failed: %w", err)
@@ -27,14 +27,16 @@ func New(cfg config.Config, log *logger.Logger) (*Store, error) {
 
 	if pgDB != nil {
 		log.Info("Running migrations...")
-		err := runMigrations(&cfg)
+		err := runMigrations(cfg)
 		if err != nil {
 			return nil, fmt.Errorf("run migrations error: %w", err)
 		}
 	}
 
 	var store Store
+
 	store.Logger = log
+
 	if pgDB != nil {
 		store.Pg = pgDB
 		store.Channel = pg.NewChannelRepo(pgDB)
@@ -48,8 +50,9 @@ func New(cfg config.Config, log *logger.Logger) (*Store, error) {
 	return &store, nil
 }
 
-func (s *Store) KeepAliveDB(cfg config.Config) {
+func (s *Store) KeepAliveDB(cfg *config.Config) {
 	var err error
+
 	for {
 		time.Sleep(time.Second * 5)
 

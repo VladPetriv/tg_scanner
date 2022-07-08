@@ -11,7 +11,7 @@ type DB struct {
 	*sql.DB
 }
 
-func Dial(cfg config.Config) (*DB, error) {
+func Dial(cfg *config.Config) (*DB, error) {
 	db, err := sql.Open("postgres", cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("error while create connection to db: %w", err)
