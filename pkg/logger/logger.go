@@ -44,7 +44,6 @@ func Init(logLevel string) {
 
 			return fmt.Sprintf("%s:%d", filename, f.Line), fmt.Sprintf("%s()", f.Function)
 		},
-		PrettyPrint: true,
 	}
 
 	file, err := os.OpenFile("./logs/all.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640)
