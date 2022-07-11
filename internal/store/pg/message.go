@@ -16,7 +16,7 @@ func NewMessageRepo(db *DB) *MessageRepo {
 }
 
 func (repo *MessageRepo) GetMessageByName(name string) (*model.Message, error) {
-	message := &model.Message{}
+	message := model.Message{}
 
 	rows, err := repo.db.Query("SELECT * FROM message WHERE title=$1;", name)
 	if err != nil {
@@ -25,7 +25,7 @@ func (repo *MessageRepo) GetMessageByName(name string) (*model.Message, error) {
 
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&message.ID, &message.UserID, &message.ChannelID, &message.Title, &message.ImageURL)
+		err := rows.Scan(&message.ID, &message.ChannelID, &message.UserID, &message.Title, &message.MessageURL, &message.ImageURL)
 		if err != nil {
 			continue
 		}
@@ -35,7 +35,7 @@ func (repo *MessageRepo) GetMessageByName(name string) (*model.Message, error) {
 		return nil, nil
 	}
 
-	return message, nil
+	return &message, nil
 }
 
 func (repo *MessageRepo) CreateMessage(message *model.Message) (int, error) {
