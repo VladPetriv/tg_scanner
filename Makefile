@@ -13,12 +13,12 @@ run:
 .PHONY: migrate_up
 
 migrate_up:
-	migrate -path ./internal/store/migrations/ -database $(DATABASE_URL) -verbose up
+	migrate -path ./db/migrations/ -database $(DATABASE_URL) -verbose up
 
 .PHONY: migrate_down
 
 migrate_down:
-	migrate -path ./internal/store/migrations/ -database $(DATABASE_URL) -verbose down
+	migrate -path ./db/migrations/ -database $(DATABASE_URL) -verbose down
 
 .PHONY: test
 
