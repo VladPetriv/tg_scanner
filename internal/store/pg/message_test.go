@@ -88,19 +88,19 @@ func TestMessagePg_GetMessageByName(t *testing.T) {
 		{
 			name: "ok",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "user_id", "channel_id", "title", "imageurl"}).
-					AddRow(1, 1, 1, "test1", "test.jpg")
+				rows := sqlmock.NewRows([]string{"id", "channel_id", "user_id", "title", "message_url", "imageurl"}).
+					AddRow(1, 1, 1, "test1", "test.com", "test.jpg")
 
 				mock.ExpectQuery("SELECT * FROM message WHERE title=$1;").
 					WithArgs("test1").WillReturnRows(rows)
 			},
 			input: "test1",
-			want:  &model.Message{ID: 1, UserID: 1, ChannelID: 1, Title: "test1", ImageURL: "test.jpg"},
+			want:  &model.Message{ID: 1, UserID: 1, ChannelID: 1, Title: "test1", MessageURL: "test.com", ImageURL: "test.jpg"},
 		},
 		{
 			name: "message not found",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "user_id", "channel_id", "title", "imageurl"})
+				rows := sqlmock.NewRows([]string{"id", "channel_id", "user_id", "title", "message_url", "imageurl"})
 
 				mock.ExpectQuery("SELECT * FROM message WHERE title=$1;").
 					WithArgs().WillReturnRows(rows)
