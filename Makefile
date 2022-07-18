@@ -30,3 +30,8 @@ test:
 mock:
 	cd ./internal/service/; go generate;
 	cd ./internal/store/; go generate; 
+
+.PHONY: docker
+
+docker:
+	docker build -t tg_scanner .
