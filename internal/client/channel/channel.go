@@ -2,10 +2,8 @@ package channel
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/big"
 
 	"github.com/gotd/td/tg"
 
@@ -17,13 +15,8 @@ import (
 var channelImageSize int = 1024 * 1024
 
 func GetChannelHistory(ctx context.Context, cPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
-	bInt := big.NewInt(10000) // nolint
-
-	value, _ := rand.Int(rand.Reader, bInt)
-
 	result, err := api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{ // nolint
 		Peer: cPeer,
-		Hash: value.Int64(),
 	})
 	if err != nil {
 		return nil, &utils.GettingError{Name: "messages from history", ErrorValue: err}
@@ -40,21 +33,21 @@ func GetAllChannels(ctx context.Context, api *tg.Client) ([]model.TgChannel, err
 		return nil, &utils.GettingError{Name: "channels", ErrorValue: err}
 	}
 
-	var newChannel model.TgChannel
+	for _, channelData := range data.GetChats() {
+		channel := model.TgChannel{}
 
-	for _, channel := range data.GetChats() {
-		fullChannel, _ := channel.AsFull()
+		fullChannel, _ := channelData.AsFull()
 		encodedData, err := json.Marshal(fullChannel)
 		if err != nil {
 			continue
 		}
 
-		err = json.Unmarshal(encodedData, &newChannel)
+		err = json.Unmarshal(encodedData, &channel)
 		if err != nil {
 			continue
 		}
 
-		channels = append(channels, newChannel)
+		channels = append(channels, channel)
 	}
 
 	return channels, nil

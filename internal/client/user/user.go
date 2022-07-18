@@ -16,7 +16,7 @@ import (
 var userImageSize int = 1024 * 1024
 
 func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.InputPeerChannel, api *tg.Client) (*model.TgUser, error) {
-	var user *model.TgUser
+	user := &model.TgUser{}
 
 	data, err := api.UsersGetFullUser(ctx, &tg.InputUserFromMessage{
 		Peer:   cPeer,
@@ -27,8 +27,8 @@ func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.Inp
 		return nil, &utils.GettingError{Name: "user from telegram", ErrorValue: err}
 	}
 
-	for _, u := range data.Users {
-		notEmptyUser, _ := u.AsNotEmpty()
+	for _, userData := range data.Users {
+		notEmptyUser, _ := userData.AsNotEmpty()
 
 		encodedData, err := json.Marshal(notEmptyUser)
 		if err != nil {

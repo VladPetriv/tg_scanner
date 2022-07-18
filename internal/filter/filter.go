@@ -37,6 +37,7 @@ func RemoveDuplicateInReplies(replie *model.TgReplies) {
 	if replie.Count == 0 {
 		return
 	}
+
 	allReplies := make(map[string]bool)
 	replies := make([]model.TgRepliesMessage, 0)
 

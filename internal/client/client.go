@@ -25,23 +25,24 @@ import (
 
 // Timeouts
 var (
-	historyTimeout  time.Duration = time.Minute * 30
-	removeTimeout   time.Duration = time.Minute * 30
-	saveTimeout     time.Duration = time.Minute * 15
+	startTimeout    time.Duration = 20 * time.Second
+	historyTimeout  time.Duration = 30 * time.Minute
+	removeTimeout   time.Duration = 30 * time.Minute
+	saveTimeout     time.Duration = 15 * time.Minute
 	incomingTimeout time.Duration = time.Minute
 )
 
 func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, api *tg.Client, log *logger.Logger) {
-	time.Sleep(time.Second * 20)
+	time.Sleep(startTimeout)
 
 	for {
-		for _, chnl := range channels {
-			log.Infof("Start getting messages from history[%s]", chnl.Username)
-			fileName := fmt.Sprintf("./data/%s.json", chnl.Username)
+		for _, channelData := range channels {
+			log.Infof("Start getting messages from history[%s]", channelData.Username)
+			fileName := fmt.Sprintf("./data/%s.json", channelData.Username)
 
 			data, err := channel.GetChannelHistory(ctx, &tg.InputPeerChannel{
-				ChannelID:  chnl.ID,
-				AccessHash: chnl.AccessHash,
+				ChannelID:  channelData.ID,
+				AccessHash: channelData.AccessHash,
 			}, api)
 			if err != nil {
 				log.Error(err)
@@ -50,8 +51,8 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, api
 			modifiedData, _ := data.AsModified()
 
 			messages := message.GetMessagesFromTelegram(ctx, modifiedData, &tg.InputPeerChannel{
-				ChannelID:  chnl.ID,
-				AccessHash: chnl.AccessHash,
+				ChannelID:  channelData.ID,
+				AccessHash: channelData.AccessHash,
 			}, api)
 
 			messagesFromFile, err := file.GetMessagesFromFile(fileName)
@@ -65,11 +66,11 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, api
 					continue
 				}
 
-				msg.PeerID = chnl
+				msg.PeerID = channelData
 
-				messageAuthor, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
-					ChannelID:  chnl.ID,
-					AccessHash: chnl.AccessHash,
+				userInfo, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
+					ChannelID:  channelData.ID,
+					AccessHash: channelData.AccessHash,
 				}, api)
 				if err != nil {
 					log.Error(err)
@@ -77,7 +78,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, api
 					continue
 				}
 
-				msg.FromID = *messageAuthor
+				msg.FromID = *userInfo
 				messagesFromFile = append(messagesFromFile, *msg)
 			}
 
@@ -96,7 +97,7 @@ func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, api
 }
 
 func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels []model.TgChannel, log *logger.Logger) {
-	time.Sleep(time.Second * 20)
+	time.Sleep(startTimeout)
 
 	path := "./data/incoming.json"
 
@@ -147,29 +148,29 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 			log.Error(err)
 		}
 
-		for _, msg := range messages {
-			err := message.GetRepliesForMessageBeforeSave(ctx, &msg, api)
+		for _, messageData := range messages {
+			err := message.GetRepliesForMessageBeforeSave(ctx, &messageData, api)
 			if err != nil {
 				log.Error(err)
 			}
 
-			filter.RemoveDuplicateInReplies(&msg.Replies)
+			filter.RemoveDuplicateInReplies(&messageData.Replies)
 
-			channel, _ := serviceManager.Channel.GetChannelByName(msg.PeerID.Username)
+			channel, _ := serviceManager.Channel.GetChannelByName(messageData.PeerID.Username)
 
-			fileName, err := user.ProcessUserPhoto(ctx, &msg.FromID, api)
+			fileName, err := user.ProcessUserPhoto(ctx, &messageData.FromID, api)
 			if err != nil {
 				log.Error(err)
 			}
 
-			userImageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, msg.FromID.Username)
+			userImageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, messageData.FromID.Username)
 			if err != nil {
 				log.Error(err)
 			}
 
 			userID, err := serviceManager.User.CreateUser(&model.User{
-				Username: msg.FromID.Username,
-				FullName: fmt.Sprintf("%s %s", msg.FromID.FirstName, msg.FromID.LastName),
+				Username: messageData.FromID.Username,
+				FullName: fmt.Sprintf("%s %s", messageData.FromID.FirstName, messageData.FromID.LastName),
 				ImageURL: userImageUrl,
 			})
 			if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
@@ -178,13 +179,13 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 
 			var messageImageUrl string
 
-			if msg.Media.Photo != nil {
-				filename, err := message.ProcessMessagePhoto(ctx, &msg, api)
+			if messageData.Media.Photo != nil {
+				filename, err := message.ProcessMessagePhoto(ctx, &messageData, api)
 				if err != nil {
 					log.Error(err)
 				}
 
-				messageImageUrl, err = firebase.SendImageToStorage(ctx, cfg, filename, fmt.Sprint(msg.ID))
+				messageImageUrl, err = firebase.SendImageToStorage(ctx, cfg, filename, fmt.Sprint(messageData.ID))
 				if err != nil {
 					log.Error(err)
 				}
@@ -193,15 +194,15 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 			messageID, err := serviceManager.Message.CreateMessage(&model.Message{
 				ChannelID:  channel.ID,
 				UserID:     userID,
-				Title:      msg.Message,
-				MessageURL: fmt.Sprintf("https://t.me/%s/%d", msg.PeerID.Username, msg.ID),
+				Title:      messageData.Message,
+				MessageURL: fmt.Sprintf("https://t.me/%s/%d", messageData.PeerID.Username, messageData.ID),
 				ImageURL:   messageImageUrl,
 			})
 			if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
 				log.Error(err)
 			}
 
-			for _, replie := range msg.Replies.Messages {
+			for _, replie := range messageData.Replies.Messages {
 				fileName, err := user.ProcessUserPhoto(ctx, &replie.FromID, api)
 				if err != nil {
 					log.Error(err)
@@ -268,11 +269,9 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 		log.Error(&utils.CreateError{Name: "telegram client", ErrorValue: err})
 	}
 
-	// Create API
 	api := tgClient.API()
 
 	if err := tgClient.Run(context.Background(), func(ctx context.Context) error {
-		// Authorization to telegram
 		user, err := auth.Login(ctx, tgClient, cfg)
 		if err != nil {
 			return fmt.Errorf("AUTH_ERROR:%w", err)
@@ -280,10 +279,8 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 
 		waitGroup.Add(4)
 
-		// Get user data
 		uData, _ := user.GetUser().AsNotEmpty()
 
-		// Getting all channel
 		channels, err := channel.GetAllChannels(ctx, api)
 		if err != nil {
 			log.Error(err)
@@ -294,24 +291,27 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			log.Error(err)
 		}
 
-		// Getting channel history
-		for _, chnl := range channels {
-			candidate, _ := serviceManager.Channel.GetChannelByName(chnl.Username)
+		for _, channelData := range channels {
+			candidate, _ := serviceManager.Channel.GetChannelByName(channelData.Username)
 			if candidate != nil {
 				continue
 			}
 
-			filename, err := channel.ProcessChannelPhoto(ctx, &chnl, api)
+			filename, err := channel.ProcessChannelPhoto(ctx, &channelData, api)
 			if err != nil {
 				log.Error(err)
 			}
 
-			channelImageURL, err := firebase.SendImageToStorage(ctx, cfg, filename, chnl.Username)
+			channelImageURL, err := firebase.SendImageToStorage(ctx, cfg, filename, channelData.Username)
 			if err != nil {
 				log.Error(err)
 			}
 
-			err = serviceManager.Channel.CreateChannel(&model.Channel{Name: chnl.Username, Title: chnl.Title, ImageURL: channelImageURL})
+			err = serviceManager.Channel.CreateChannel(&model.Channel{
+				Name:     channelData.Username,
+				Title:    channelData.Title,
+				ImageURL: channelImageURL,
+			})
 			if err != nil {
 				log.Error(err)
 			}

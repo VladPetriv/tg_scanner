@@ -2,10 +2,8 @@ package message
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/gotd/td/tg"
@@ -21,10 +19,10 @@ var messageImageSize int = 1024 * 1024
 func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, channelPeer *tg.InputPeerChannel, api *tg.Client) []model.TgMessage { // nolint
 	var msg model.TgMessage
 
-	result := make([]model.TgMessage, 0)
-	messages := data.GetMessages()
+	messages := make([]model.TgMessage, 0)
+	messagesFromTg := data.GetMessages()
 
-	for _, message := range messages {
+	for _, message := range messagesFromTg {
 		encodedData, err := json.Marshal(message)
 		if err != nil {
 			continue
@@ -40,25 +38,22 @@ func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessag
 			continue
 		}
 
-		repliesMessages := ProcessRepliesMessage(ctx, replies, channelPeer, api)
-		msg.Replies.Count = len(repliesMessages)
-		msg.Replies.Messages = repliesMessages
+		msg.Replies.Messages = ProcessRepliesMessage(ctx, replies, channelPeer, api)
+		msg.Replies.Count = len(msg.Replies.Messages)
 
-		result = append(result, msg)
+		messages = append(messages, msg)
 	}
 
-	return result
+	return messages
 }
 
-func GetIncomingMessages(ctx context.Context, tg_user *tg.User, channels []model.TgChannel, api *tg.Client) ([]model.TgMessage, error) {
-	msgs := make([]model.TgMessage, 0)
+func GetIncomingMessages(ctx context.Context, tgUser *tg.User, channels []model.TgChannel, api *tg.Client) ([]model.TgMessage, error) {
+	messages := make([]model.TgMessage, 0)
 
-	var msg model.TgMessage
-
-	data, err := api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{ // nolint
+	data, err := api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
 		OffsetPeer: &tg.InputPeerUser{
-			UserID:     tg_user.ID,
-			AccessHash: tg_user.AccessHash,
+			UserID:     tgUser.ID,
+			AccessHash: tgUser.AccessHash,
 		},
 	})
 	if err != nil {
@@ -66,50 +61,45 @@ func GetIncomingMessages(ctx context.Context, tg_user *tg.User, channels []model
 	}
 
 	modifiedData, _ := data.AsModified()
-	for _, m := range modifiedData.GetMessages() {
-		encodedData, err := json.Marshal(m)
+	for _, msg := range modifiedData.GetMessages() {
+		message := model.TgMessage{}
+
+		encodedData, err := json.Marshal(msg)
 		if err != nil {
 			continue
 		}
 
-		err = json.Unmarshal(encodedData, &msg)
+		err = json.Unmarshal(encodedData, &message)
 		if err != nil {
 			continue
 		}
 
-		// Getting channel info for replie
 		for _, channel := range channels {
-			if msg.PeerID.ChannelID == channel.ID {
-				msg.PeerID = channel
+			if message.PeerID.ChannelID == channel.ID && message.PeerID.Username == channel.Username {
+				message.PeerID = channel
 			}
 		}
 
-		// Getting user info for replie
-		u, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
-			ChannelID:  msg.PeerID.ID,
-			AccessHash: msg.PeerID.AccessHash,
+		userInfo, err := user.GetUserInfo(ctx, message.FromID.UserID, message.ID, &tg.InputPeerChannel{
+			ChannelID:  message.PeerID.ID,
+			AccessHash: message.PeerID.AccessHash,
 		}, api)
 		if err != nil {
 			continue
 		}
 
-		msg.FromID = *u
+		message.FromID = *userInfo
 
-		msgs = append(msgs, msg)
+		messages = append(messages, message)
 	}
 
-	return msgs, nil
+	return messages, nil
 }
 
 func GetReplies(ctx context.Context, message *model.TgMessage, channelPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
-	bInt := big.NewInt(10000) // nolint
-
-	value, _ := rand.Int(rand.Reader, bInt)
-
-	replies, err := api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{ // nolint
+	replies, err := api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{
 		Peer:  channelPeer,
 		MsgID: message.ID,
-		Hash:  value.Int64(),
 	})
 	if err != nil {
 		return nil, &utils.GettingError{Name: "replies", ErrorValue: err}
@@ -119,17 +109,17 @@ func GetReplies(ctx context.Context, message *model.TgMessage, channelPeer *tg.I
 }
 
 func GetRepliesForMessageBeforeSave(ctx context.Context, message *model.TgMessage, api *tg.Client) error {
-	cPeer := &tg.InputPeerChannel{
+	channelPeer := &tg.InputPeerChannel{
 		ChannelID:  message.PeerID.ID,
 		AccessHash: message.PeerID.AccessHash,
 	}
 
-	replies, err := GetReplies(ctx, message, cPeer, api)
+	replies, err := GetReplies(ctx, message, channelPeer, api)
 	if err != nil {
 		return err
 	}
 
-	messageReplie := ProcessRepliesMessage(ctx, replies, cPeer, api)
+	messageReplie := ProcessRepliesMessage(ctx, replies, channelPeer, api)
 
 	message.Replies.Messages = append(message.Replies.Messages, messageReplie...)
 
@@ -141,10 +131,10 @@ func GetRepliesForMessageBeforeSave(ctx context.Context, message *model.TgMessag
 func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass, cPeer *tg.InputPeerChannel, api *tg.Client) []model.TgRepliesMessage {
 	repliesMessages := make([]model.TgRepliesMessage, 0)
 
-	var replieMessage model.TgRepliesMessage
-
 	data, _ := replies.AsModified()
 	for _, replie := range data.GetMessages() {
+		replieMessage := model.TgRepliesMessage{}
+
 		encodedData, err := json.Marshal(replie)
 		if err != nil {
 			continue
@@ -155,12 +145,13 @@ func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass
 			continue
 		}
 
-		u, err := user.GetUserInfo(ctx, replieMessage.FromID.UserID, replieMessage.ID, cPeer, api)
+		userInfo, err := user.GetUserInfo(ctx, replieMessage.FromID.UserID, replieMessage.ID, cPeer, api)
 		if err != nil {
 			continue
 		}
 
-		replieMessage.FromID = *u
+		replieMessage.FromID = *userInfo
+
 		repliesMessages = append(repliesMessages, replieMessage)
 	}
 
@@ -168,7 +159,6 @@ func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass
 }
 
 func GetMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Client) (tg.UploadFileClass, error) {
-
 	length := len(msg.Media.Photo.Sizes) - 1
 
 	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{

@@ -12,18 +12,18 @@ import (
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
 
-func WriteMessagesToFile(msgs []model.TgMessage, fileName string) error {
-	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644) // nolint
+func WriteMessagesToFile(messages []model.TgMessage, fileName string) error {
+	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("error while open file: %w", err)
 	}
 
-	messages, err := json.Marshal(msgs)
+	encodedMessages, err := json.Marshal(messages)
 	if err != nil {
 		return &utils.CreateError{Name: "JSON", ErrorValue: err}
 	}
 
-	_, err = file.Write(messages)
+	_, err = file.Write(encodedMessages)
 	if err != nil {
 		return fmt.Errorf("error while writing to file: %w", err)
 	}
@@ -32,7 +32,7 @@ func WriteMessagesToFile(msgs []model.TgMessage, fileName string) error {
 }
 
 func GetMessagesFromFile(fileName string) ([]model.TgMessage, error) {
-	var messages []model.TgMessage
+	messages := make([]model.TgMessage, 0, 10)
 
 	data, err := os.ReadFile(fileName)
 	if err != nil {
@@ -69,7 +69,7 @@ func CreateFilesForChannels(channels []model.TgChannel) error {
 			return &utils.CreateError{Name: "file", ErrorValue: err}
 		}
 
-		_, err = file.WriteString("[]")
+		_, err = file.WriteString("[ ]")
 		if err != nil {
 			return fmt.Errorf("write file error: %s", err)
 		}
@@ -79,6 +79,7 @@ func CreateFilesForChannels(channels []model.TgChannel) error {
 			return fmt.Errorf("rename file error:%s", err)
 		}
 	}
+
 	return nil
 }
 
@@ -88,7 +89,7 @@ func CreateFileForIncoming() error {
 		return &utils.CreateError{Name: "file", ErrorValue: err}
 	}
 
-	_, err = file.WriteString("[]")
+	_, err = file.WriteString("[ ]")
 	if err != nil {
 		return fmt.Errorf("write file error: %w", err)
 	}
@@ -100,7 +101,7 @@ func CreateDirs() error {
 	dirs := [3]string{"data", "logs", "images"}
 
 	for _, dir := range dirs {
-		err := os.Mkdir(dir, 0o755) // nolint
+		err := os.Mkdir(dir, 0o755)
 		if os.IsNotExist(err) {
 			return &utils.CreateError{Name: "dir", ErrorValue: err}
 		}
@@ -110,7 +111,7 @@ func CreateDirs() error {
 }
 
 func ParseFromFiles(path string) ([]model.TgMessage, error) {
-	var messages []model.TgMessage
+	messages := make([]model.TgMessage, 0, 10)
 
 	dir, err := os.Open(path)
 	if err != nil {
@@ -128,6 +129,7 @@ func ParseFromFiles(path string) ([]model.TgMessage, error) {
 		data, err := GetMessagesFromFile(pathToFile)
 		if err != nil {
 			fmt.Printf("%s - %s\n", file.Name(), err)
+
 			continue
 		}
 
@@ -161,12 +163,12 @@ func DecodePhoto(photo tg.UploadFileClass) (*model.Image, error) {
 
 	var img *model.Image
 
-	js, err := json.Marshal(photo)
+	encodedImage, err := json.Marshal(photo)
 	if err != nil {
 		return nil, &utils.CreateError{Name: "JSON", ErrorValue: err}
 	}
 
-	err = json.Unmarshal(js, &img)
+	err = json.Unmarshal(encodedImage, &img)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal JSON error: %w", err)
 	}
