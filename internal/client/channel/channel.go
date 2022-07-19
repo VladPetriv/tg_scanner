@@ -14,9 +14,9 @@ import (
 
 var channelImageSize int = 1024 * 1024
 
-func GetChannelHistory(ctx context.Context, cPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
+func GetChannelHistory(ctx context.Context, channelPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
 	result, err := api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{ // nolint
-		Peer: cPeer,
+		Peer: channelPeer,
 	})
 	if err != nil {
 		return nil, &utils.GettingError{Name: "messages from history", ErrorValue: err}
@@ -54,17 +54,10 @@ func GetAllChannels(ctx context.Context, api *tg.Client) ([]model.TgChannel, err
 }
 
 func GetChannelPhoto(ctx context.Context, channel *model.TgChannel, api *tg.Client) (tg.UploadFileClass, error) {
-	var id int64
-	if channel.ChannelID == 0 {
-		id = channel.ID
-	} else {
-		id = channel.ChannelID
-	}
-
 	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
 		Location: &tg.InputPeerPhotoFileLocation{
 			Peer: &tg.InputPeerChannel{
-				ChannelID:  id,
+				ChannelID:  channel.ID,
 				AccessHash: channel.AccessHash,
 			},
 			PhotoID: channel.Photo.PhotoID,
