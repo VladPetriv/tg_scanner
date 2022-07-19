@@ -1,13 +1,13 @@
 package model
 
 type Message struct {
-	ID           int    `json:"id"`
-	ChannelID    int    `json:"channelId"`
-	UserID       int    `json:"userId"`
-	Title        string `json:"title"`
-	MessageURL   string `json:"messageUrl"`
-	ImageURL     string `json:"imageUrl"`
-	RepliesCount int
+	ID           int    `db:"id"`
+	ChannelID    int    `db:"channel_id"`
+	UserID       int    `db:"user_id"`
+	Title        string `db:"title"`
+	MessageURL   string `db:"message_url"`
+	ImageURL     string `db:"imageurl"`
+	RepliesCount int    `db:"count"`
 }
 
 type TgMessage struct {

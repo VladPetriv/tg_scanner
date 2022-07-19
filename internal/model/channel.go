@@ -3,10 +3,10 @@ package model
 import "github.com/gotd/td/tg"
 
 type Channel struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Title    string `json:"title"`
-	ImageURL string `json:"imageUrl"`
+	ID       int    `db:"id"`
+	Name     string `db:"name"`
+	Title    string `db:"title"`
+	ImageURL string `db:"imageurl"`
 }
 
 type TgChannel struct {
