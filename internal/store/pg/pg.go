@@ -1,18 +1,18 @@
 package pg
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/VladPetriv/tg_scanner/pkg/config"
+	"github.com/jmoiron/sqlx"
 )
 
 type DB struct {
-	*sql.DB
+	*sqlx.DB
 }
 
 func Dial(cfg *config.Config) (*DB, error) {
-	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	db, err := sqlx.Connect("postgres", cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("error while create connection to db: %w", err)
 	}
