@@ -3,16 +3,13 @@ package channel
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/gotd/td/tg"
 
-	"github.com/VladPetriv/tg_scanner/internal/file"
+	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
-
-var channelImageSize int = 1024 * 1024
 
 func GetChannelHistory(ctx context.Context, channelPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
 	result, err := api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{ // nolint
@@ -62,32 +59,11 @@ func GetChannelPhoto(ctx context.Context, channel *model.TgChannel, api *tg.Clie
 			},
 			PhotoID: channel.Photo.PhotoID,
 		},
-		Limit: channelImageSize,
+		Limit: photo.Size,
 	})
 	if err != nil {
 		return nil, &utils.GettingError{Name: "channel photo", ErrorValue: err}
 	}
 
 	return data, nil
-}
-
-func ProcessChannelPhoto(ctx context.Context, channel *model.TgChannel, api *tg.Client) (string, error) {
-	channelPhotoData, err := GetChannelPhoto(ctx, channel, api)
-	if err != nil {
-		return "", err
-	}
-
-	channelImage, err := file.DecodePhoto(channelPhotoData)
-	if err != nil {
-		return "", fmt.Errorf("decode channel photo error: %w", err)
-	}
-
-	channel.Image = channelImage
-
-	fileName, err := file.CreatePhoto(channelImage, channel.Username)
-	if err != nil {
-		return "", &utils.CreateError{Name: "channel image", ErrorValue: err}
-	}
-
-	return fileName, nil
 }

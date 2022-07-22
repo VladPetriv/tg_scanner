@@ -3,18 +3,15 @@ package message
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"time"
 
 	"github.com/gotd/td/tg"
 
+	"github.com/VladPetriv/tg_scanner/internal/client/photo"
+	"github.com/VladPetriv/tg_scanner/internal/client/replie"
 	"github.com/VladPetriv/tg_scanner/internal/client/user"
-	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
-
-var messageImageSize int = 1024 * 1024
 
 func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, channelPeer *tg.InputPeerChannel, api *tg.Client) []model.TgMessage { // nolint
 	var msg model.TgMessage
@@ -33,12 +30,12 @@ func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessag
 			continue
 		}
 
-		replies, err := GetReplies(ctx, &msg, channelPeer, api)
+		replies, err := replie.GetReplies(ctx, &msg, channelPeer, api)
 		if err != nil {
 			continue
 		}
 
-		msg.Replies.Messages = ProcessRepliesMessage(ctx, replies, channelPeer, api)
+		msg.Replies.Messages = replie.ProcessRepliesMessage(ctx, replies, channelPeer, api)
 		msg.Replies.Count = len(msg.Replies.Messages)
 
 		messages = append(messages, msg)
@@ -75,7 +72,7 @@ func GetIncomingMessages(ctx context.Context, tgUser *tg.User, channels []model.
 		}
 
 		for _, channel := range channels {
-			if message.PeerID.ChannelID == channel.ID && message.PeerID.Username == channel.Username {
+			if message.PeerID.ChannelID == channel.ID {
 				message.PeerID = channel
 			}
 		}
@@ -96,69 +93,7 @@ func GetIncomingMessages(ctx context.Context, tgUser *tg.User, channels []model.
 	return messages, nil
 }
 
-func GetReplies(ctx context.Context, message *model.TgMessage, channelPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
-	replies, err := api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{
-		Peer:  channelPeer,
-		MsgID: message.ID,
-	})
-	if err != nil {
-		return nil, &utils.GettingError{Name: "replies", ErrorValue: err}
-	}
-
-	return replies, nil
-}
-
-func GetRepliesForMessageBeforeSave(ctx context.Context, message *model.TgMessage, api *tg.Client) error {
-	channelPeer := &tg.InputPeerChannel{
-		ChannelID:  message.PeerID.ID,
-		AccessHash: message.PeerID.AccessHash,
-	}
-
-	replies, err := GetReplies(ctx, message, channelPeer, api)
-	if err != nil {
-		return err
-	}
-
-	messageReplie := ProcessRepliesMessage(ctx, replies, channelPeer, api)
-
-	message.Replies.Messages = append(message.Replies.Messages, messageReplie...)
-
-	time.Sleep(time.Second * 3)
-
-	return nil
-}
-
-func ProcessRepliesMessage(ctx context.Context, replies tg.MessagesMessagesClass, cPeer *tg.InputPeerChannel, api *tg.Client) []model.TgRepliesMessage {
-	repliesMessages := make([]model.TgRepliesMessage, 0)
-
-	data, _ := replies.AsModified()
-	for _, replie := range data.GetMessages() {
-		replieMessage := model.TgRepliesMessage{}
-
-		encodedData, err := json.Marshal(replie)
-		if err != nil {
-			continue
-		}
-
-		err = json.Unmarshal(encodedData, &replieMessage)
-		if err != nil {
-			continue
-		}
-
-		userInfo, err := user.GetUserInfo(ctx, replieMessage.FromID.UserID, replieMessage.ID, cPeer, api)
-		if err != nil {
-			continue
-		}
-
-		replieMessage.FromID = *userInfo
-
-		repliesMessages = append(repliesMessages, replieMessage)
-	}
-
-	return repliesMessages
-}
-
-func GetMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Client) (tg.UploadFileClass, error) {
+func GetMessagePhoto(ctx context.Context, msg model.TgMessage, api *tg.Client) (tg.UploadFileClass, error) {
 	length := len(msg.Media.Photo.Sizes) - 1
 
 	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
@@ -169,7 +104,7 @@ func GetMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Client) 
 			ThumbSize:     msg.Media.Photo.Sizes[length].GetType(),
 		},
 		Offset: 0,
-		Limit:  messageImageSize,
+		Limit:  photo.Size,
 	})
 	if err != nil {
 		return nil, &utils.GettingError{Name: "message photo", ErrorValue: err}
@@ -220,32 +155,4 @@ func CheckMessagePhotoStatus(ctx context.Context, msg *model.TgMessage, api *tg.
 	}
 
 	return false, nil
-}
-
-func ProcessMessagePhoto(ctx context.Context, msg *model.TgMessage, api *tg.Client) (string, error) {
-	status, err := CheckMessagePhotoStatus(ctx, msg, api)
-	if err != nil {
-		return "", err
-	}
-
-	if !status {
-		return "", &utils.NotFoundError{Name: "photo in message"}
-	}
-
-	messagePhotoData, err := GetMessagePhoto(ctx, msg, api)
-	if err != nil {
-		return "", err
-	}
-
-	messageImage, err := file.DecodePhoto(messagePhotoData)
-	if err != nil {
-		return "", fmt.Errorf("decode message photo error: %w", err)
-	}
-
-	filename, err := file.CreatePhoto(messageImage, fmt.Sprint(msg.ID))
-	if err != nil {
-		return "", err
-	}
-
-	return filename, err
 }

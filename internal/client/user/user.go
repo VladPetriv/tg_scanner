@@ -8,12 +8,10 @@ import (
 
 	"github.com/gotd/td/tg"
 
-	"github.com/VladPetriv/tg_scanner/internal/file"
+	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
-
-var userImageSize int = 1024 * 1024
 
 func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.InputPeerChannel, api *tg.Client) (*model.TgUser, error) {
 	user := &model.TgUser{}
@@ -46,49 +44,20 @@ func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.Inp
 	return user, nil
 }
 
-func GetUserPhoto(ctx context.Context, user *model.TgUser, api *tg.Client) (tg.UploadFileClass, error) {
-	var id int64
-
-	if user.ID == 0 {
-		id = user.UserID
-	} else {
-		id = user.ID
-	}
-
+func GetUserPhoto(ctx context.Context, user model.TgUser, api *tg.Client) (tg.UploadFileClass, error) {
 	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
 		Location: &tg.InputPeerPhotoFileLocation{
 			Peer: &tg.InputPeerUser{
-				UserID:     id,
+				UserID:     user.ID,
 				AccessHash: user.AccessHash,
 			},
 			PhotoID: user.Photo.PhotoID,
 		},
-		Limit: userImageSize,
+		Limit: photo.Size,
 	})
 	if err != nil {
 		return nil, &utils.GettingError{Name: "user photo", ErrorValue: err}
 	}
 
 	return data, nil
-}
-
-func ProcessUserPhoto(ctx context.Context, user *model.TgUser, api *tg.Client) (string, error) {
-	userPhotoData, err := GetUserPhoto(ctx, user, api)
-	if err != nil {
-		return "", err
-	}
-
-	userImage, err := file.DecodePhoto(userPhotoData)
-	if err != nil {
-		return "", fmt.Errorf("decode user photo error: %w", err)
-	}
-
-	user.Image = userImage
-
-	fileName, err := file.CreatePhoto(userImage, user.Username)
-	if err != nil {
-		return "", err
-	}
-
-	return fileName, nil
 }
