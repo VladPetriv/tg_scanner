@@ -16,5 +16,4 @@ type TgChannel struct {
 	AccessHash int64
 	Username   string
 	Photo      tg.ChatPhoto
-	Image      *Image
 }

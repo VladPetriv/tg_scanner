@@ -12,12 +12,13 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/client/auth"
 	"github.com/VladPetriv/tg_scanner/internal/client/channel"
 	"github.com/VladPetriv/tg_scanner/internal/client/message"
+	"github.com/VladPetriv/tg_scanner/internal/client/photo"
+	"github.com/VladPetriv/tg_scanner/internal/client/replie"
 	"github.com/VladPetriv/tg_scanner/internal/client/user"
 	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/service"
-	"github.com/VladPetriv/tg_scanner/internal/store/firebase"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
@@ -149,7 +150,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 		}
 
 		for _, messageData := range messages {
-			err := message.GetRepliesForMessageBeforeSave(ctx, &messageData, api)
+			err := replie.GetRepliesForMessageBeforeSave(ctx, &messageData, api)
 			if err != nil {
 				log.Error(err)
 			}
@@ -158,12 +159,12 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 
 			channel, _ := serviceManager.Channel.GetChannelByName(messageData.PeerID.Username)
 
-			fileName, err := user.ProcessUserPhoto(ctx, &messageData.FromID, api)
+			userPhotoData, err := user.GetUserPhoto(ctx, messageData.FromID, api)
 			if err != nil {
 				log.Error(err)
 			}
 
-			userImageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, messageData.FromID.Username)
+			userImageUrl, err := photo.ProcessPhoto(ctx, userPhotoData, messageData.FromID.Username, cfg, api)
 			if err != nil {
 				log.Error(err)
 			}
@@ -173,19 +174,21 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				FullName: fmt.Sprintf("%s %s", messageData.FromID.FirstName, messageData.FromID.LastName),
 				ImageURL: userImageUrl,
 			})
-			if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
+			if _, ok := err.(*utils.RecordIsExistError); ok && err != nil {
+				log.Warn(err)
+			} else if err != nil {
 				log.Error(err)
 			}
 
 			var messageImageUrl string
 
-			if messageData.Media.Photo != nil {
-				filename, err := message.ProcessMessagePhoto(ctx, &messageData, api)
+			if ok, _ := message.CheckMessagePhotoStatus(ctx, &messageData, api); ok {
+				messagePhotoData, err := message.GetMessagePhoto(ctx, messageData, api)
 				if err != nil {
 					log.Error(err)
 				}
 
-				messageImageUrl, err = firebase.SendImageToStorage(ctx, cfg, filename, fmt.Sprint(messageData.ID))
+				messageImageUrl, err = photo.ProcessPhoto(ctx, messagePhotoData, fmt.Sprint(messageData.ID), cfg, api)
 				if err != nil {
 					log.Error(err)
 				}
@@ -198,36 +201,57 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 				MessageURL: fmt.Sprintf("https://t.me/%s/%d", messageData.PeerID.Username, messageData.ID),
 				ImageURL:   messageImageUrl,
 			})
-			if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
+			if _, ok := err.(*utils.RecordIsExistError); ok && err != nil {
+				log.Warn(err)
+			} else if err != nil {
 				log.Error(err)
 			}
 
-			for _, replie := range messageData.Replies.Messages {
-				fileName, err := user.ProcessUserPhoto(ctx, &replie.FromID, api)
+			for _, replieData := range messageData.Replies.Messages {
+				userPhotoData, err := user.GetUserPhoto(ctx, replieData.FromID, api)
 				if err != nil {
 					log.Error(err)
 				}
 
-				userImageUrl, err := firebase.SendImageToStorage(ctx, cfg, fileName, replie.FromID.Username)
+				userImageUrl, err := photo.ProcessPhoto(ctx, userPhotoData, replieData.FromID.Username, cfg, api)
 				if err != nil {
 					log.Error(err)
 				}
 
 				userID, err := serviceManager.User.CreateUser(&model.User{
-					Username: replie.FromID.Username,
-					FullName: fmt.Sprintf("%s %s", replie.FromID.FirstName, replie.FromID.LastName),
+					Username: replieData.FromID.Username,
+					FullName: fmt.Sprintf("%s %s", replieData.FromID.FirstName, replieData.FromID.LastName),
 					ImageURL: userImageUrl,
 				})
-				if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
+				if _, ok := err.(*utils.RecordIsExistError); ok && err != nil {
+					log.Warn(err)
+				} else if err != nil {
 					log.Error(err)
+				}
+
+				var replieImageUrl string
+
+				if replieData.Media.Photo != nil {
+					repliePhotoData, err := replie.GetRepliePhoto(ctx, replieData, api)
+					if err != nil {
+						log.Error(err)
+					}
+
+					replieImageUrl, err = photo.ProcessPhoto(ctx, repliePhotoData, replieData.ID, cfg, api)
+					if err != nil {
+						log.Error(err)
+					}
 				}
 
 				err = serviceManager.Replie.CreateReplie(&model.Replie{
 					UserID:    userID,
 					MessageID: messageID,
-					Title:     replie.Message,
+					Title:     replieData.Message,
+					ImageURL:  replieImageUrl,
 				})
-				if _, ok := err.(*utils.RecordIsExistError); !ok && err != nil {
+				if _, ok := err.(*utils.RecordIsExistError); ok && err != nil {
+					log.Warn(err)
+				} else if err != nil {
 					log.Error(err)
 				}
 			}
@@ -297,12 +321,12 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 				continue
 			}
 
-			filename, err := channel.ProcessChannelPhoto(ctx, &channelData, api)
+			channelPhotoData, err := channel.GetChannelPhoto(ctx, &channelData, api)
 			if err != nil {
 				log.Error(err)
 			}
 
-			channelImageURL, err := firebase.SendImageToStorage(ctx, cfg, filename, channelData.Username)
+			channelImageUrl, err := photo.ProcessPhoto(ctx, channelPhotoData, channelData.Username, cfg, api)
 			if err != nil {
 				log.Error(err)
 			}
@@ -310,7 +334,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			err = serviceManager.Channel.CreateChannel(&model.Channel{
 				Name:     channelData.Username,
 				Title:    channelData.Title,
-				ImageURL: channelImageURL,
+				ImageURL: channelImageUrl,
 			})
 			if err != nil {
 				log.Error(err)

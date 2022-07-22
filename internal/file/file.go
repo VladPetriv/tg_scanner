@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gotd/td/tg"
-
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
@@ -154,43 +152,4 @@ func ParseFromFiles(path string) ([]model.TgMessage, error) {
 	result := filter.RemoveDuplicateInMessage(messages)
 
 	return result, nil
-}
-
-func DecodePhoto(photo tg.UploadFileClass) (*model.Image, error) {
-	if photo == nil {
-		return nil, fmt.Errorf("photo is nil")
-	}
-
-	var img *model.Image
-
-	encodedImage, err := json.Marshal(photo)
-	if err != nil {
-		return nil, &utils.CreateError{Name: "JSON", ErrorValue: err}
-	}
-
-	err = json.Unmarshal(encodedImage, &img)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal JSON error: %w", err)
-	}
-
-	return img, nil
-}
-
-func CreatePhoto(img *model.Image, name string) (string, error) {
-	if img == nil {
-		return "", fmt.Errorf("image is nil")
-	}
-
-	path := fmt.Sprintf("./images/%s.jpg", name)
-	photo, err := os.Create(path)
-	if err != nil {
-		return "", &utils.CreateError{Name: "photo", ErrorValue: err}
-	}
-
-	_, err = photo.Write(img.Bytes)
-	if err != nil {
-		return "", fmt.Errorf("write file error: %w", err)
-	}
-
-	return path, nil
 }
