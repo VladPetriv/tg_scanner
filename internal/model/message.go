@@ -18,5 +18,4 @@ type TgMessage struct {
 	Replies TgReplies `json:"Replies"`
 	ReplyTo TgReplyTo `json:"ReplyTo"`
 	Media   Media     `json:"Media"`
-	Image   *Image
 }

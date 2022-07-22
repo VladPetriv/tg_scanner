@@ -5,6 +5,7 @@ type Replie struct {
 	MessageID int    `db:"message_id"`
 	UserID    int    `db:"user_id"`
 	Title     string `db:"title"`
+	ImageURL  string `db:"imageurl"`
 }
 
 type TgReplies struct {
@@ -17,6 +18,7 @@ type TgRepliesMessage struct {
 	FromID  TgUser
 	Message string
 	ReplyTo interface{}
+	Media   Media
 }
 
 type TgReplyTo struct {
