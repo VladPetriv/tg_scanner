@@ -34,19 +34,19 @@ func TestRepliePg_GetReplieByName(t *testing.T) {
 		{
 			name: "Ok: [replie found]",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title"}).
-					AddRow(1, 1, 1, "test")
+				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title", "imageurl"}).
+					AddRow(1, 1, 1, "test", "test.jpg")
 
 				mock.ExpectQuery("SELECT * FROM replie WHERE title=$1;").
 					WithArgs("test").WillReturnRows(rows)
 			},
 			input: "test",
-			want:  &model.Replie{ID: 1, UserID: 1, MessageID: 1, Title: "test"},
+			want:  &model.Replie{ID: 1, UserID: 1, MessageID: 1, Title: "test", ImageURL: "test.jpg"},
 		},
 		{
 			name: "Error: [replie not found]",
 			mock: func() {
-				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title"})
+				rows := sqlmock.NewRows([]string{"id", "user_id", "message_id", "title", "imageurl"})
 
 				mock.ExpectQuery("SELECT * FROM replie WHERE title=$1;").
 					WithArgs().WillReturnRows(rows)
@@ -105,20 +105,20 @@ func TestRepliePg_CreateReplie(t *testing.T) {
 			mock: func() {
 				rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 
-				mock.ExpectQuery("INSERT INTO replie (user_id, message_id, title) VALUES ($1, $2, $3) RETURNING id;").
-					WithArgs(1, 1, "test").WillReturnRows(rows)
+				mock.ExpectQuery("INSERT INTO replie (user_id, message_id, title, imageurl) VALUES ($1, $2, $3, $4) RETURNING id;").
+					WithArgs(1, 1, "test", "test.jpg").WillReturnRows(rows)
 
 			},
-			input: model.Replie{UserID: 1, MessageID: 1, Title: "test"},
+			input: model.Replie{UserID: 1, MessageID: 1, Title: "test", ImageURL: "test.jpg"},
 			want:  1,
 		},
 		{
 			name: "Error: [some sql error]",
 			mock: func() {
-				mock.ExpectQuery("INSERT INTO replie (user_id, message_id, title) VALUES ($1, $2, $3) RETURNING id;").
+				mock.ExpectQuery("INSERT INTO replie (user_id, message_id, title, imageurl) VALUES ($1, $2, $3, $4) RETURNING id;").
 					WithArgs().WillReturnError(fmt.Errorf("some error"))
 			},
-			input:   model.Replie{UserID: 1, MessageID: 1, Title: "test"},
+			input:   model.Replie{UserID: 1, MessageID: 1, Title: "test", ImageURL: "test.jpg"},
 			wantErr: true,
 		},
 	}
