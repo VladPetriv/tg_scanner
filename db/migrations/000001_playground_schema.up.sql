@@ -28,6 +28,7 @@ CREATE TABLE replie (
   message_id INT NOT NULL,
   user_id INT NOT NULL,
   title TEXT,
+  imageurl TEXT,
   CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES message(id) ON DELETE CASCADE,
   CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES tg_user(id) ON DELETE CASCADE
 );
