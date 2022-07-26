@@ -2,7 +2,7 @@
 
 ## Description
 
-tg_scanner is an application which can parse question and replies from you telegram groups
+tg_scanner is an application which can parse question and replies from your telegram groups
 
 Application will always create a few dirs:
 
@@ -12,7 +12,8 @@ Application will always create a few dirs:
 
 ## Technology
 
-Go, GoTD, PostgreSQL, Testify, go-sqlmock, firebase-admin-go
+Go, GoTD, PostgreSQL, Testify, go-sqlmock, firebase-admin-go, Redis
+
 
 ## Before start
 
@@ -39,6 +40,11 @@ Please create a dir "configs" with file ".config.env" which have this fields:
 ### Logger:
 
 - LOG_LEVEL = Log level which logger should handler
+
+### Redis:
+
+- REDIS_ADDR = Redis address
+- REDIS_PASSWORD = Password for redis
 
 ## Usage
 
