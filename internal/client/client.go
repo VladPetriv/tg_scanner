@@ -19,6 +19,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/service"
+	"github.com/VladPetriv/tg_scanner/internal/store/redis"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 	"github.com/VladPetriv/tg_scanner/pkg/utils"
@@ -140,7 +141,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels 
 	}
 }
 
-func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.Config, api *tg.Client, log *logger.Logger) {
+func SaveToDb(ctx context.Context, serviceManager *service.Manager, redisDB *redis.RedisDB, cfg *config.Config, api *tg.Client, log *logger.Logger) {
 	for {
 		log.Info("Start saving messages to db")
 
@@ -150,7 +151,21 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, cfg *config.
 		}
 
 		for _, messageData := range messages {
-			err := replie.GetRepliesForMessageBeforeSave(ctx, &messageData, api)
+			messageValue, err := redisDB.GetMessageFromRedis(ctx, redis.GenerateMessageKey(messageData))
+			if err != nil {
+				log.Error(err)
+			}
+
+			if messageValue == "" {
+				err := redisDB.SetMessageToRedis(ctx, redis.GenerateMessageKey(messageData), true)
+				if err != nil {
+					log.Error(err)
+				}
+			} else {
+				continue
+			}
+
+			err = replie.GetRepliesForMessageBeforeSave(ctx, &messageData, api)
 			if err != nil {
 				log.Error(err)
 			}
@@ -287,7 +302,7 @@ func RemoveMessageWithOutReplies(serviceManager *service.Manager, log *logger.Lo
 	}
 }
 
-func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config.Config, log *logger.Logger) {
+func Run(serviceManager *service.Manager, redisDB *redis.RedisDB, waitGroup *sync.WaitGroup, cfg *config.Config, log *logger.Logger) {
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
 	if err != nil {
 		log.Error(&utils.CreateError{Name: "telegram client", ErrorValue: err})
@@ -341,7 +356,7 @@ func Run(serviceManager *service.Manager, waitGroup *sync.WaitGroup, cfg *config
 			}
 		}
 
-		go SaveToDb(ctx, serviceManager, cfg, api, log)
+		go SaveToDb(ctx, serviceManager, redisDB, cfg, api, log)
 		go GetNewMessage(ctx, uData, api, channels, log)
 		go GetMessagesFromHistory(ctx, channels, api, log)
 		go RemoveMessageWithOutReplies(serviceManager, log)
