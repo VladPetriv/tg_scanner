@@ -2,7 +2,7 @@
 
 ## Description
 
-tg_scanner is an application which can parse question and replies from you telegram groups
+tg_scanner is an application which can parse question and replies from your telegram groups
 
 Application will always create a few dirs:
 
@@ -12,7 +12,8 @@ Application will always create a few dirs:
 
 ## Technology
 
-Go, GoTD, PostgreSQL, Testify, go-sqlmock, firebase-admin-go
+Go, GoTD, firebase-admin-go, Redis, Kafka
+
 
 ## Before start
 
@@ -25,11 +26,6 @@ Please create a dir "configs" with file ".config.env" which have this fields:
 - PHONE = Telegram phone number
 - PASSWORD = Password to telegram
 
-### PostgreSQL:
-
-- DATABASE_URL = You can also use it for describe PostgreSQL path
-- MIGRATIONS_PATH = Path to file with migrations
-
 ### Firebase:
 
 - PROJECT_ID = Project id from firebase
@@ -40,6 +36,16 @@ Please create a dir "configs" with file ".config.env" which have this fields:
 
 - LOG_LEVEL = Log level which logger should handler
 
+### Redis:
+
+- REDIS_ADDR = Redis address
+- REDIS_PASSWORD = Password for redis
+
+### Kafka:
+
+- KAFKA_ADDR = Kafka address
+- KAFKA_TOPIC = Kafka Topic which will be used for sending messages
+
 ## Usage
 
 Starting an application locally:
@@ -47,7 +53,7 @@ Starting an application locally:
 ```bash
  $ go mod download
 
- $ make start #Or you can use go run ./cmd/scanner/main.go
+ $ make start # Or you can use go run ./cmd/scanner/main.go
 ```
 
 Starting in docker:
@@ -58,15 +64,3 @@ Starting in docker:
  $ docker run --name telegram_scanner tg_scanner
 
 ```
-
-Running tests
-
-```bash
- $ make mock # Run it if mocks folder is not exist
-
- $ make test
-```
-
-Watch demo version:
-
-[Telegram Overflow](https://telegram-overflow.herokuapp.com/)

@@ -3,12 +3,9 @@ package main
 import (
 	"sync"
 
-	_ "github.com/lib/pq"
-
 	"github.com/VladPetriv/tg_scanner/internal/client"
 	"github.com/VladPetriv/tg_scanner/internal/file"
-	"github.com/VladPetriv/tg_scanner/internal/service"
-	"github.com/VladPetriv/tg_scanner/internal/store"
+	"github.com/VladPetriv/tg_scanner/internal/store/redis"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
@@ -28,15 +25,7 @@ func main() {
 
 	var waitGroup sync.WaitGroup
 
-	store, err := store.New(cfg, log)
-	if err != nil {
-		log.Error(err)
-	}
+	redisDB := redis.NewRedisDB(cfg)
 
-	serviceManager, err := service.NewManager(store)
-	if err != nil {
-		log.Error(err)
-	}
-
-	client.Run(serviceManager, &waitGroup, cfg, log)
+	client.Run(redisDB, &waitGroup, cfg, log)
 }
