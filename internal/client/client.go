@@ -18,7 +18,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/file"
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/model"
-	"github.com/VladPetriv/tg_scanner/internal/service"
+	"github.com/VladPetriv/tg_scanner/internal/store/kafka"
 	"github.com/VladPetriv/tg_scanner/internal/store/redis"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
@@ -141,7 +141,7 @@ func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels 
 	}
 }
 
-func SaveToDb(ctx context.Context, serviceManager *service.Manager, redisDB *redis.RedisDB, cfg *config.Config, api *tg.Client, log *logger.Logger) {
+func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config, api *tg.Client, log *logger.Logger) {
 	for {
 		log.Info("Start saving messages to db")
 
@@ -172,8 +172,6 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, redisDB *red
 
 			filter.RemoveDuplicateInReplies(&messageData.Replies)
 
-			channel, _ := serviceManager.Channel.GetChannelByName(messageData.PeerID.Username)
-
 			userPhotoData, err := user.GetUserPhoto(ctx, messageData.FromID, api)
 			if err != nil {
 				log.Error(err)
@@ -184,16 +182,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, redisDB *red
 				log.Error(err)
 			}
 
-			userID, err := serviceManager.User.CreateUser(&model.User{
-				Username: messageData.FromID.Username,
-				FullName: fmt.Sprintf("%s %s", messageData.FromID.FirstName, messageData.FromID.LastName),
-				ImageURL: userImageUrl,
-			})
-			if _, ok := err.(*utils.RecordIsExistError); ok && err != nil {
-				log.Warn(err)
-			} else if err != nil {
-				log.Error(err)
-			}
+			messageData.FromID.ImageURL = userImageUrl
 
 			var messageImageUrl string
 
@@ -209,18 +198,8 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, redisDB *red
 				}
 			}
 
-			messageID, err := serviceManager.Message.CreateMessage(&model.Message{
-				ChannelID:  channel.ID,
-				UserID:     userID,
-				Title:      messageData.Message,
-				MessageURL: fmt.Sprintf("https://t.me/%s/%d", messageData.PeerID.Username, messageData.ID),
-				ImageURL:   messageImageUrl,
-			})
-			if _, ok := err.(*utils.RecordIsExistError); ok && err != nil {
-				log.Warn(err)
-			} else if err != nil {
-				log.Error(err)
-			}
+			messageData.MessageURL = fmt.Sprintf("https://t.me/%s/%d", messageData.PeerID.Username, messageData.ID)
+			messageData.ImageURL = messageImageUrl
 
 			for _, replieData := range messageData.Replies.Messages {
 				userPhotoData, err := user.GetUserPhoto(ctx, replieData.FromID, api)
@@ -233,16 +212,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, redisDB *red
 					log.Error(err)
 				}
 
-				userID, err := serviceManager.User.CreateUser(&model.User{
-					Username: replieData.FromID.Username,
-					FullName: fmt.Sprintf("%s %s", replieData.FromID.FirstName, replieData.FromID.LastName),
-					ImageURL: userImageUrl,
-				})
-				if _, ok := err.(*utils.RecordIsExistError); ok && err != nil {
-					log.Warn(err)
-				} else if err != nil {
-					log.Error(err)
-				}
+				replieData.FromID.ImageURL = userImageUrl
 
 				var replieImageUrl string
 
@@ -258,17 +228,12 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, redisDB *red
 					}
 				}
 
-				err = serviceManager.Replie.CreateReplie(&model.Replie{
-					UserID:    userID,
-					MessageID: messageID,
-					Title:     replieData.Message,
-					ImageURL:  replieImageUrl,
-				})
-				if _, ok := err.(*utils.RecordIsExistError); ok && err != nil {
-					log.Warn(err)
-				} else if err != nil {
-					log.Error(err)
-				}
+				replieData.ImageURL = replieImageUrl
+			}
+
+			err = kafka.PushMessageToQueue(cfg.KafkaTopic, cfg.KafkaAddr, messageData)
+			if err != nil {
+				log.Error(err)
 			}
 		}
 
@@ -276,33 +241,7 @@ func SaveToDb(ctx context.Context, serviceManager *service.Manager, redisDB *red
 	}
 }
 
-func RemoveMessageWithOutReplies(serviceManager *service.Manager, log *logger.Logger) {
-	for {
-		log.Infof("Start remove messages without replies")
-
-		messages, err := serviceManager.Message.GetMessagesWithRepliesCount()
-		if err != nil {
-			log.Warn(err)
-		}
-
-		for _, message := range messages {
-			if message.RepliesCount == 0 {
-				err := serviceManager.Message.DeleteMessageByID(message.ID)
-				if err != nil {
-					log.Warn(err)
-				}
-
-				continue
-			}
-
-			continue
-		}
-
-		time.Sleep(removeTimeout)
-	}
-}
-
-func Run(serviceManager *service.Manager, redisDB *redis.RedisDB, waitGroup *sync.WaitGroup, cfg *config.Config, log *logger.Logger) {
+func Run(redisDB *redis.RedisDB, waitGroup *sync.WaitGroup, cfg *config.Config, log *logger.Logger) {
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
 	if err != nil {
 		log.Error(&utils.CreateError{Name: "telegram client", ErrorValue: err})
@@ -316,7 +255,7 @@ func Run(serviceManager *service.Manager, redisDB *redis.RedisDB, waitGroup *syn
 			return fmt.Errorf("AUTH_ERROR:%w", err)
 		}
 
-		waitGroup.Add(4)
+		waitGroup.Add(3)
 
 		uData, _ := user.GetUser().AsNotEmpty()
 
@@ -331,11 +270,6 @@ func Run(serviceManager *service.Manager, redisDB *redis.RedisDB, waitGroup *syn
 		}
 
 		for _, channelData := range channels {
-			candidate, _ := serviceManager.Channel.GetChannelByName(channelData.Username)
-			if candidate != nil {
-				continue
-			}
-
 			channelPhotoData, err := channel.GetChannelPhoto(ctx, &channelData, api)
 			if err != nil {
 				log.Error(err)
@@ -346,20 +280,17 @@ func Run(serviceManager *service.Manager, redisDB *redis.RedisDB, waitGroup *syn
 				log.Error(err)
 			}
 
-			err = serviceManager.Channel.CreateChannel(&model.Channel{
-				Name:     channelData.Username,
-				Title:    channelData.Title,
-				ImageURL: channelImageUrl,
-			})
+			channelData.ImageURL = channelImageUrl
+
+			err = kafka.PushMessageToQueue("channels.get", cfg.KafkaAddr, channelData)
 			if err != nil {
 				log.Error(err)
 			}
 		}
 
-		go SaveToDb(ctx, serviceManager, redisDB, cfg, api, log)
+		go SaveToKafka(ctx, redisDB, cfg, api, log)
 		go GetNewMessage(ctx, uData, api, channels, log)
 		go GetMessagesFromHistory(ctx, channels, api, log)
-		go RemoveMessageWithOutReplies(serviceManager, log)
 
 		waitGroup.Wait()
 
