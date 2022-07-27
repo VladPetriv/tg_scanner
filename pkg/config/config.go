@@ -8,16 +8,16 @@ import (
 )
 
 type Config struct {
-	Phone          string
-	Password       string
-	DatabaseURL    string
-	MigrationsPath string
-	ProjectID      string
-	StorageBucket  string
-	SecretPath     string
-	LogLevel       string
-	RedisPassword  string
-	RedisAddr      string
+	Phone         string
+	Password      string
+	ProjectID     string
+	StorageBucket string
+	SecretPath    string
+	LogLevel      string
+	RedisPassword string
+	RedisAddr     string
+	KafkaAddr     string
+	KafkaTopic    string
 }
 
 func Get() (*Config, error) {
@@ -26,15 +26,15 @@ func Get() (*Config, error) {
 	}
 
 	return &Config{
-		Phone:          os.Getenv("PHONE"),
-		Password:       os.Getenv("PASSWORD"),
-		DatabaseURL:    os.Getenv("DATABASE_URL"),
-		MigrationsPath: os.Getenv("MIGRATIONS_PATH"),
-		ProjectID:      os.Getenv("PROJECT_ID"),
-		StorageBucket:  os.Getenv("STORAGE_BUCKET"),
-		SecretPath:     os.Getenv("SECRET_PATH"),
-		LogLevel:       os.Getenv("LOG_LEVEL"),
-		RedisPassword:  os.Getenv("REDIS_PASSWORD"),
-		RedisAddr:      os.Getenv("REDIS_ADDR"),
+		Phone:         os.Getenv("PHONE"),
+		Password:      os.Getenv("PASSWORD"),
+		ProjectID:     os.Getenv("PROJECT_ID"),
+		StorageBucket: os.Getenv("STORAGE_BUCKET"),
+		SecretPath:    os.Getenv("SECRET_PATH"),
+		LogLevel:      os.Getenv("LOG_LEVEL"),
+		RedisPassword: os.Getenv("REDIS_PASSWORD"),
+		RedisAddr:     os.Getenv("REDIS_ADDR"),
+		KafkaAddr:     os.Getenv("KAFKA_ADDR"),
+		KafkaTopic:    os.Getenv("KAFKA_TOPIC"),
 	}, nil
 }
