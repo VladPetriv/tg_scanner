@@ -231,7 +231,7 @@ func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config
 				replieData.ImageURL = replieImageUrl
 			}
 
-			err = kafka.PushMessageToQueue(cfg.KafkaTopic, cfg.KafkaAddr, messageData)
+			err = kafka.PushDataToQueue(cfg.KafkaTopic, cfg.KafkaAddr, messageData)
 			if err != nil {
 				log.Error(err)
 			}
@@ -282,7 +282,7 @@ func Run(redisDB *redis.RedisDB, waitGroup *sync.WaitGroup, cfg *config.Config, 
 
 			channelData.ImageURL = channelImageUrl
 
-			err = kafka.PushMessageToQueue("channels.get", cfg.KafkaAddr, channelData)
+			err = kafka.PushDataToQueue("channels.get", cfg.KafkaAddr, channelData)
 			if err != nil {
 				log.Error(err)
 			}

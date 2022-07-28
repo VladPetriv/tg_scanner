@@ -22,7 +22,7 @@ func connectAsProducer(addr string) (sarama.SyncProducer, error) {
 	return conn, nil
 }
 
-func PushMessageToQueue[T model.TgMessage | model.TgChannel](topic, addr string, data T) error {
+func PushDataToQueue[T model.TgMessage | model.TgChannel](topic, addr string, data T) error {
 	producer, err := connectAsProducer(addr)
 	if err != nil {
 		return fmt.Errorf("failed to connect as producer: %w", err)
@@ -30,7 +30,10 @@ func PushMessageToQueue[T model.TgMessage | model.TgChannel](topic, addr string,
 
 	defer producer.Close()
 
-	encodedData, _ := json.Marshal(data)
+	encodedData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal data: %w", err)
+	}
 
 	queueMessage := &sarama.ProducerMessage{
 		Topic: topic,
