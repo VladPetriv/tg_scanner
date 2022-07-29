@@ -151,13 +151,13 @@ func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config
 		}
 
 		for _, messageData := range messages {
-			messageValue, err := redisDB.GetMessageFromRedis(ctx, redis.GenerateMessageKey(messageData))
+			messageValue, err := redisDB.GetDataFromRedis(ctx, redis.GenerateKey(messageData))
 			if err != nil {
 				log.Error(err)
 			}
 
 			if messageValue == "" {
-				err := redisDB.SetMessageToRedis(ctx, redis.GenerateMessageKey(messageData), true)
+				err := redisDB.SetDataToRedis(ctx, redis.GenerateKey(messageData), true)
 				if err != nil {
 					log.Error(err)
 				}
@@ -183,6 +183,7 @@ func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config
 			}
 
 			messageData.FromID.ImageURL = userImageUrl
+			messageData.FromID.Fullname = fmt.Sprintf("%s %s", messageData.FromID.FirstName, messageData.FromID.LastName)
 
 			var messageImageUrl string
 
@@ -201,7 +202,7 @@ func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config
 			messageData.MessageURL = fmt.Sprintf("https://t.me/%s/%d", messageData.PeerID.Username, messageData.ID)
 			messageData.ImageURL = messageImageUrl
 
-			for _, replieData := range messageData.Replies.Messages {
+			for index, replieData := range messageData.Replies.Messages {
 				userPhotoData, err := user.GetUserPhoto(ctx, replieData.FromID, api)
 				if err != nil {
 					log.Error(err)
@@ -212,7 +213,8 @@ func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config
 					log.Error(err)
 				}
 
-				replieData.FromID.ImageURL = userImageUrl
+				messageData.Replies.Messages[index].FromID.ImageURL = userImageUrl
+				messageData.Replies.Messages[index].FromID.Fullname = fmt.Sprintf("%s %s", replieData.FromID.FirstName, replieData.FromID.LastName)
 
 				var replieImageUrl string
 
@@ -231,7 +233,7 @@ func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config
 				replieData.ImageURL = replieImageUrl
 			}
 
-			err = kafka.PushDataToQueue(cfg.KafkaTopic, cfg.KafkaAddr, messageData)
+			err = kafka.PushDataToQueue("messages.get", cfg.KafkaAddr, messageData)
 			if err != nil {
 				log.Error(err)
 			}
@@ -270,6 +272,20 @@ func Run(redisDB *redis.RedisDB, waitGroup *sync.WaitGroup, cfg *config.Config, 
 		}
 
 		for _, channelData := range channels {
+			channelValue, err := redisDB.GetDataFromRedis(ctx, fmt.Sprintf("[%d%s]", channelData.ID, channelData.Username))
+			if err != nil {
+				log.Error(err)
+			}
+
+			if channelValue == "" {
+				err := redisDB.SetDataToRedis(ctx, fmt.Sprintf("[%d%s]", channelData.ID, channelData.Username), true)
+				if err != nil {
+					log.Error(err)
+				}
+			} else {
+				continue
+			}
+
 			channelPhotoData, err := channel.GetChannelPhoto(ctx, &channelData, api)
 			if err != nil {
 				log.Error(err)

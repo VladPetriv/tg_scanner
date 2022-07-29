@@ -11,7 +11,7 @@ import (
 func connectAsProducer(addr string) (sarama.SyncProducer, error) {
 	config := sarama.NewConfig()
 	config.Producer.Return.Successes = true
-	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.RequiredAcks = sarama.WaitForLocal
 	config.Producer.Retry.Max = 5
 
 	conn, err := sarama.NewSyncProducer([]string{addr}, config)

@@ -25,7 +25,7 @@ func NewRedisDB(config *config.Config) *RedisDB {
 	return &RedisDB{cfg: config, client: client}
 }
 
-func GenerateMessageKey(message model.TgMessage) string {
+func GenerateKey(message model.TgMessage) string {
 	key := fmt.Sprintf(
 		"[%d%d%d-%s]",
 		message.ID,
@@ -37,19 +37,19 @@ func GenerateMessageKey(message model.TgMessage) string {
 	return key
 }
 
-func (r RedisDB) GetMessageFromRedis(ctx context.Context, key string) (string, error) {
+func (r RedisDB) GetDataFromRedis(ctx context.Context, key string) (string, error) {
 	value, err := r.client.Get(ctx, key).Result()
-	if err != redis.Nil {
-		return "", fmt.Errorf("failed to get message from redis: %w", err)
+	if err != nil && err != redis.Nil {
+		return "", fmt.Errorf("failed to get data from redis: %w", err)
 	}
 
 	return value, nil
 }
 
-func (r RedisDB) SetMessageToRedis(ctx context.Context, key string, value bool) error {
+func (r RedisDB) SetDataToRedis(ctx context.Context, key string, value bool) error {
 	err := r.client.Set(ctx, key, value, 0)
 	if err.Err() != nil {
-		return fmt.Errorf("failed to set message to redis: %w", err.Err())
+		return fmt.Errorf("failed to set data to redis: %w", err.Err())
 	}
 
 	return nil
