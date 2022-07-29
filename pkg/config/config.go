@@ -17,7 +17,6 @@ type Config struct {
 	RedisPassword string
 	RedisAddr     string
 	KafkaAddr     string
-	KafkaTopic    string
 }
 
 func Get() (*Config, error) {
@@ -35,6 +34,5 @@ func Get() (*Config, error) {
 		RedisPassword: os.Getenv("REDIS_PASSWORD"),
 		RedisAddr:     os.Getenv("REDIS_ADDR"),
 		KafkaAddr:     os.Getenv("KAFKA_ADDR"),
-		KafkaTopic:    os.Getenv("KAFKA_TOPIC"),
 	}, nil
 }
