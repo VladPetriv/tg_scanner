@@ -11,4 +11,5 @@ type TgUser struct {
 	Username   string
 	Photo      tg.UserProfilePhoto
 	ImageURL   string
+	Fullname   string
 }
