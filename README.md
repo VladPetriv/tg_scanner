@@ -44,7 +44,6 @@ Please create a dir "configs" with file ".config.env" which have this fields:
 ### Kafka:
 
 - KAFKA_ADDR = Kafka address
-- KAFKA_TOPIC = Kafka Topic which will be used for sending messages
 
 ## Usage
 
