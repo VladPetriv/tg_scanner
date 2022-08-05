@@ -172,6 +172,10 @@ func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config
 
 			filter.RemoveDuplicateInReplies(&messageData.Replies)
 
+			if len(messageData.Replies.Messages) == 0 {
+				continue
+			}
+
 			userPhotoData, err := user.GetUserPhoto(ctx, messageData.FromID, api)
 			if err != nil {
 				log.Error(err)
