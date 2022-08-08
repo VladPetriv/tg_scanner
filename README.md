@@ -1,65 +1,88 @@
-# tg_scanner
 
-## Description
+# tg_scanner
 
 tg_scanner is an application which can parse question and replies from your telegram groups
 
 Application will always create a few dirs:
-
 - logs - for logs file
 - images - for saving and getting user, message images before save to firebase
-- data - for saving and getting data from telegram before save to PostgreSQL
+- data - for saving and getting data from telegram before sent to message queue
 
-## Technology
+## Tech Stack
 
-Go, GoTD, firebase-admin-go, Redis, Kafka
+**Main:** 
+- gotd/td
+- apache kafka 
+
+**Store:**
+- redis
+- firebase storage
+
+## Features
+
+- Get channel, user, message reply info from telegram
+- Save channel images, user images, images from replies and messages into Firebase Storage
+- Microservice communication with Apache Kafka
+- Caching messages with Redis
 
 
-## Before start
+## Environment Variables
 
-Please create a dir "configs" with file ".config.env" which have this fields:
+To run this project, you will need to add the following environment variables to your ".config.env" file which locate in "config" folder:
 
-### Telegram:
+#### Telegram
+- `APP_ID`- Telegram app id
+- `APP_HASH`- Telegram app hash
+- `PHONE` - Your phone number from telegram account
+- `PASSWORD` - Your password to telegram
 
-- APP_ID = Telegram app id
-- APP_HASH = Telegram app hash
-- PHONE = Telegram phone number
-- PASSWORD = Password to telegram
+#### Firebase
+- `PROJECT_ID` - Firebase project id
+- `STORAGE_BUCKET` - Firebase storage bucket
+- `SECRET_PATH` - Path to firebase secret file
 
-### Firebase:
+#### Logger
+- `LOG_LEVEL` - Level which logger will process
 
-- PROJECT_ID = Project id from firebase
-- STORAGE_BUCKET = Storage bucket name from firebase
-- SECRET_PATH = Path to your secret key from firebase
+#### Redis
+- `REDIS_ADDR` - Redis address
+- `REDIS_PASSWORD` - Redis password
 
-### Logger:
+#### Kafka
+- `KAFKA_ADDR` - Kafka address
+## Run Locally
 
-- LOG_LEVEL = Log level which logger should handler
-
-### Redis:
-
-- REDIS_ADDR = Redis address
-- REDIS_PASSWORD = Password for redis
-
-### Kafka:
-
-- KAFKA_ADDR = Kafka address
-
-## Usage
-
-Starting an application locally:
+Clone the project
 
 ```bash
- $ go mod download
-
- $ make start # Or you can use go run ./cmd/scanner/main.go
+  git clone git@github.com:VladPetriv/tg_scanner.git
 ```
 
-Starting in docker:
+Go to the project directory
 
 ```bash
- $ make docker
+  cd tg_scanner
+```
 
- $ docker run --name telegram_scanner tg_scanner
+Install dependencies
 
+```bash
+  go mod download
+```
+
+Start the application:
+
+Before start you must create 2 topic in kafka: "channels.get", "messages.get"
+
+```bash
+  # Make sure that Apache Kafka is running
+  make run # Or you can use "go run ./cmd/scanner/main.go"
+```
+
+Start the application with docker:
+
+```bash
+  make docker # Build docker image
+
+  docker run --name telegram_scanner tg_scanner
 ```
