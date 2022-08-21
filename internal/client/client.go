@@ -21,8 +21,8 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/store/kafka"
 	"github.com/VladPetriv/tg_scanner/internal/store/redis"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
+	"github.com/VladPetriv/tg_scanner/pkg/errors"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
-	"github.com/VladPetriv/tg_scanner/pkg/utils"
 )
 
 // Timeouts
@@ -250,7 +250,7 @@ func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config
 func Run(redisDB *redis.RedisDB, waitGroup *sync.WaitGroup, cfg *config.Config, log *logger.Logger) {
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
 	if err != nil {
-		log.Error(&utils.CreateError{Name: "telegram client", ErrorValue: err})
+		log.Error(&errors.CreateError{Name: "telegram client", ErrorValue: err})
 	}
 
 	api := tgClient.API()

@@ -7,7 +7,7 @@ import (
 
 	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/model"
-	"github.com/VladPetriv/tg_scanner/pkg/utils"
+	"github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
 func WriteMessagesToFile(messages []model.TgMessage, fileName string) error {
@@ -18,7 +18,7 @@ func WriteMessagesToFile(messages []model.TgMessage, fileName string) error {
 
 	encodedMessages, err := json.Marshal(messages)
 	if err != nil {
-		return &utils.CreateError{Name: "JSON", ErrorValue: err}
+		return &errors.CreateError{Name: "JSON", ErrorValue: err}
 	}
 
 	_, err = file.Write(encodedMessages)
@@ -39,12 +39,12 @@ func GetMessagesFromFile(fileName string) ([]model.TgMessage, error) {
 
 	err = json.Unmarshal(data, &messages)
 	if err != nil {
-		return nil, &utils.CreateError{Name: "JSON", ErrorValue: err}
+		return nil, &errors.CreateError{Name: "JSON", ErrorValue: err}
 	}
 
 	file, err := os.Create(fileName)
 	if err != nil {
-		return nil, &utils.CreateError{Name: "file", ErrorValue: err}
+		return nil, &errors.CreateError{Name: "file", ErrorValue: err}
 	}
 
 	_, err = file.WriteString("")
@@ -64,7 +64,7 @@ func CreateFilesForChannels(channels []model.TgChannel) error {
 
 		file, err := os.Create(fileName)
 		if err != nil {
-			return &utils.CreateError{Name: "file", ErrorValue: err}
+			return &errors.CreateError{Name: "file", ErrorValue: err}
 		}
 
 		_, err = file.WriteString("[ ]")
@@ -84,7 +84,7 @@ func CreateFilesForChannels(channels []model.TgChannel) error {
 func CreateFileForIncoming() error {
 	file, err := os.Create("./data/incoming.json")
 	if os.IsNotExist(err) {
-		return &utils.CreateError{Name: "file", ErrorValue: err}
+		return &errors.CreateError{Name: "file", ErrorValue: err}
 	}
 
 	_, err = file.WriteString("[ ]")
@@ -101,7 +101,7 @@ func CreateDirs() error {
 	for _, dir := range dirs {
 		err := os.Mkdir(dir, 0o755)
 		if os.IsNotExist(err) {
-			return &utils.CreateError{Name: "dir", ErrorValue: err}
+			return &errors.CreateError{Name: "dir", ErrorValue: err}
 		}
 	}
 

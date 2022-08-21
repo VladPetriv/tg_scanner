@@ -10,7 +10,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/client/replie"
 	"github.com/VladPetriv/tg_scanner/internal/client/user"
 	"github.com/VladPetriv/tg_scanner/internal/model"
-	"github.com/VladPetriv/tg_scanner/pkg/utils"
+	"github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
 func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, channelPeer *tg.InputPeerChannel, api *tg.Client) []model.TgMessage { // nolint
@@ -54,7 +54,7 @@ func GetIncomingMessages(ctx context.Context, tgUser *tg.User, channels []model.
 		},
 	})
 	if err != nil {
-		return nil, &utils.GettingError{Name: "incoming messages", ErrorValue: err}
+		return nil, &errors.GettingError{Name: "incoming messages", ErrorValue: err}
 	}
 
 	modifiedData, _ := data.AsModified()
@@ -107,7 +107,7 @@ func GetMessagePhoto(ctx context.Context, msg model.TgMessage, api *tg.Client) (
 		Limit:  photo.Size,
 	})
 	if err != nil {
-		return nil, &utils.GettingError{Name: "message photo", ErrorValue: err}
+		return nil, &errors.GettingError{Name: "message photo", ErrorValue: err}
 	}
 
 	return data, nil
@@ -124,7 +124,7 @@ func CheckMessagePhotoStatus(ctx context.Context, msg *model.TgMessage, api *tg.
 
 	data, err := api.ChannelsGetMessages(ctx, request)
 	if err != nil {
-		return false, &utils.GettingError{Name: "messages by channel peer", ErrorValue: err}
+		return false, &errors.GettingError{Name: "messages by channel peer", ErrorValue: err}
 	}
 
 	messages, _ := data.(*tg.MessagesChannelMessages)

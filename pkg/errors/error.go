@@ -1,8 +1,6 @@
-package utils
+package errors
 
-import (
-	"fmt"
-)
+import "fmt"
 
 type CreateError struct {
 	Name       string

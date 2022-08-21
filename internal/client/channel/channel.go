@@ -8,7 +8,7 @@ import (
 
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/model"
-	"github.com/VladPetriv/tg_scanner/pkg/utils"
+	"github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
 func GetChannelHistory(ctx context.Context, channelPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) { // nolint
@@ -16,7 +16,7 @@ func GetChannelHistory(ctx context.Context, channelPeer *tg.InputPeerChannel, ap
 		Peer: channelPeer,
 	})
 	if err != nil {
-		return nil, &utils.GettingError{Name: "messages from history", ErrorValue: err}
+		return nil, &errors.GettingError{Name: "messages from history", ErrorValue: err}
 	}
 
 	return result, nil
@@ -27,7 +27,7 @@ func GetAllChannels(ctx context.Context, api *tg.Client) ([]model.TgChannel, err
 
 	data, err := api.MessagesGetAllChats(ctx, []int64{})
 	if err != nil {
-		return nil, &utils.GettingError{Name: "channels", ErrorValue: err}
+		return nil, &errors.GettingError{Name: "channels", ErrorValue: err}
 	}
 
 	for _, channelData := range data.GetChats() {
@@ -62,7 +62,7 @@ func GetChannelPhoto(ctx context.Context, channel *model.TgChannel, api *tg.Clie
 		Limit: photo.Size,
 	})
 	if err != nil {
-		return nil, &utils.GettingError{Name: "channel photo", ErrorValue: err}
+		return nil, &errors.GettingError{Name: "channel photo", ErrorValue: err}
 	}
 
 	return data, nil

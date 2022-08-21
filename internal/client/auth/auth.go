@@ -13,7 +13,7 @@ import (
 	"github.com/gotd/td/tg"
 
 	"github.com/VladPetriv/tg_scanner/pkg/config"
-	"github.com/VladPetriv/tg_scanner/pkg/utils"
+	cerrors "github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
 type noSignUp struct{}
@@ -47,7 +47,7 @@ func (a TermAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
 
 	code, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
-		return "", &utils.CreateError{Name: "new reader", ErrorValue: err}
+		return "", &cerrors.CreateError{Name: "new reader", ErrorValue: err}
 	}
 
 	return strings.TrimSpace(code), nil

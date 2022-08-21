@@ -10,7 +10,7 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/VladPetriv/tg_scanner/pkg/config"
-	"github.com/VladPetriv/tg_scanner/pkg/utils"
+	"github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
 func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, objectName string) (string, error) {
@@ -27,17 +27,17 @@ func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, ob
 	opt := option.WithCredentialsFile(cfg.SecretPath)
 	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
-		return "", &utils.CreateError{Name: "firebase appication", ErrorValue: err}
+		return "", &errors.CreateError{Name: "firebase appication", ErrorValue: err}
 	}
 
 	client, err := app.Storage(ctx)
 	if err != nil {
-		return "", &utils.CreateError{Name: "firebase storage", ErrorValue: err}
+		return "", &errors.CreateError{Name: "firebase storage", ErrorValue: err}
 	}
 
 	bucket, err := client.DefaultBucket()
 	if err != nil {
-		return "", &utils.GettingError{Name: "default bucket", ErrorValue: err}
+		return "", &errors.GettingError{Name: "default bucket", ErrorValue: err}
 	}
 
 	storageWriter := bucket.Object(objectName).NewWriter(ctx)
@@ -47,11 +47,11 @@ func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, ob
 		return "", fmt.Errorf("opening image error: %w", err)
 	}
 
-	if _, err := io.Copy(storageWriter, image); err != nil {
+	if _, err = io.Copy(storageWriter, image); err != nil {
 		return "", fmt.Errorf("copying image to firebase storage error: %w", err)
 	}
 
-	if err := storageWriter.Close(); err != nil {
+	if err = storageWriter.Close(); err != nil {
 		return "", fmt.Errorf("closing firebase storage writer error: %w", err)
 	}
 

@@ -10,7 +10,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/client/user"
 	"github.com/VladPetriv/tg_scanner/internal/model"
-	"github.com/VladPetriv/tg_scanner/pkg/utils"
+	"github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
 func GetReplies(ctx context.Context, message *model.TgMessage, channelPeer *tg.InputPeerChannel, api *tg.Client) (tg.MessagesMessagesClass, error) {
@@ -19,7 +19,7 @@ func GetReplies(ctx context.Context, message *model.TgMessage, channelPeer *tg.I
 		MsgID: message.ID,
 	})
 	if err != nil {
-		return nil, &utils.GettingError{Name: "replies", ErrorValue: err}
+		return nil, &errors.GettingError{Name: "replies", ErrorValue: err}
 	}
 
 	return replies, nil
@@ -89,7 +89,7 @@ func GetRepliePhoto(ctx context.Context, replie model.TgRepliesMessage, api *tg.
 		Limit:  photo.Size,
 	})
 	if err != nil {
-		return nil, &utils.GettingError{Name: "replie photo", ErrorValue: err}
+		return nil, &errors.GettingError{Name: "replie photo", ErrorValue: err}
 	}
 
 	return data, nil

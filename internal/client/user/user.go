@@ -10,7 +10,7 @@ import (
 
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/model"
-	"github.com/VladPetriv/tg_scanner/pkg/utils"
+	"github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
 func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.InputPeerChannel, api *tg.Client) (*model.TgUser, error) {
@@ -22,7 +22,7 @@ func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.Inp
 		MsgID:  messageID,
 	})
 	if err != nil {
-		return nil, &utils.GettingError{Name: "user from telegram", ErrorValue: err}
+		return nil, &errors.GettingError{Name: "user from telegram", ErrorValue: err}
 	}
 
 	for _, userData := range data.Users {
@@ -30,7 +30,7 @@ func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.Inp
 
 		encodedData, err := json.Marshal(notEmptyUser)
 		if err != nil {
-			return nil, &utils.CreateError{Name: "JSON", ErrorValue: err}
+			return nil, &errors.CreateError{Name: "JSON", ErrorValue: err}
 		}
 
 		err = json.Unmarshal(encodedData, &user)
@@ -56,7 +56,7 @@ func GetUserPhoto(ctx context.Context, user model.TgUser, api *tg.Client) (tg.Up
 		Limit: photo.Size,
 	})
 	if err != nil {
-		return nil, &utils.GettingError{Name: "user photo", ErrorValue: err}
+		return nil, &errors.GettingError{Name: "user photo", ErrorValue: err}
 	}
 
 	return data, nil

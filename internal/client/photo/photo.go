@@ -12,7 +12,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/store/firebase"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
-	"github.com/VladPetriv/tg_scanner/pkg/utils"
+	cerrors "github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
 var Size int = 1024 * 1024
@@ -27,7 +27,7 @@ func DecodePhoto(photo tg.UploadFileClass) (*model.Image, error) {
 
 	encodedImage, err := json.Marshal(photo)
 	if err != nil {
-		return nil, &utils.CreateError{Name: "JSON", ErrorValue: err}
+		return nil, &cerrors.CreateError{Name: "JSON", ErrorValue: err}
 	}
 
 	err = json.Unmarshal(encodedImage, &img)
@@ -46,7 +46,7 @@ func CreatePhoto(img *model.Image, name string) (string, error) {
 	path := fmt.Sprintf("./images/%s.jpg", name)
 	photo, err := os.Create(path)
 	if err != nil {
-		return "", &utils.CreateError{Name: "photo", ErrorValue: err}
+		return "", &cerrors.CreateError{Name: "photo", ErrorValue: err}
 	}
 
 	_, err = photo.Write(img.Bytes)
@@ -57,7 +57,7 @@ func CreatePhoto(img *model.Image, name string) (string, error) {
 	return path, nil
 }
 
-func ProcessPhoto[T string | int](ctx context.Context, photoData tg.UploadFileClass, name T, cfg *config.Config, api *tg.Client) (string, error) {
+func ProcessPhoto[T string | int](ctx context.Context, photoData tg.UploadFileClass, name T, cfg *config.Config) (string, error) {
 	image, err := DecodePhoto(photoData)
 	if err != nil {
 		fmt.Println(err)
