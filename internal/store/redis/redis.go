@@ -10,34 +10,41 @@ import (
 	"github.com/go-redis/redis/v9"
 )
 
-type RedisDB struct {
+type Redis struct {
 	cfg    *config.Config
 	client *redis.Client
 }
 
-func NewRedisDB(config *config.Config) *RedisDB {
+func New(cfg *config.Config) *Redis {
 	client := redis.NewClient(&redis.Options{
-		Addr:     config.RedisAddr,
-		Password: config.RedisPassword,
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPassword,
 		DB:       0,
 	})
 
-	return &RedisDB{cfg: config, client: client}
+	return &Redis{cfg: cfg, client: client}
 }
 
-func GenerateKey(message model.TgMessage) string {
-	key := fmt.Sprintf(
-		"[%d%d%d-%s]",
-		message.ID,
-		message.FromID.ID,
-		message.PeerID.ID,
-		strings.ReplaceAll(message.Message, " ", ""),
-	)
+func (r Redis) GenerateKey(value interface{}) string {
+	var key string
+
+	switch data := value.(type) {
+	case model.TgMessage:
+		key = fmt.Sprintf(
+			"[%d%d%d-%s]",
+			data.ID,
+			data.FromID.ID,
+			data.PeerID.ID,
+			strings.ReplaceAll(data.Message, " ", ""),
+		)
+	case model.TgChannel:
+		key = fmt.Sprintf("[%d%s]", data.ID, data.Username)
+	}
 
 	return key
 }
 
-func (r RedisDB) GetDataFromRedis(ctx context.Context, key string) (string, error) {
+func (r Redis) Get(ctx context.Context, key string) (string, error) {
 	value, err := r.client.Get(ctx, key).Result()
 	if err != nil && err != redis.Nil {
 		return "", fmt.Errorf("failed to get data from redis: %w", err)
@@ -46,7 +53,7 @@ func (r RedisDB) GetDataFromRedis(ctx context.Context, key string) (string, erro
 	return value, nil
 }
 
-func (r RedisDB) SetDataToRedis(ctx context.Context, key string, value bool) error {
+func (r Redis) Set(ctx context.Context, key string, value bool) error {
 	err := r.client.Set(ctx, key, value, 0)
 	if err.Err() != nil {
 		return fmt.Errorf("failed to set data to redis: %w", err.Err())

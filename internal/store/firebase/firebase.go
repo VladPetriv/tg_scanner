@@ -13,18 +13,26 @@ import (
 	"github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
-func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, objectName string) (string, error) {
-	defaultUrl := fmt.Sprintf("https://firebasestorage.googleapis.com/v0/b/%s/o/default.jpg?alt=media", cfg.StorageBucket)
+type Firebase struct {
+	cfg *config.Config
+}
+
+func New(cfg *config.Config) *Firebase {
+	return &Firebase{cfg: cfg}
+}
+
+func (f Firebase) Send(ctx context.Context, path string, objectName string) (string, error) {
+	defaultUrl := fmt.Sprintf("https://firebasestorage.googleapis.com/v0/b/%s/o/default.jpg?alt=media", f.cfg.StorageBucket)
 	if objectName == "" || path == "" {
 		return defaultUrl, nil
 	}
 
 	config := &firebase.Config{
-		ProjectID:     cfg.ProjectID,
-		StorageBucket: cfg.StorageBucket,
+		ProjectID:     f.cfg.ProjectID,
+		StorageBucket: f.cfg.StorageBucket,
 	}
 
-	opt := option.WithCredentialsFile(cfg.SecretPath)
+	opt := option.WithCredentialsFile(f.cfg.SecretPath)
 	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
 		return "", &errors.CreateError{Name: "firebase appication", ErrorValue: err}
@@ -55,11 +63,11 @@ func SendImageToStorage(ctx context.Context, cfg *config.Config, path string, ob
 		return "", fmt.Errorf("closing firebase storage writer error: %w", err)
 	}
 
-	url := fmt.Sprintf("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media", cfg.StorageBucket, objectName)
+	url := fmt.Sprintf("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media", f.cfg.StorageBucket, objectName)
 
 	err = os.Remove(path)
 	if err != nil {
-		return "", fmt.Errorf("error while deleting image")
+		return "", fmt.Errorf("error while deleting image: %w", err)
 	}
 
 	return url, nil
