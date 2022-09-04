@@ -6,19 +6,19 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/model"
 )
 
-func Messages(msg *model.TgMessage) (*model.TgMessage, bool) {
+func Messages(msg model.TgMessage) bool {
 	if msg.ReplyTo.ReplyToMsgID == 0 {
 		if strings.Contains(msg.Message, "?") {
 			msg.Message = strings.ReplaceAll(msg.Message, "\n", " ")
 
-			return msg, true
+			return true
 		}
 	}
 
-	return nil, false
+	return false
 }
 
-func RemoveDuplicateInMessage(msgs []model.TgMessage) []model.TgMessage {
+func RemoveDuplicatesFromMessages(msgs []model.TgMessage) []model.TgMessage {
 	allMessages := make(map[string]bool)
 	messages := make([]model.TgMessage, 0)
 
@@ -33,7 +33,7 @@ func RemoveDuplicateInMessage(msgs []model.TgMessage) []model.TgMessage {
 	return messages
 }
 
-func RemoveDuplicateInReplies(replie *model.TgReplies) {
+func RemoveDuplicatesFromReplies(replie *model.TgReplies) {
 	if replie.Count == 0 {
 		return
 	}

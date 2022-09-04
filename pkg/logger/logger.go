@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var e *logrus.Entry // nolint
+var e *logrus.Entry
 
 type Logger struct {
 	*logrus.Entry
@@ -38,7 +38,7 @@ func Init(logLevel string) {
 
 	log.SetReportCaller(true)
 
-	log.Formatter = &logrus.JSONFormatter{ // nolint
+	log.Formatter = &logrus.JSONFormatter{
 		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 			filename := path.Base(f.File)
 
