@@ -19,6 +19,8 @@ type tgMessage struct {
 	api *tg.Client
 }
 
+var _ Message = (*tgMessage)(nil)
+
 func New(log *logger.Logger, api *tg.Client) *tgMessage {
 	return &tgMessage{
 		log: log,
