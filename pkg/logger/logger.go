@@ -1,59 +1,56 @@
 package logger
 
 import (
-	"fmt"
 	"io"
 	"os"
-	"path"
-	"runtime"
+	"sync"
+	"time"
 
 	"github.com/VladPetriv/tg_scanner/pkg/config"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var e *logrus.Entry
-
 type Logger struct {
-	*logrus.Entry
+	*zerolog.Logger
 }
 
-func Get() *Logger {
-	cfg, err := config.Get()
-	if err != nil {
-		panic(err)
+var (
+	logger Logger
+	once   sync.Once
+)
+
+func newFileWriter(filename string) io.Writer {
+	return &lumberjack.Logger{
+		Filename: filename,
+		MaxAge:   22,
 	}
-
-	Init(cfg.LogLevel)
-
-	return &Logger{e}
 }
 
-func Init(logLevel string) {
-	level, err := logrus.ParseLevel(logLevel)
-	if err != nil {
-		panic(err)
-	}
+func Get(cfg config.Config) *Logger {
+	once.Do(func() {
+		// By default create console writer
+		writers := []io.Writer{zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.Stamp}}
 
-	log := logrus.New()
+		if cfg.LogFilename != "" {
+			writers = append(writers, newFileWriter(cfg.LogFilename))
+		}
 
-	log.SetReportCaller(true)
+		if cfg.LogLevel != "" {
+			level, err := zerolog.ParseLevel(cfg.LogLevel)
+			if err != nil {
+				panic(err)
+			}
 
-	log.Formatter = &logrus.JSONFormatter{
-		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-			filename := path.Base(f.File)
+			zerolog.SetGlobalLevel(level)
+		}
 
-			return fmt.Sprintf("%s:%d", filename, f.Line), fmt.Sprintf("%s()", f.Function)
-		},
-	}
+		multiWriters := io.MultiWriter(writers...)
 
-	file, err := os.OpenFile("./logs/all.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640)
-	if err != nil {
-		panic(fmt.Sprintf("failed to open file with logs: %s", err))
-	}
+		zeroLogger := zerolog.New(multiWriters).With().Timestamp().Logger()
 
-	log.SetOutput(io.MultiWriter(file, os.Stdout))
+		logger = Logger{&zeroLogger}
+	})
 
-	log.SetLevel(level)
-
-	e = logrus.NewEntry(log)
+	return &logger
 }

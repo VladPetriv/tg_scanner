@@ -14,6 +14,7 @@ type Config struct {
 	StorageBucket string
 	SecretPath    string
 	LogLevel      string
+	LogFilename   string
 	RedisPassword string
 	RedisAddr     string
 	KafkaAddr     string
@@ -31,6 +32,7 @@ func Get() (*Config, error) {
 		StorageBucket: os.Getenv("STORAGE_BUCKET"),
 		SecretPath:    os.Getenv("SECRET_PATH"),
 		LogLevel:      os.Getenv("LOG_LEVEL"),
+		LogFilename:   os.Getenv("LOG_FILENAME"),
 		RedisPassword: os.Getenv("REDIS_PASSWORD"),
 		RedisAddr:     os.Getenv("REDIS_ADDR"),
 		KafkaAddr:     os.Getenv("KAFKA_ADDR"),
