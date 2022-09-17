@@ -11,18 +11,30 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/errors"
+	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
-func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.InputPeerChannel, api *tg.Client) (*model.TgUser, error) {
-	user := &model.TgUser{}
+var _getUserInfoTimeout = 3 * time.Second
 
-	data, err := api.UsersGetFullUser(ctx, &tg.InputUserFromMessage{
-		Peer:   cPeer,
-		UserID: userID,
-		MsgID:  messageID,
+type tgUser struct {
+	log *logger.Logger
+	api *tg.Client
+}
+
+var _ User = (*tgUser)(nil)
+
+func (u tgUser) GetUser(ctx context.Context, message *model.TgMessage, groupPeer *tg.InputPeerChannel) (*model.TgUser, error) {
+	user := model.TgUser{}
+
+	data, err := u.api.UsersGetFullUser(ctx, &tg.InputUserFromMessage{
+		Peer:   groupPeer,
+		UserID: message.FromID.ID,
+		MsgID:  message.ID,
 	})
 	if err != nil {
-		return nil, &errors.GettingError{Name: "user from telegram", ErrorValue: err}
+		u.log.Error().Err(err)
+
+		return nil, &errors.GetError{Name: "user info", ErrorValue: err}
 	}
 
 	for _, userData := range data.Users {
@@ -30,22 +42,26 @@ func GetUserInfo(ctx context.Context, userID int64, messageID int, cPeer *tg.Inp
 
 		encodedData, err := json.Marshal(notEmptyUser)
 		if err != nil {
+			u.log.Warn().Err(err)
+
 			return nil, &errors.CreateError{Name: "JSON", ErrorValue: err}
 		}
 
 		err = json.Unmarshal(encodedData, &user)
 		if err != nil {
+			u.log.Warn().Err(err)
+
 			return nil, fmt.Errorf("unmarshal JSON error: %w", err)
 		}
 	}
 
-	time.Sleep(time.Second * 3)
+	time.Sleep(_getUserInfoTimeout)
 
-	return user, nil
+	return &user, nil
 }
 
-func GetUserPhoto(ctx context.Context, user model.TgUser, api *tg.Client) (tg.UploadFileClass, error) {
-	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
+func (u tgUser) GetUserPhoto(ctx context.Context, user model.TgUser) (tg.UploadFileClass, error) {
+	data, err := u.api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
 		Location: &tg.InputPeerPhotoFileLocation{
 			Peer: &tg.InputPeerUser{
 				UserID:     user.ID,
@@ -56,7 +72,9 @@ func GetUserPhoto(ctx context.Context, user model.TgUser, api *tg.Client) (tg.Up
 		Limit: photo.Size,
 	})
 	if err != nil {
-		return nil, &errors.GettingError{Name: "user photo", ErrorValue: err}
+		u.log.Error().Err(err)
+
+		return nil, &errors.GetError{Name: "user photo", ErrorValue: err}
 	}
 
 	return data, nil
