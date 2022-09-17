@@ -11,120 +11,152 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/client/user"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/errors"
+	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
-func GetMessagesFromTelegram(ctx context.Context, data tg.ModifiedMessagesMessages, channelPeer *tg.InputPeerChannel, api *tg.Client) []model.TgMessage { // nolint
-	var msg model.TgMessage
+type tgMessage struct {
+	log *logger.Logger
+	api *tg.Client
+}
 
-	messages := make([]model.TgMessage, 0)
-	messagesFromTg := data.GetMessages()
+func New(log *logger.Logger, api *tg.Client) *tgMessage {
+	return &tgMessage{
+		log: log,
+		api: api,
+	}
+}
 
-	for _, message := range messagesFromTg {
+func (m tgMessage) ProcessHistoryMessages(ctx context.Context, data tg.ModifiedMessagesMessages, groupPeer *tg.InputPeerChannel) []model.TgMessage {
+	processedMessages := make([]model.TgMessage, 0)
+	messages := data.GetMessages()
+
+	for _, message := range messages {
+		msg := model.TgMessage{}
+
 		encodedData, err := json.Marshal(message)
 		if err != nil {
+			m.log.Warn().Err(err)
+
 			continue
 		}
 
 		err = json.Unmarshal(encodedData, &msg)
 		if err != nil {
+			m.log.Warn().Err(err)
+
 			continue
 		}
 
-		replies, err := replie.GetReplies(ctx, &msg, channelPeer, api)
+		// TODO: remove it from this place
+		replies, err := replie.GetReplies(ctx, &msg, groupPeer, m.api)
 		if err != nil {
 			continue
 		}
 
-		msg.Replies.Messages = replie.ProcessRepliesMessage(ctx, replies, channelPeer, api)
+		// TODO: remove it from this place
+		msg.Replies.Messages = replie.ProcessRepliesMessage(ctx, replies, groupPeer, m.api)
 		msg.Replies.Count = len(msg.Replies.Messages)
 
-		messages = append(messages, msg)
+		processedMessages = append(processedMessages, msg)
 	}
 
-	return messages
+	return processedMessages
 }
 
-func GetIncomingMessages(ctx context.Context, tgUser *tg.User, channels []model.TgChannel, api *tg.Client) ([]model.TgMessage, error) {
-	messages := make([]model.TgMessage, 0)
+func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User, groups []model.TgGroup) ([]model.TgMessage, error) {
+	processedMessages := make([]model.TgMessage, 0)
 
-	data, err := api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
+	data, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
 		OffsetPeer: &tg.InputPeerUser{
 			UserID:     tgUser.ID,
 			AccessHash: tgUser.AccessHash,
 		},
 	})
 	if err != nil {
-		return nil, &errors.GettingError{Name: "incoming messages", ErrorValue: err}
+		m.log.Error().Err(err)
+
+		return nil, &errors.GetError{Name: "incoming messages", ErrorValue: err}
 	}
 
-	modifiedData, _ := data.AsModified()
-	for _, msg := range modifiedData.GetMessages() {
-		message := model.TgMessage{}
+	modifiedMessages, _ := data.AsModified()
 
-		encodedData, err := json.Marshal(msg)
+	for _, message := range modifiedMessages.GetMessages() {
+		msg := model.TgMessage{}
+
+		encodedData, err := json.Marshal(message)
 		if err != nil {
+			m.log.Warn().Err(err)
+
 			continue
 		}
 
-		err = json.Unmarshal(encodedData, &message)
+		err = json.Unmarshal(encodedData, &msg)
 		if err != nil {
+			m.log.Warn().Err(err)
+
 			continue
 		}
 
-		for _, channel := range channels {
-			if message.PeerID.ChannelID == channel.ID {
-				message.PeerID = channel
+		// add group info because incoming message don't have it
+		for _, channel := range groups {
+			if msg.PeerID.ChannelID == channel.ID {
+				msg.PeerID = channel
 			}
 		}
 
-		userInfo, err := user.GetUserInfo(ctx, message.FromID.UserID, message.ID, &tg.InputPeerChannel{
-			ChannelID:  message.PeerID.ID,
-			AccessHash: message.PeerID.AccessHash,
-		}, api)
+		// TODO: remove it
+		userInfo, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
+			ChannelID:  msg.PeerID.ID,
+			AccessHash: msg.PeerID.AccessHash,
+		}, m.api)
 		if err != nil {
 			continue
 		}
 
-		message.FromID = *userInfo
+		// TODO: remove it from this place
+		msg.FromID = *userInfo
 
-		messages = append(messages, message)
+		processedMessages = append(processedMessages, msg)
 	}
 
-	return messages, nil
+	return processedMessages, nil
 }
 
-func GetMessagePhoto(ctx context.Context, msg model.TgMessage, api *tg.Client) (tg.UploadFileClass, error) {
-	length := len(msg.Media.Photo.Sizes) - 1
+func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.TgMessage) (tg.UploadFileClass, error) {
+	length := len(message.Media.Photo.Sizes) - 1
 
-	data, err := api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
+	data, err := m.api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
 		Location: &tg.InputPhotoFileLocation{
-			ID:            msg.Media.Photo.ID,
-			AccessHash:    msg.Media.Photo.AccessHash,
-			FileReference: msg.Media.Photo.FileReference,
-			ThumbSize:     msg.Media.Photo.Sizes[length].GetType(),
+			ID:            message.Media.Photo.ID,
+			AccessHash:    message.Media.Photo.AccessHash,
+			FileReference: message.Media.Photo.FileReference,
+			ThumbSize:     message.Media.Photo.Sizes[length].GetType(),
 		},
 		Offset: 0,
 		Limit:  photo.Size,
 	})
 	if err != nil {
-		return nil, &errors.GettingError{Name: "message photo", ErrorValue: err}
+		m.log.Error().Err(err)
+
+		return nil, &errors.GetError{Name: "message photo", ErrorValue: err}
 	}
 
 	return data, nil
 }
 
-func CheckMessagePhotoStatus(ctx context.Context, msg *model.TgMessage, api *tg.Client) (bool, error) {
+// TODO: refactor it
+func (m tgMessage) CheckMessagePhotoStatus(ctx context.Context, message *model.TgMessage) (bool, error) {
 	request := &tg.ChannelsGetMessagesRequest{
 		Channel: &tg.InputChannel{
-			ChannelID:  msg.PeerID.ID,
-			AccessHash: msg.PeerID.AccessHash,
+			ChannelID:  message.PeerID.ID,
+			AccessHash: message.PeerID.AccessHash,
 		},
-		ID: []tg.InputMessageClass{&tg.InputMessageID{ID: msg.ID}},
+		ID: []tg.InputMessageClass{&tg.InputMessageID{ID: message.ID}},
 	}
 
-	data, err := api.ChannelsGetMessages(ctx, request)
+	data, err := m.api.ChannelsGetMessages(ctx, request)
 	if err != nil {
-		return false, &errors.GettingError{Name: "messages by channel peer", ErrorValue: err}
+		return false, &errors.GetError{Name: "messages by channel peer", ErrorValue: err}
 	}
 
 	messages, _ := data.(*tg.MessagesChannelMessages)
