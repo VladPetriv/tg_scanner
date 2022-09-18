@@ -45,7 +45,7 @@ func (f Firebase) Send(ctx context.Context, path string, objectName string) (str
 
 	bucket, err := client.DefaultBucket()
 	if err != nil {
-		return "", &errors.GettingError{Name: "default bucket", ErrorValue: err}
+		return "", &errors.GetError{Name: "default bucket", ErrorValue: err}
 	}
 
 	storageWriter := bucket.Object(objectName).NewWriter(ctx)

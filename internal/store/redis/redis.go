@@ -37,7 +37,7 @@ func (r Redis) GenerateKey(value interface{}) string {
 			data.PeerID.ID,
 			strings.ReplaceAll(data.Message, " ", ""),
 		)
-	case model.TgChannel:
+	case model.TgGroup:
 		key = fmt.Sprintf("[%d%s]", data.ID, data.Username)
 	}
 
