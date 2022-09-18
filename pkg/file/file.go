@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/errors"
+	"github.com/VladPetriv/tg_scanner/pkg/filter"
 )
 
 func WriteMessagesToFile(messages []model.TgMessage, fileName string) error {
@@ -55,9 +55,9 @@ func GetMessagesFromFile(fileName string) ([]model.TgMessage, error) {
 	return messages, nil
 }
 
-func CreateFilesForChannels(channels []model.TgChannel) error {
-	for _, channel := range channels {
-		fileName := fmt.Sprintf("%s.json", channel.Username)
+func CreateFilesForGroups(groups []model.TgGroup) error {
+	for _, group := range groups {
+		fileName := fmt.Sprintf("%s.json", group.Username)
 		if _, err := os.Stat("./data/" + fileName); err == nil {
 			continue
 		}
@@ -95,13 +95,13 @@ func CreateFileForIncoming() error {
 	return nil
 }
 
-func CreateDirs() error {
-	dirs := [3]string{"data", "logs", "images"}
+func InitDirectories() error {
+	dirs := [3]string{"data", "images"}
 
 	for _, dir := range dirs {
 		err := os.Mkdir(dir, 0o755)
 		if os.IsNotExist(err) {
-			return &errors.CreateError{Name: "dir", ErrorValue: err}
+			return &errors.CreateError{Name: "directory", ErrorValue: err}
 		}
 	}
 
@@ -149,7 +149,7 @@ func ParseFromFiles(path string) ([]model.TgMessage, error) {
 		messages = append(messages, data...)
 	}
 
-	result := filter.RemoveDuplicateInMessage(messages)
+	result := filter.RemoveDuplicatesFromMessages(messages)
 
 	return result, nil
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/model"
 )
 
-func Messages(msg model.TgMessage) bool {
+func Message(msg model.TgMessage) bool {
 	if msg.ReplyTo.ReplyToMsgID == 0 {
 		if strings.Contains(msg.Message, "?") {
 			msg.Message = strings.ReplaceAll(msg.Message, "\n", " ")
