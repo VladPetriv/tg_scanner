@@ -96,7 +96,7 @@ func CreateFileForIncoming() error {
 }
 
 func InitDirectories() error {
-	dirs := [3]string{"data", "images"}
+	dirs := [2]string{"data", "images"}
 
 	for _, dir := range dirs {
 		err := os.Mkdir(dir, 0o755)
