@@ -13,15 +13,15 @@ import (
 	"github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
-type Firebase struct {
+type firebaseStore struct {
 	cfg *config.Config
 }
 
-func New(cfg *config.Config) *Firebase {
-	return &Firebase{cfg: cfg}
+func New(cfg *config.Config) *firebaseStore {
+	return &firebaseStore{cfg: cfg}
 }
 
-func (f Firebase) Send(ctx context.Context, path string, objectName string) (string, error) {
+func (f firebaseStore) Send(ctx context.Context, path string, objectName string) (string, error) {
 	defaultUrl := fmt.Sprintf("https://firebasestorage.googleapis.com/v0/b/%s/o/default.jpg?alt=media", f.cfg.StorageBucket)
 	if objectName == "" || path == "" {
 		return defaultUrl, nil
@@ -35,7 +35,7 @@ func (f Firebase) Send(ctx context.Context, path string, objectName string) (str
 	opt := option.WithCredentialsFile(f.cfg.SecretPath)
 	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
-		return "", &errors.CreateError{Name: "firebase appication", ErrorValue: err}
+		return "", &errors.CreateError{Name: "firebase application", ErrorValue: err}
 	}
 
 	client, err := app.Storage(ctx)

@@ -10,22 +10,22 @@ import (
 	"github.com/go-redis/redis/v9"
 )
 
-type Redis struct {
+type redisStore struct {
 	cfg    *config.Config
 	client *redis.Client
 }
 
-func New(cfg *config.Config) *Redis {
+func New(cfg *config.Config) *redisStore {
 	client := redis.NewClient(&redis.Options{
 		Addr:     cfg.RedisAddr,
 		Password: cfg.RedisPassword,
 		DB:       0,
 	})
 
-	return &Redis{cfg: cfg, client: client}
+	return &redisStore{cfg: cfg, client: client}
 }
 
-func (r Redis) GenerateKey(value interface{}) string {
+func (r redisStore) GenerateKey(value interface{}) string {
 	var key string
 
 	switch data := value.(type) {
@@ -44,7 +44,7 @@ func (r Redis) GenerateKey(value interface{}) string {
 	return key
 }
 
-func (r Redis) Get(ctx context.Context, key string) (string, error) {
+func (r redisStore) Get(ctx context.Context, key string) (string, error) {
 	value, err := r.client.Get(ctx, key).Result()
 	if err != nil && err != redis.Nil {
 		return "", fmt.Errorf("failed to get data from redis: %w", err)
@@ -53,7 +53,7 @@ func (r Redis) Get(ctx context.Context, key string) (string, error) {
 	return value, nil
 }
 
-func (r Redis) Set(ctx context.Context, key string, value bool) error {
+func (r redisStore) Set(ctx context.Context, key string, value bool) error {
 	err := r.client.Set(ctx, key, value, 0)
 	if err.Err() != nil {
 		return fmt.Errorf("failed to set data to redis: %w", err.Err())

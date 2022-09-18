@@ -27,7 +27,7 @@ func newFileWriter(filename string) io.Writer {
 	}
 }
 
-func Get(cfg config.Config) *Logger {
+func Get(cfg *config.Config) *Logger {
 	once.Do(func() {
 		// By default create console writer
 		writers := []io.Writer{zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.Stamp}}
