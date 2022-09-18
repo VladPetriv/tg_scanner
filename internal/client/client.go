@@ -3,144 +3,225 @@ package client
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
-	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/tg"
+	"github.com/rs/zerolog/log"
 
-	"github.com/VladPetriv/tg_scanner/internal/client/auth"
-	"github.com/VladPetriv/tg_scanner/internal/client/channel"
+	"github.com/VladPetriv/tg_scanner/internal/client/group"
 	"github.com/VladPetriv/tg_scanner/internal/client/message"
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
-	"github.com/VladPetriv/tg_scanner/internal/client/replie"
+	"github.com/VladPetriv/tg_scanner/internal/client/reply"
 	"github.com/VladPetriv/tg_scanner/internal/client/user"
-	"github.com/VladPetriv/tg_scanner/internal/file"
-	"github.com/VladPetriv/tg_scanner/internal/filter"
 	"github.com/VladPetriv/tg_scanner/internal/model"
-	"github.com/VladPetriv/tg_scanner/internal/store/kafka"
-	"github.com/VladPetriv/tg_scanner/internal/store/redis"
-	"github.com/VladPetriv/tg_scanner/pkg/config"
-	"github.com/VladPetriv/tg_scanner/pkg/errors"
+	"github.com/VladPetriv/tg_scanner/internal/store"
+	"github.com/VladPetriv/tg_scanner/pkg/file"
+	"github.com/VladPetriv/tg_scanner/pkg/filter"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
 // Timeouts
 var (
-	startTimeout    time.Duration = 20 * time.Second
-	historyTimeout  time.Duration = 30 * time.Minute
-	removeTimeout   time.Duration = 30 * time.Minute
-	saveTimeout     time.Duration = 15 * time.Minute
-	incomingTimeout time.Duration = time.Minute
+	_startTimeout    time.Duration = 20 * time.Second
+	_historyTimeout  time.Duration = 30 * time.Minute
+	_removeTimeout   time.Duration = 30 * time.Minute
+	_saveTimeout     time.Duration = 15 * time.Minute
+	_incomingTimeout time.Duration = time.Minute
 )
 
-func GetMessagesFromHistory(ctx context.Context, channels []model.TgChannel, api *tg.Client, log *logger.Logger) {
-	time.Sleep(startTimeout)
+type appClient struct {
+	ctx   context.Context
+	store *store.Store
+	api   *tg.Client
+	log   *logger.Logger
+
+	Groups   group.Group
+	Messages message.Message
+	Users    user.User
+	Photo    photo.Photo
+	Replies  reply.Reply
+}
+
+var _ AppClient = (*appClient)(nil)
+
+func New(ctx context.Context, store *store.Store, api *tg.Client, log *logger.Logger) *appClient {
+	return &appClient{
+		ctx:      ctx,
+		store:    store,
+		api:      api,
+		log:      log,
+		Groups:   group.New(log, api),
+		Messages: message.New(log, api),
+		Users:    user.New(log, api),
+		Replies:  reply.New(log, api),
+	}
+}
+
+func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
+	time.Sleep(_startTimeout)
 
 	for {
-		for _, channelData := range channels {
-			log.Infof("Start getting messages from history[%s]", channelData.Username)
-			fileName := fmt.Sprintf("./data/%s.json", channelData.Username)
+		for _, groupData := range groups {
+			c.log.Info().Msgf("get - [%s]", groupData.Username)
 
-			data, err := channel.GetChannelHistory(ctx, &tg.InputPeerChannel{
-				ChannelID:  channelData.ID,
-				AccessHash: channelData.AccessHash,
-			}, api)
+			path := fmt.Sprintf("./data/%s.json", groupData.Username)
+
+			groupMessages, err := c.Groups.GetMessagesFromGroupHistory(c.ctx, &tg.InputPeerChannel{
+				ChannelID:  groupData.ID,
+				AccessHash: groupData.AccessHash,
+			})
 			if err != nil {
-				log.Error(err)
+				c.log.Error().Err(err).Msg("failed to get messages from group history")
 			}
 
-			modifiedData, _ := data.AsModified()
-
-			messages := message.GetMessagesFromTelegram(ctx, modifiedData, &tg.InputPeerChannel{
-				ChannelID:  channelData.ID,
-				AccessHash: channelData.AccessHash,
-			}, api)
-
-			messagesFromFile, err := file.GetMessagesFromFile(fileName)
-			if err != nil {
-				log.Error(err)
+			modifiedGroupMessages, ok := groupMessages.AsModified()
+			if !ok {
+				c.log.Warn().Msg("failed to get modified group messages")
 			}
 
-			for _, msg := range messages {
-				msg, ok := filter.Messages(&msg)
+			processedMessages := c.Messages.ProcessHistoryMessages(c.ctx, modifiedGroupMessages, &tg.InputPeerChannel{
+				ChannelID:  groupData.ID,
+				AccessHash: groupData.AccessHash,
+			})
+
+			messagesFromFile, err := file.GetMessagesFromFile(path)
+			if err != nil {
+				c.log.Error().Err(err).Msg("failed to get messages from file")
+			}
+
+			for _, msg := range processedMessages {
+				// check if message is question
+				ok := filter.Message(&msg)
 				if !ok {
 					continue
 				}
 
-				msg.PeerID = channelData
+				msg.PeerID = groupData
 
-				userInfo, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
-					ChannelID:  channelData.ID,
-					AccessHash: channelData.AccessHash,
-				}, api)
+				// get user info for message
+				userInfo, err := c.Users.GetUser(c.ctx, msg, &tg.InputPeerChannel{
+					ChannelID:  groupData.ID,
+					AccessHash: groupData.AccessHash,
+				})
 				if err != nil {
-					log.Error(err)
+					c.log.Error().Err(err).Msg("failed to get user info for message")
 
 					continue
 				}
 
 				msg.FromID = *userInfo
-				messagesFromFile = append(messagesFromFile, *msg)
+
+				// get replies for message
+				replies, err := c.Replies.GetReplies(c.ctx, &msg, &tg.InputPeerChannel{
+					ChannelID:  groupData.ID,
+					AccessHash: groupData.AccessHash,
+				})
+				if err != nil {
+					c.log.Error().Err(err).Msg("failed to get replies for message")
+
+					continue
+				}
+
+				processedReplies := c.Replies.ProcessReplies(c.ctx, replies, &tg.InputPeerChannel{
+					ChannelID:  groupData.ID,
+					AccessHash: groupData.AccessHash,
+				})
+
+				// get user info for replies
+				for _, reply := range processedReplies {
+					userInfo, err := c.Users.GetUser(c.ctx, reply, &tg.InputPeerChannel{
+						ChannelID:  groupData.ID,
+						AccessHash: groupData.AccessHash,
+					})
+					if err != nil {
+						c.log.Error().Err(err).Msg("failed to get user info for reply")
+
+						continue
+					}
+
+					reply.FromID = *userInfo
+				}
+
+				msg.Replies.Count = len(processedReplies)
+				msg.Replies.Messages = processedReplies
 			}
 
-			result := filter.RemoveDuplicateInMessage(messagesFromFile)
+			messagesFromFile = append(messagesFromFile, processedMessages...)
 
-			err = file.WriteMessagesToFile(result, fileName)
+			result := filter.RemoveDuplicatesFromMessages(messagesFromFile)
+
+			err = file.WriteMessagesToFile(result, path)
 			if err != nil {
-				log.Error(err)
+				c.log.Error().Err(err).Msg("failed to write messages into file")
 			}
 
 			time.Sleep(time.Second * 10)
 		}
 
-		time.Sleep(historyTimeout)
+		time.Sleep(_historyTimeout)
 	}
 }
 
-func GetNewMessage(ctx context.Context, user *tg.User, api *tg.Client, channels []model.TgChannel, log *logger.Logger) {
-	time.Sleep(startTimeout)
+func (c appClient) GetIncomingMessages(user *tg.User, groups []model.TgGroup) {
+	time.Sleep(_startTimeout)
 
 	path := "./data/incoming.json"
 
+	c.log.Info().Msg("create base file for incoming messages")
 	err := file.CreateFileForIncoming()
 	if err != nil {
-		log.Error(err)
+		c.log.Error().Err(err).Msg("failed to create base file for incoming messages")
 	}
 
 	for {
-		log.Info("Start getting incoming messages")
+		c.log.Info().Msg("get - [incoming messages]")
+
+		processedMessages, err := c.Messages.ProcessIncomingMessages(c.ctx, user, groups)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to process incoming messages")
+		}
 
 		messagesFromFile, err := file.GetMessagesFromFile(path)
 		if err != nil {
-			log.Error(err)
+			log.Error().Err(err).Msg("failed to get message from files")
 		}
 
-		incomingMessage, err := message.GetIncomingMessages(ctx, user, channels, api)
-		if err != nil {
-			log.Error(err)
-		}
-
-		for index := range incomingMessage {
-			msg, ok := filter.Messages(&incomingMessage[index])
+		for _, msg := range processedMessages {
+			// check if message in question
+			ok := filter.Message(&msg)
 			if !ok {
 				continue
 			}
 
-			messagesFromFile = append(messagesFromFile, *msg)
+			// get user info for message
+			userInfo, err := c.Users.GetUser(c.ctx, msg, &tg.InputPeerChannel{
+				ChannelID:  msg.PeerID.ID,
+				AccessHash: msg.PeerID.AccessHash,
+			})
+			if err != nil {
+				c.log.Error().Err(err).Msg("failed to get user info for message")
+
+				continue
+			}
+
+			msg.FromID = *userInfo
 		}
 
-		result := filter.RemoveDuplicateInMessage(messagesFromFile)
+		messagesFromFile = append(messagesFromFile, processedMessages...)
+
+		result := filter.RemoveDuplicatesFromMessages(messagesFromFile)
 
 		err = file.WriteMessagesToFile(result, path)
 		if err != nil {
-			log.Error(err)
+			log.Error().Err(err).Msg("failed to write messages intofile")
 		}
 
-		time.Sleep(incomingTimeout)
+		time.Sleep(_incomingTimeout)
 	}
 }
 
+//TODO: refactor it
+/*
 func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config, api *tg.Client, log *logger.Logger) {
 	for {
 		log.Info("Start saving messages to db")
@@ -246,76 +327,4 @@ func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config
 		time.Sleep(saveTimeout)
 	}
 }
-
-func Run(redisDB *redis.RedisDB, waitGroup *sync.WaitGroup, cfg *config.Config, log *logger.Logger) {
-	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{}) // nolint
-	if err != nil {
-		log.Error(&errors.CreateError{Name: "telegram client", ErrorValue: err})
-	}
-
-	api := tgClient.API()
-
-	if err := tgClient.Run(context.Background(), func(ctx context.Context) error {
-		user, err := auth.Login(ctx, tgClient, cfg)
-		if err != nil {
-			return fmt.Errorf("AUTH_ERROR:%w", err)
-		}
-
-		waitGroup.Add(3)
-
-		uData, _ := user.GetUser().AsNotEmpty()
-
-		channels, err := channel.GetAllChannels(ctx, api)
-		if err != nil {
-			log.Error(err)
-		}
-
-		err = file.CreateFilesForChannels(channels)
-		if err != nil {
-			log.Error(err)
-		}
-
-		for _, channelData := range channels {
-			channelValue, err := redisDB.GetDataFromRedis(ctx, fmt.Sprintf("[%d%s]", channelData.ID, channelData.Username))
-			if err != nil {
-				log.Error(err)
-			}
-
-			if channelValue == "" {
-				err := redisDB.SetDataToRedis(ctx, fmt.Sprintf("[%d%s]", channelData.ID, channelData.Username), true)
-				if err != nil {
-					log.Error(err)
-				}
-			} else {
-				continue
-			}
-
-			channelPhotoData, err := channel.GetChannelPhoto(ctx, &channelData, api)
-			if err != nil {
-				log.Error(err)
-			}
-
-			channelImageUrl, err := photo.ProcessPhoto(ctx, channelPhotoData, channelData.Username, cfg, api)
-			if err != nil {
-				log.Error(err)
-			}
-
-			channelData.ImageURL = channelImageUrl
-
-			err = kafka.PushDataToQueue("channels.get", cfg.KafkaAddr, channelData)
-			if err != nil {
-				log.Error(err)
-			}
-		}
-
-		go SaveToKafka(ctx, redisDB, cfg, api, log)
-		go GetNewMessage(ctx, uData, api, channels, log)
-		go GetMessagesFromHistory(ctx, channels, api, log)
-
-		waitGroup.Wait()
-
-		return nil
-	}); err != nil {
-		log.Error(err)
-	}
-}
+*/
