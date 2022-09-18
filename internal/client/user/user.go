@@ -23,6 +23,13 @@ type tgUser struct {
 
 var _ User = (*tgUser)(nil)
 
+func New(log *logger.Logger, api *tg.Client) *tgUser {
+	return &tgUser{
+		log: log,
+		api: api,
+	}
+}
+
 func (u tgUser) GetUser(ctx context.Context, message *model.TgMessage, groupPeer *tg.InputPeerChannel) (*model.TgUser, error) {
 	user := model.TgUser{}
 
