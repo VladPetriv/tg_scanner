@@ -8,7 +8,7 @@ import (
 )
 
 type Photo interface {
-	DecodePhoto(photo tg.UploadFileClass) (*model.Image, error)
-	CreatePhoto(img *model.Image, name string) (string, error)
 	ProcessPhoto(ctx context.Context, photoData tg.UploadFileClass, name string) (string, error)
+	decodePhoto(photo tg.UploadFileClass) (*model.Image, error)
+	createPhoto(img *model.Image, name string) (string, error)
 }

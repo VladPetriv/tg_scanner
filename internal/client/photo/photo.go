@@ -25,13 +25,35 @@ type tgPhoto struct {
 
 var _ Photo = (*tgPhoto)(nil)
 
-func New(log *logger.Logger) *tgPhoto {
+func New(log *logger.Logger, store *store.Store) *tgPhoto {
 	return &tgPhoto{
-		log: log,
+		log:   log,
+		store: store,
 	}
 }
 
-func (p tgPhoto) DecodePhoto(photo tg.UploadFileClass) (*model.Image, error) {
+func (p tgPhoto) ProcessPhoto(ctx context.Context, photoData tg.UploadFileClass, name string) (string, error) {
+	image, err := p.decodePhoto(photoData)
+	if err != nil {
+		p.log.Warn().Err(err)
+	}
+
+	filename, err := p.createPhoto(image, fmt.Sprint(name))
+	if err != nil {
+		p.log.Warn().Err(err)
+	}
+
+	imageUrl, err := p.store.Image.Send(ctx, filename, fmt.Sprint(name))
+	if err != nil {
+		p.log.Error().Err(err)
+
+		return imageUrl, fmt.Errorf("failed to send image into firebase: %w", err)
+	}
+
+	return imageUrl, nil
+}
+
+func (p tgPhoto) decodePhoto(photo tg.UploadFileClass) (*model.Image, error) {
 	if photo == nil {
 		p.log.Error().Err(errPhotoDataIsNil)
 
@@ -53,7 +75,7 @@ func (p tgPhoto) DecodePhoto(photo tg.UploadFileClass) (*model.Image, error) {
 	return &img, nil
 }
 
-func CreatePhoto(img *model.Image, name string) (string, error) {
+func (p tgPhoto) createPhoto(img *model.Image, name string) (string, error) {
 	if img == nil {
 		return "", errPhotoDataIsNil
 	}
@@ -70,23 +92,4 @@ func CreatePhoto(img *model.Image, name string) (string, error) {
 	}
 
 	return path, nil
-}
-
-func (p tgPhoto) ProcessPhoto(ctx context.Context, photoData tg.UploadFileClass, name string) (string, error) {
-	image, err := p.DecodePhoto(photoData)
-	if err != nil {
-		p.log.Warn().Err(err)
-	}
-
-	filename, err := CreatePhoto(image, fmt.Sprint(name))
-	if err != nil {
-		p.log.Warn().Err(err)
-	}
-
-	imageUrl, err := p.store.Image.Send(ctx, filename, fmt.Sprint(name))
-	if err != nil {
-		return imageUrl, fmt.Errorf("failed to send image into firebase: %w", err)
-	}
-
-	return imageUrl, nil
 }

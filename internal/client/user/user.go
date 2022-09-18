@@ -30,13 +30,35 @@ func New(log *logger.Logger, api *tg.Client) *tgUser {
 	}
 }
 
-func (u tgUser) GetUser(ctx context.Context, message *model.TgMessage, groupPeer *tg.InputPeerChannel) (*model.TgUser, error) {
+func (u tgUser) GetUser(ctx context.Context, data interface{}, groupPeer *tg.InputPeerChannel) (*model.TgUser, error) {
+	var userID int64
+	var modelID int
+
+	switch dataType := data.(type) {
+	case model.TgMessage:
+		if dataType.FromID.ID != 0 {
+			userID = dataType.FromID.ID
+		} else {
+			userID = dataType.FromID.UserID
+		}
+
+		modelID = dataType.ID
+	case model.TgRepliesMessage:
+		if dataType.FromID.ID != 0 {
+			userID = dataType.FromID.ID
+		} else {
+			userID = dataType.FromID.UserID
+		}
+
+		modelID = dataType.ID
+	}
+
 	user := model.TgUser{}
 
-	data, err := u.api.UsersGetFullUser(ctx, &tg.InputUserFromMessage{
+	fullUser, err := u.api.UsersGetFullUser(ctx, &tg.InputUserFromMessage{
 		Peer:   groupPeer,
-		UserID: message.FromID.ID,
-		MsgID:  message.ID,
+		UserID: userID,
+		MsgID:  modelID,
 	})
 	if err != nil {
 		u.log.Error().Err(err)
@@ -44,7 +66,7 @@ func (u tgUser) GetUser(ctx context.Context, message *model.TgMessage, groupPeer
 		return nil, &errors.GetError{Name: "user info", ErrorValue: err}
 	}
 
-	for _, userData := range data.Users {
+	for _, userData := range fullUser.Users {
 		notEmptyUser, _ := userData.AsNotEmpty()
 
 		encodedData, err := json.Marshal(notEmptyUser)
