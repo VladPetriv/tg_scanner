@@ -7,8 +7,6 @@ import (
 	"github.com/gotd/td/tg"
 
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
-	"github.com/VladPetriv/tg_scanner/internal/client/replie"
-	"github.com/VladPetriv/tg_scanner/internal/client/user"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/errors"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
@@ -48,16 +46,6 @@ func (m tgMessage) ProcessHistoryMessages(ctx context.Context, data tg.ModifiedM
 
 			continue
 		}
-
-		// TODO: remove it from this place
-		replies, err := replie.GetReplies(ctx, &msg, groupPeer, m.api)
-		if err != nil {
-			continue
-		}
-
-		// TODO: remove it from this place
-		msg.Replies.Messages = replie.ProcessRepliesMessage(ctx, replies, groupPeer, m.api)
-		msg.Replies.Count = len(msg.Replies.Messages)
 
 		processedMessages = append(processedMessages, msg)
 	}
@@ -105,18 +93,6 @@ func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User,
 				msg.PeerID = channel
 			}
 		}
-
-		// TODO: remove it
-		userInfo, err := user.GetUserInfo(ctx, msg.FromID.UserID, msg.ID, &tg.InputPeerChannel{
-			ChannelID:  msg.PeerID.ID,
-			AccessHash: msg.PeerID.AccessHash,
-		}, m.api)
-		if err != nil {
-			continue
-		}
-
-		// TODO: remove it from this place
-		msg.FromID = *userInfo
 
 		processedMessages = append(processedMessages, msg)
 	}

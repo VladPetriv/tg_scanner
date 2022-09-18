@@ -7,7 +7,6 @@ import (
 	"github.com/gotd/td/tg"
 
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
-	"github.com/VladPetriv/tg_scanner/internal/client/user"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/errors"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
@@ -41,29 +40,6 @@ func (r tgReply) GetReplies(ctx context.Context, message *model.TgMessage, group
 	return replies, nil
 }
 
-//TODO: remove this
-/*
-func GetRepliesForMessageBeforeSave(ctx context.Context, message *model.TgMessage, api *tg.Client) error {
-	channelPeer := &tg.InputPeerChannel{
-		ChannelID:  message.PeerID.ID,
-		AccessHash: message.PeerID.AccessHash,
-	}
-
-	replies, err := r.GetReplies(ctx, message, channelPeer, api)
-	if err != nil {
-		return err
-	}
-
-	messageReplie := ProcessRepliesMessage(ctx, replies, channelPeer, api)
-
-	message.Replies.Messages = append(message.Replies.Messages, messageReplie...)
-
-	time.Sleep(time.Second * 3)
-
-	return nil
-}
-*/
-
 func (r tgReply) ProcessReplies(ctx context.Context, replies tg.MessagesMessagesClass, groupPeer *tg.InputPeerChannel) []model.TgRepliesMessage {
 	processedReplies := make([]model.TgRepliesMessage, 0)
 
@@ -85,14 +61,6 @@ func (r tgReply) ProcessReplies(ctx context.Context, replies tg.MessagesMessages
 
 			continue
 		}
-
-		//TODO: remove it
-		userInfo, err := user.GetUserInfo(ctx, reply.FromID.UserID, reply.ID, groupPeer, r.api)
-		if err != nil {
-			continue
-		}
-
-		reply.FromID = *userInfo
 
 		processedReplies = append(processedReplies, reply)
 	}
