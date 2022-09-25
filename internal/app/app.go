@@ -13,6 +13,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/errors"
 	"github.com/VladPetriv/tg_scanner/pkg/file"
+	"github.com/VladPetriv/tg_scanner/pkg/kafka"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
@@ -27,7 +28,7 @@ func Run(store *store.Store, cfg *config.Config, log *logger.Logger) {
 	api := tgClient.API()
 	ctx := context.Background()
 
-	appClient := client.New(ctx, store, api, log)
+	appClient := client.New(ctx, store, api, log, cfg)
 
 	log.Info().Msg("start the application")
 
@@ -56,6 +57,10 @@ func Run(store *store.Store, cfg *config.Config, log *logger.Logger) {
 
 		log.Info().Msg("check if groups are in cache")
 		for _, groupData := range groups {
+			if groupData.ID == 0 {
+				continue
+			}
+
 			groupValue, err := store.Cache.Get(ctx, store.Cache.GenerateKey(groupData))
 			if err != nil {
 				log.Error().Err(err).Msg("failed to get value from cache")
@@ -67,27 +72,36 @@ func Run(store *store.Store, cfg *config.Config, log *logger.Logger) {
 					log.Error().Err(err).Msg("failed to set value into cache")
 				}
 			} else {
-				// if group in cache we skip image sending
 				continue
 			}
 
 			groupPhotoData, err := appClient.Groups.GetGroupPhoto(ctx, &groupData)
 			if err != nil {
 				log.Error().Err(err).Msgf("failed to get [%s] photo data", groupData.Username)
+
+				continue
 			}
 
-			groupImageUrl, err := appClient.Photo.ProcessPhoto(ctx, groupPhotoData, groupData.Username)
+			groupImageUrl, err := appClient.Photos.ProcessPhoto(ctx, groupPhotoData, groupData.Username)
 			if err != nil {
 				log.Error().Err(err).Msgf("failed to process [%s] photo data", groupData.Username)
 			}
 
 			groupData.ImageURL = groupImageUrl
+
+			err = kafka.PushDataToQueue("groups", cfg.KafkaAddr, groupData)
+			if err != nil {
+				log.Error().Err(err).Msgf("failed to push [%s] into queue", groupData.Username)
+			}
 		}
 
-		waitGroup.Add(2)
+		log.Info().Msg("successfully pushed groups into queue")
+
+		waitGroup.Add(3)
 
 		log.Info().Msg("wait default start timeout [20s]")
 
+		go appClient.PushToQueue()
 		go appClient.GetHistoryMessages(groups[5:])
 		go appClient.GetIncomingMessages(userData, groups[5:])
 

@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gotd/td/tg"
-	"github.com/rs/zerolog/log"
-
 	"github.com/VladPetriv/tg_scanner/internal/client/group"
 	"github.com/VladPetriv/tg_scanner/internal/client/message"
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
@@ -15,9 +12,13 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/client/user"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/store"
+	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/file"
 	"github.com/VladPetriv/tg_scanner/pkg/filter"
+	"github.com/VladPetriv/tg_scanner/pkg/kafka"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
+	"github.com/gotd/td/tg"
+	"github.com/rs/zerolog/log"
 )
 
 // Timeouts
@@ -34,26 +35,29 @@ type appClient struct {
 	store *store.Store
 	api   *tg.Client
 	log   *logger.Logger
+	cfg   *config.Config
 
 	Groups   group.Group
 	Messages message.Message
 	Users    user.User
-	Photo    photo.Photo
+	Photos   photo.Photo
 	Replies  reply.Reply
 }
 
 var _ AppClient = (*appClient)(nil)
 
-func New(ctx context.Context, store *store.Store, api *tg.Client, log *logger.Logger) *appClient {
+func New(ctx context.Context, store *store.Store, api *tg.Client, log *logger.Logger, cfg *config.Config) *appClient {
 	return &appClient{
 		ctx:      ctx,
 		store:    store,
 		api:      api,
 		log:      log,
+		cfg:      cfg,
 		Groups:   group.New(log, api),
 		Messages: message.New(log, api),
 		Users:    user.New(log, api),
 		Replies:  reply.New(log, api),
+		Photos:   photo.New(log, store),
 	}
 }
 
@@ -66,10 +70,12 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 
 			path := fmt.Sprintf("./data/%s.json", groupData.Username)
 
-			groupMessages, err := c.Groups.GetMessagesFromGroupHistory(c.ctx, &tg.InputPeerChannel{
+			groupPeer := &tg.InputPeerChannel{
 				ChannelID:  groupData.ID,
 				AccessHash: groupData.AccessHash,
-			})
+			}
+
+			groupMessages, err := c.Groups.GetMessagesFromGroupHistory(c.ctx, groupPeer)
 			if err != nil {
 				c.log.Error().Err(err).Msg("failed to get messages from group history")
 			}
@@ -79,10 +85,7 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 				c.log.Warn().Msg("failed to get modified group messages")
 			}
 
-			processedMessages := c.Messages.ProcessHistoryMessages(c.ctx, modifiedGroupMessages, &tg.InputPeerChannel{
-				ChannelID:  groupData.ID,
-				AccessHash: groupData.AccessHash,
-			})
+			processedMessages := c.Messages.ProcessHistoryMessages(c.ctx, modifiedGroupMessages, groupPeer)
 
 			messagesFromFile, err := file.GetMessagesFromFile(path)
 			if err != nil {
@@ -99,10 +102,7 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 				msg.PeerID = groupData
 
 				// get user info for message
-				userInfo, err := c.Users.GetUser(c.ctx, msg, &tg.InputPeerChannel{
-					ChannelID:  groupData.ID,
-					AccessHash: groupData.AccessHash,
-				})
+				userInfo, err := c.Users.GetUser(c.ctx, msg, groupPeer)
 				if err != nil {
 					c.log.Error().Err(err).Msg("failed to get user info for message")
 
@@ -112,34 +112,25 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 				msg.FromID = *userInfo
 
 				// get replies for message
-				replies, err := c.Replies.GetReplies(c.ctx, &msg, &tg.InputPeerChannel{
-					ChannelID:  groupData.ID,
-					AccessHash: groupData.AccessHash,
-				})
+				replies, err := c.Replies.GetReplies(c.ctx, &msg, groupPeer)
 				if err != nil {
 					c.log.Error().Err(err).Msg("failed to get replies for message")
 
 					continue
 				}
 
-				processedReplies := c.Replies.ProcessReplies(c.ctx, replies, &tg.InputPeerChannel{
-					ChannelID:  groupData.ID,
-					AccessHash: groupData.AccessHash,
-				})
+				processedReplies := c.Replies.ProcessReplies(c.ctx, replies, groupPeer)
 
 				// get user info for replies
-				for _, reply := range processedReplies {
-					userInfo, err := c.Users.GetUser(c.ctx, reply, &tg.InputPeerChannel{
-						ChannelID:  groupData.ID,
-						AccessHash: groupData.AccessHash,
-					})
+				for index, reply := range processedReplies {
+					userInfo, err := c.Users.GetUser(c.ctx, reply, groupPeer)
 					if err != nil {
 						c.log.Error().Err(err).Msg("failed to get user info for reply")
 
 						continue
 					}
 
-					reply.FromID = *userInfo
+					processedReplies[index].FromID = *userInfo
 				}
 
 				msg.Replies.Count = len(processedReplies)
@@ -213,58 +204,83 @@ func (c appClient) GetIncomingMessages(user *tg.User, groups []model.TgGroup) {
 
 		err = file.WriteMessagesToFile(result, path)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to write messages intofile")
+			log.Error().Err(err).Msg("failed to write messages into file")
 		}
 
 		time.Sleep(_incomingTimeout)
 	}
 }
 
-//TODO: refactor it
-/*
-func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config, api *tg.Client, log *logger.Logger) {
+func (c appClient) PushToQueue() {
 	for {
-		log.Info("Start saving messages to db")
+		c.log.Info().Msg("pushing messages to queue")
 
 		messages, err := file.ParseFromFiles("data")
 		if err != nil {
-			log.Error(err)
+			c.log.Error().Err(err).Msg("failed to get messages from files")
 		}
 
 		for _, messageData := range messages {
-			messageValue, err := redisDB.GetDataFromRedis(ctx, redis.GenerateKey(messageData))
+			messageValue, err := c.store.Cache.Get(c.ctx, c.store.Cache.GenerateKey(messageData))
 			if err != nil {
-				log.Error(err)
+				c.log.Error().Err(err).Msg("failed to get message key from cache")
 			}
 
 			if messageValue == "" {
-				err := redisDB.SetDataToRedis(ctx, redis.GenerateKey(messageData), true)
+				err := c.store.Cache.Set(c.ctx, c.store.Cache.GenerateKey(messageData), true)
 				if err != nil {
-					log.Error(err)
+					c.log.Error().Err(err).Msg("failed to set message into cache")
 				}
 			} else {
 				continue
 			}
 
-			err = replie.GetRepliesForMessageBeforeSave(ctx, &messageData, api)
-			if err != nil {
-				log.Error(err)
+			groupPeer := &tg.InputPeerChannel{
+				ChannelID:  messageData.PeerID.ID,
+				AccessHash: messageData.PeerID.AccessHash,
 			}
 
-			filter.RemoveDuplicateInReplies(&messageData.Replies)
+			// get replies for message
+			replies, err := c.Replies.GetReplies(c.ctx, &messageData, groupPeer)
+			if err != nil {
+				c.log.Error().Err(err).Msg("failed to get replies for message")
 
+				continue
+			}
+
+			processedReplies := c.Replies.ProcessReplies(c.ctx, replies, groupPeer)
+
+			// get user info for replies
+			for _, reply := range processedReplies {
+				userInfo, err := c.Users.GetUser(c.ctx, reply, groupPeer)
+				if err != nil {
+					c.log.Error().Err(err).Msg("failed to get user info for reply")
+
+					continue
+				}
+
+				reply.FromID = *userInfo
+			}
+
+			messageData.Replies.Count = len(processedReplies)
+			messageData.Replies.Messages = processedReplies
+
+			filter.RemoveDuplicatesFromReplies(&messageData.Replies)
+
+			// if len of replies is 0 move to other message
 			if len(messageData.Replies.Messages) == 0 {
 				continue
 			}
 
-			userPhotoData, err := user.GetUserPhoto(ctx, messageData.FromID, api)
+			// process user photo
+			userPhotoData, err := c.Users.GetUserPhoto(c.ctx, messageData.FromID)
 			if err != nil {
-				log.Error(err)
+				c.log.Error().Err(err).Msg("failed to get user photo")
 			}
 
-			userImageUrl, err := photo.ProcessPhoto(ctx, userPhotoData, messageData.FromID.Username, cfg, api)
+			userImageUrl, err := c.Photos.ProcessPhoto(c.ctx, userPhotoData, messageData.FromID.Username)
 			if err != nil {
-				log.Error(err)
+				c.log.Error().Err(err).Msg("failed to process user photo")
 			}
 
 			messageData.FromID.ImageURL = userImageUrl
@@ -272,59 +288,58 @@ func SaveToKafka(ctx context.Context, redisDB *redis.RedisDB, cfg *config.Config
 
 			var messageImageUrl string
 
-			if ok, _ := message.CheckMessagePhotoStatus(ctx, &messageData, api); ok {
-				messagePhotoData, err := message.GetMessagePhoto(ctx, messageData, api)
+			if ok, _ := c.Messages.CheckMessagePhotoStatus(c.ctx, &messageData); ok {
+				messagePhotoData, err := c.Messages.GetMessagePhoto(c.ctx, messageData)
 				if err != nil {
-					log.Error(err)
+					c.log.Error().Err(err).Msg("failed to check message photo status")
 				}
 
-				messageImageUrl, err = photo.ProcessPhoto(ctx, messagePhotoData, fmt.Sprint(messageData.ID), cfg, api)
+				messageImageUrl, err = c.Photos.ProcessPhoto(c.ctx, messagePhotoData, fmt.Sprint(messageData.ID))
 				if err != nil {
-					log.Error(err)
+					c.log.Error().Err(err).Msg("failed to process message photo")
 				}
 			}
 
 			messageData.MessageURL = fmt.Sprintf("https://t.me/%s/%d", messageData.PeerID.Username, messageData.ID)
 			messageData.ImageURL = messageImageUrl
 
-			for index, replieData := range messageData.Replies.Messages {
-				userPhotoData, err := user.GetUserPhoto(ctx, replieData.FromID, api)
+			for index, replyData := range messageData.Replies.Messages {
+				userPhotoData, err := c.Users.GetUserPhoto(c.ctx, replyData.FromID)
 				if err != nil {
-					log.Error(err)
+					c.log.Error().Err(err).Msg("failed to get user photo")
 				}
 
-				userImageUrl, err := photo.ProcessPhoto(ctx, userPhotoData, replieData.FromID.Username, cfg, api)
+				userImageUrl, err := c.Photos.ProcessPhoto(c.ctx, userPhotoData, replyData.FromID.Username)
 				if err != nil {
-					log.Error(err)
+					log.Error().Err(err).Msg("failed to process user photo")
 				}
 
 				messageData.Replies.Messages[index].FromID.ImageURL = userImageUrl
-				messageData.Replies.Messages[index].FromID.Fullname = fmt.Sprintf("%s %s", replieData.FromID.FirstName, replieData.FromID.LastName)
+				messageData.Replies.Messages[index].FromID.Fullname = fmt.Sprintf("%s %s", replyData.FromID.FirstName, replyData.FromID.LastName)
 
-				var replieImageUrl string
+				var replyImageUrl string
 
-				if replieData.Media.Photo != nil {
-					repliePhotoData, err := replie.GetRepliePhoto(ctx, replieData, api)
+				if replyData.Media.Photo != nil {
+					replyPhotoData, err := c.Replies.GetReplyPhoto(c.ctx, replyData)
 					if err != nil {
-						log.Error(err)
+						log.Error().Err(err).Msg("failed to get reply photo")
 					}
 
-					replieImageUrl, err = photo.ProcessPhoto(ctx, repliePhotoData, replieData.ID, cfg, api)
+					replyImageUrl, err = c.Photos.ProcessPhoto(c.ctx, replyPhotoData, fmt.Sprint(replyData.ID))
 					if err != nil {
-						log.Error(err)
+						log.Error().Err(err).Msg("failed to process reply photo")
 					}
 				}
 
-				replieData.ImageURL = replieImageUrl
+				replyData.ImageURL = replyImageUrl
 			}
 
-			err = kafka.PushDataToQueue("messages.get", cfg.KafkaAddr, messageData)
+			err = kafka.PushDataToQueue("messages", c.cfg.KafkaAddr, messageData)
 			if err != nil {
-				log.Error(err)
+				log.Error().Err(err).Msg("failed to push message into queue")
 			}
 		}
 
-		time.Sleep(saveTimeout)
+		time.Sleep(_saveTimeout)
 	}
 }
-*/

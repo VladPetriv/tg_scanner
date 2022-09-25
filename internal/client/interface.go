@@ -8,4 +8,5 @@ import (
 type AppClient interface {
 	GetHistoryMessages(groups []model.TgGroup)
 	GetIncomingMessages(user *tg.User, groups []model.TgGroup)
+	PushToQueue()
 }
