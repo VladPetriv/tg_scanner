@@ -32,7 +32,7 @@ func (r tgReply) GetReplies(ctx context.Context, message *model.TgMessage, group
 		MsgID: message.ID,
 	})
 	if err != nil {
-		r.log.Error().Err(err)
+		r.log.Error().Err(err).Msg("failed to get replies")
 
 		return nil, &errors.GetError{Name: "replies", ErrorValue: err}
 	}
@@ -50,14 +50,14 @@ func (r tgReply) ProcessReplies(ctx context.Context, replies tg.MessagesMessages
 
 		encodedData, err := json.Marshal(rpl)
 		if err != nil {
-			r.log.Warn().Err(err)
+			r.log.Warn().Err(err).Msg("failed to marshal reply data")
 
 			continue
 		}
 
 		err = json.Unmarshal(encodedData, &reply)
 		if err != nil {
-			r.log.Warn().Err(err)
+			r.log.Warn().Err(err).Msg("failed to unmarshal reply data")
 
 			continue
 		}
@@ -68,7 +68,7 @@ func (r tgReply) ProcessReplies(ctx context.Context, replies tg.MessagesMessages
 	return processedReplies
 }
 
-func (r tgReply) GetRepliePhoto(ctx context.Context, reply model.TgRepliesMessage) (tg.UploadFileClass, error) {
+func (r tgReply) GetReplyPhoto(ctx context.Context, reply model.TgRepliesMessage) (tg.UploadFileClass, error) {
 	length := len(reply.Media.Photo.Sizes) - 1
 
 	data, err := r.api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
@@ -82,6 +82,8 @@ func (r tgReply) GetRepliePhoto(ctx context.Context, reply model.TgRepliesMessag
 		Limit:  photo.Size,
 	})
 	if err != nil {
+		r.log.Error().Err(err).Msg("failed to get reply photo")
+
 		return nil, &errors.GetError{Name: "reply photo", ErrorValue: err}
 	}
 

@@ -33,15 +33,15 @@ func RemoveDuplicatesFromMessages(msgs []model.TgMessage) []model.TgMessage {
 	return messages
 }
 
-func RemoveDuplicatesFromReplies(replie *model.TgReplies) {
-	if replie.Count == 0 {
+func RemoveDuplicatesFromReplies(reply *model.TgReplies) {
+	if reply.Count == 0 {
 		return
 	}
 
 	allReplies := make(map[string]bool)
 	replies := make([]model.TgRepliesMessage, 0)
 
-	for _, r := range replie.Messages {
+	for _, r := range reply.Messages {
 		if _, status := allReplies[r.Message]; !status {
 			allReplies[r.Message] = true
 
@@ -49,5 +49,5 @@ func RemoveDuplicatesFromReplies(replie *model.TgReplies) {
 		}
 	}
 
-	replie.Messages = replies
+	reply.Messages = replies
 }

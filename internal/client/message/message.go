@@ -35,14 +35,14 @@ func (m tgMessage) ProcessHistoryMessages(ctx context.Context, data tg.ModifiedM
 
 		encodedData, err := json.Marshal(message)
 		if err != nil {
-			m.log.Warn().Err(err)
+			m.log.Warn().Err(err).Msg("failed to marshal message data")
 
 			continue
 		}
 
 		err = json.Unmarshal(encodedData, &msg)
 		if err != nil {
-			m.log.Warn().Err(err)
+			m.log.Warn().Err(err).Msg("failed to unmarshal message data")
 
 			continue
 		}
@@ -63,7 +63,7 @@ func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User,
 		},
 	})
 	if err != nil {
-		m.log.Error().Err(err)
+		m.log.Error().Err(err).Msg("failed to get incoming messages")
 
 		return nil, &errors.GetError{Name: "incoming messages", ErrorValue: err}
 	}
@@ -75,22 +75,22 @@ func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User,
 
 		encodedData, err := json.Marshal(message)
 		if err != nil {
-			m.log.Warn().Err(err)
+			m.log.Warn().Err(err).Msg("failed to marshal message data")
 
 			continue
 		}
 
 		err = json.Unmarshal(encodedData, &msg)
 		if err != nil {
-			m.log.Warn().Err(err)
+			m.log.Warn().Err(err).Msg("failed to unmarshal message data")
 
 			continue
 		}
 
 		// add group info because incoming message don't have it
-		for _, channel := range groups {
-			if msg.PeerID.ChannelID == channel.ID {
-				msg.PeerID = channel
+		for _, groupData := range groups {
+			if msg.PeerID.ChannelID == groupData.ID {
+				msg.PeerID = groupData
 			}
 		}
 
@@ -114,7 +114,7 @@ func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.TgMessage)
 		Limit:  photo.Size,
 	})
 	if err != nil {
-		m.log.Error().Err(err)
+		m.log.Error().Err(err).Msg("failed to get message photo")
 
 		return nil, &errors.GetError{Name: "message photo", ErrorValue: err}
 	}
