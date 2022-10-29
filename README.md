@@ -1,12 +1,11 @@
 
 # tg_scanner
 
-tg_scanner is an application which can parse question and replies from your telegram groups
+tg_scanner is an application which can parse question and replies from your telegram groups.
 
 Application will always create a few dirs:
-- logs - for logs file
-- images - for saving and getting user, message images before save to firebase
-- data - for saving and getting data from telegram before sent to message queue
+- images - for saving and getting user, group, message and reply images before save to firebase. (The images will auto remove after saving to the Firebase)
+- data - for saving and getting data from telegram before sent to message queue.
 
 ## Tech Stack
 
@@ -20,21 +19,22 @@ Application will always create a few dirs:
 
 ## Features
 
-- Get channel, user, message reply info from telegram
-- Save channel images, user images, images from replies and messages into Firebase Storage
-- Microservice communication with Apache Kafka
-- Caching messages with Redis
+- Get groups, user, message reply info from telegram.
+- Save groups, user, replies and messages images into Firebase.
+- Microservice communication with Apache Kafka.
+- Caching messages and groups with Redis.
+- Auto deleting log files after 22 days
 
 
 ## Environment Variables
 
-To run this project, you will need to add the following environment variables to your ".config.env" file which locate in "config" folder:
+To run this project, you will need to add the following environment variables to your `config/.config.env` file:
 
 #### Telegram
 - `APP_ID`- Telegram app id
 - `APP_HASH`- Telegram app hash
 - `PHONE` - Your phone number from telegram account
-- `PASSWORD` - Your password to telegram
+- `PASSWORD` - Your cloud password to telegram
 
 #### Firebase
 - `PROJECT_ID` - Firebase project id
@@ -43,14 +43,14 @@ To run this project, you will need to add the following environment variables to
 
 #### Logger
 - `LOG_LEVEL` - Level which logger will process
-
+- `LOG_FILENAME` - Filepath where logger will save logs
 #### Redis
 - `REDIS_ADDR` - Redis address
 - `REDIS_PASSWORD` - Redis password
 
 #### Kafka
 - `KAFKA_ADDR` - Kafka address
-## Run Locally
+## Run
 
 Clone the project
 
@@ -66,23 +66,14 @@ Go to the project directory
 
 Install dependencies
 
-```bash
+```go
   go mod download
 ```
 
 Start the application:
 
-Before start you must create 2 topic in kafka: "channels.get", "messages.get"
+Before start you must create 2 topic in kafka: `groups` and `messages`
 
 ```bash
-  # Make sure that Apache Kafka is running
-  make run # Or you can use "go run ./cmd/scanner/main.go"
-```
-
-Start the application with docker:
-
-```bash
-  make docker # Build docker image
-
-  docker run --name telegram_scanner tg_scanner
+  make run 
 ```
