@@ -6,16 +6,26 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/model"
 )
 
-func Message(msg *model.TgMessage) bool {
-	if msg.ReplyTo.ReplyToMsgID == 0 {
-		if strings.Contains(msg.Message, "?") {
-			msg.Message = strings.ReplaceAll(msg.Message, "\n", " ")
+func ProcessMessage(msg *model.TgMessage) bool {
+	isQuestion := checkIfMessageIsQuestion(msg)
 
-			return true
-		}
+	if isQuestion {
+		msg.Message = replaceUnexpectedSymbols(msg.Message)
+	}
+
+	return isQuestion
+}
+
+func checkIfMessageIsQuestion(msg *model.TgMessage) bool {
+	if strings.Contains(msg.Message, "?") {
+		return true
 	}
 
 	return false
+}
+
+func replaceUnexpectedSymbols(message string) string {
+	return strings.ReplaceAll(message, "\n", " ")
 }
 
 func RemoveDuplicatesFromMessages(msgs []model.TgMessage) []model.TgMessage {

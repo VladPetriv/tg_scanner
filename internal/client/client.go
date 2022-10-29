@@ -94,7 +94,7 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 
 			for _, msg := range processedMessages {
 				// check if message is question
-				ok := filter.Message(&msg)
+				ok := filter.ProcessMessage(&msg)
 				if !ok {
 					continue
 				}
@@ -179,7 +179,7 @@ func (c appClient) GetIncomingMessages(user *tg.User, groups []model.TgGroup) {
 
 		for _, msg := range processedMessages {
 			// check if message in question
-			ok := filter.Message(&msg)
+			ok := filter.ProcessMessage(&msg)
 			if !ok {
 				continue
 			}
