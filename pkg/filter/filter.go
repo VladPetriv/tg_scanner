@@ -17,11 +17,7 @@ func ProcessMessage(msg *model.TgMessage) bool {
 }
 
 func checkIfMessageIsQuestion(msg *model.TgMessage) bool {
-	if strings.Contains(msg.Message, "?") {
-		return true
-	}
-
-	return false
+	return strings.Contains(msg.Message, "?")
 }
 
 func replaceUnexpectedSymbols(message string) string {
