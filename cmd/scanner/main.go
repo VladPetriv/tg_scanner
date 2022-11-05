@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/VladPetriv/tg_scanner/internal/app"
+	"github.com/VladPetriv/tg_scanner/internal/controller"
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/file"
@@ -23,5 +24,7 @@ func main() {
 
 	store := store.New(cfg)
 
-	app.Run(store, cfg, log)
+	queue := controller.New(cfg)
+
+	app.Run(store, queue, cfg, log)
 }

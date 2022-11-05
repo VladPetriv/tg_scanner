@@ -5,20 +5,21 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gotd/td/tg"
+	"github.com/rs/zerolog/log"
+
 	"github.com/VladPetriv/tg_scanner/internal/client/group"
 	"github.com/VladPetriv/tg_scanner/internal/client/message"
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/client/reply"
 	"github.com/VladPetriv/tg_scanner/internal/client/user"
+	"github.com/VladPetriv/tg_scanner/internal/controller"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/file"
 	"github.com/VladPetriv/tg_scanner/pkg/filter"
-	"github.com/VladPetriv/tg_scanner/pkg/kafka"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
-	"github.com/gotd/td/tg"
-	"github.com/rs/zerolog/log"
 )
 
 // Timeouts
@@ -33,6 +34,7 @@ var (
 type appClient struct {
 	ctx   context.Context
 	store *store.Store
+	queue controller.Controller
 	api   *tg.Client
 	log   *logger.Logger
 	cfg   *config.Config
@@ -46,13 +48,14 @@ type appClient struct {
 
 var _ AppClient = (*appClient)(nil)
 
-func New(ctx context.Context, store *store.Store, api *tg.Client, log *logger.Logger, cfg *config.Config) *appClient {
+func New(ctx context.Context, store *store.Store, queue controller.Controller, api *tg.Client, log *logger.Logger, cfg *config.Config) *appClient {
 	return &appClient{
 		ctx:      ctx,
 		store:    store,
 		api:      api,
 		log:      log,
 		cfg:      cfg,
+		queue:    queue,
 		Groups:   group.New(log, api),
 		Messages: message.New(log, api),
 		Users:    user.New(log, api),
@@ -334,7 +337,7 @@ func (c appClient) PushToQueue() {
 				replyData.ImageURL = replyImageUrl
 			}
 
-			err = kafka.PushDataToQueue("messages", c.cfg.KafkaAddr, messageData)
+			err = c.queue.PushDataToQueue("messages", messageData)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to push message into queue")
 			}

@@ -9,15 +9,15 @@ import (
 
 	"github.com/VladPetriv/tg_scanner/internal/client"
 	"github.com/VladPetriv/tg_scanner/internal/client/auth"
+	"github.com/VladPetriv/tg_scanner/internal/controller"
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/errors"
 	"github.com/VladPetriv/tg_scanner/pkg/file"
-	"github.com/VladPetriv/tg_scanner/pkg/kafka"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
-func Run(store *store.Store, cfg *config.Config, log *logger.Logger) {
+func Run(store *store.Store, queue controller.Controller, cfg *config.Config, log *logger.Logger) {
 	waitGroup := sync.WaitGroup{}
 
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{})
@@ -28,7 +28,7 @@ func Run(store *store.Store, cfg *config.Config, log *logger.Logger) {
 	api := tgClient.API()
 	ctx := context.Background()
 
-	appClient := client.New(ctx, store, api, log, cfg)
+	appClient := client.New(ctx, store, queue, api, log, cfg)
 
 	log.Info().Msg("start the application")
 
@@ -89,7 +89,7 @@ func Run(store *store.Store, cfg *config.Config, log *logger.Logger) {
 
 			groupData.ImageURL = groupImageUrl
 
-			err = kafka.PushDataToQueue("groups", cfg.KafkaAddr, groupData)
+			err = queue.PushDataToQueue("groups", groupData)
 			if err != nil {
 				log.Error().Err(err).Msgf("failed to push [%s] into queue", groupData.Username)
 			}

@@ -1,14 +1,27 @@
-package kafka
+package controller
 
 import (
 	"encoding/json"
 	"fmt"
 
 	"github.com/Shopify/sarama"
+	"github.com/VladPetriv/tg_scanner/pkg/config"
 )
 
-func PushDataToQueue(topic, addr string, data interface{}) error {
-	producer, err := connectAsProducer(addr)
+type queue struct {
+	cfg *config.Config
+}
+
+func New(cfg *config.Config) *queue {
+	return &queue{
+		cfg: cfg,
+	}
+}
+
+var _ Controller = (*queue)(nil)
+
+func (q queue) PushDataToQueue(topic string, data interface{}) error {
+	producer, err := connectAsProducer(q.cfg.KafkaAddr)
 	if err != nil {
 		return fmt.Errorf("failed to connect as producer: %w", err)
 	}
