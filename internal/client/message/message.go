@@ -3,12 +3,12 @@ package message
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/gotd/td/tg"
 
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/model"
-	"github.com/VladPetriv/tg_scanner/pkg/errors"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
@@ -27,6 +27,8 @@ func New(log *logger.Logger, api *tg.Client) *tgMessage {
 }
 
 func (m tgMessage) ProcessHistoryMessages(ctx context.Context, data tg.ModifiedMessagesMessages, groupPeer *tg.InputPeerChannel) []model.TgMessage {
+	logger := m.log
+
 	processedMessages := make([]model.TgMessage, 0)
 	messages := data.GetMessages()
 
@@ -35,14 +37,14 @@ func (m tgMessage) ProcessHistoryMessages(ctx context.Context, data tg.ModifiedM
 
 		encodedData, err := json.Marshal(message)
 		if err != nil {
-			m.log.Warn().Err(err).Msg("failed to marshal message data")
+			logger.Warn().Err(err).Msg("marshal message data")
 
 			continue
 		}
 
 		err = json.Unmarshal(encodedData, &msg)
 		if err != nil {
-			m.log.Warn().Err(err).Msg("failed to unmarshal message data")
+			logger.Warn().Err(err).Msg("unmarshal message data")
 
 			continue
 		}
@@ -54,6 +56,7 @@ func (m tgMessage) ProcessHistoryMessages(ctx context.Context, data tg.ModifiedM
 }
 
 func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User, groups []model.TgGroup) ([]model.TgMessage, error) {
+	logger := m.log
 	processedMessages := make([]model.TgMessage, 0)
 
 	data, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
@@ -63,9 +66,8 @@ func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User,
 		},
 	})
 	if err != nil {
-		m.log.Error().Err(err).Msg("failed to get incoming messages")
-
-		return nil, &errors.GetError{Name: "incoming messages", ErrorValue: err}
+		logger.Error().Err(err).Msg("get incoming messages")
+		return nil, fmt.Errorf("get incoming messages error: %w", err)
 	}
 
 	modifiedMessages, _ := data.AsModified()
@@ -75,14 +77,14 @@ func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User,
 
 		encodedData, err := json.Marshal(message)
 		if err != nil {
-			m.log.Warn().Err(err).Msg("failed to marshal message data")
+			logger.Warn().Err(err).Msg("marshal message data")
 
 			continue
 		}
 
 		err = json.Unmarshal(encodedData, &msg)
 		if err != nil {
-			m.log.Warn().Err(err).Msg("failed to unmarshal message data")
+			logger.Warn().Err(err).Msg("unmarshal message data")
 
 			continue
 		}
@@ -101,6 +103,8 @@ func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User,
 }
 
 func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.TgMessage) (tg.UploadFileClass, error) {
+	logger := m.log
+
 	length := len(message.Media.Photo.Sizes) - 1
 
 	data, err := m.api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
@@ -114,9 +118,8 @@ func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.TgMessage)
 		Limit:  photo.Size,
 	})
 	if err != nil {
-		m.log.Error().Err(err).Msg("failed to get message photo")
-
-		return nil, &errors.GetError{Name: "message photo", ErrorValue: err}
+		logger.Error().Err(err).Msg("get message photo")
+		return nil, fmt.Errorf("get message photo error: %w", err)
 	}
 
 	return data, nil
@@ -124,6 +127,8 @@ func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.TgMessage)
 
 // TODO: refactor it
 func (m tgMessage) CheckMessagePhotoStatus(ctx context.Context, message *model.TgMessage) (bool, error) {
+	logger := m.log
+
 	request := &tg.ChannelsGetMessagesRequest{
 		Channel: &tg.InputChannel{
 			ChannelID:  message.PeerID.ID,
@@ -134,7 +139,8 @@ func (m tgMessage) CheckMessagePhotoStatus(ctx context.Context, message *model.T
 
 	data, err := m.api.ChannelsGetMessages(ctx, request)
 	if err != nil {
-		return false, &errors.GetError{Name: "messages by channel peer", ErrorValue: err}
+		logger.Error().Err(err).Msg("get message by id")
+		return false, fmt.Errorf("get message by id error: %w", err)
 	}
 
 	messages, _ := data.(*tg.MessagesChannelMessages)
@@ -142,17 +148,23 @@ func (m tgMessage) CheckMessagePhotoStatus(ctx context.Context, message *model.T
 	for _, m := range messages.GetMessages() {
 		message, ok := m.(*tg.Message)
 		if !ok {
+			logger.Warn().Bool("isMessage", ok).Msg("receive unexpected message type")
+
 			continue
 		}
 
 		if message.Media != nil {
 			media, ok := message.Media.(*tg.MessageMediaPhoto)
 			if !ok {
+				logger.Warn().Bool("isMedia", ok).Msg("receive unexpected media type")
+
 				continue
 			}
 
 			photo, ok := media.GetPhoto()
 			if !ok {
+				logger.Warn().Bool("isPhoto", ok).Msg("receive unexpected photo type")
+
 				continue
 			}
 
