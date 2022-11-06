@@ -3,12 +3,12 @@ package reply
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/gotd/td/tg"
 
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/model"
-	"github.com/VladPetriv/tg_scanner/pkg/errors"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
@@ -27,22 +27,24 @@ func New(log *logger.Logger, api *tg.Client) *tgReply {
 }
 
 func (r tgReply) GetReplies(ctx context.Context, message *model.TgMessage, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) {
+	logger := r.log
+
 	replies, err := r.api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{
 		Peer:  groupPeer,
 		MsgID: message.ID,
 	})
 	if err != nil {
-		r.log.Error().Err(err).Msg("failed to get replies")
-
-		return nil, &errors.GetError{Name: "replies", ErrorValue: err}
+		logger.Error().Err(err).Msg("get replies from message")
+		return nil, fmt.Errorf("get replies from message error: %w", err)
 	}
 
 	return replies, nil
 }
 
 func (r tgReply) ProcessReplies(ctx context.Context, replies tg.MessagesMessagesClass, groupPeer *tg.InputPeerChannel) []model.TgRepliesMessage {
-	processedReplies := make([]model.TgRepliesMessage, 0)
+	logger := r.log
 
+	processedReplies := make([]model.TgRepliesMessage, 0)
 	modifiedReplies, _ := replies.AsModified()
 
 	for _, rpl := range modifiedReplies.GetMessages() {
@@ -50,14 +52,14 @@ func (r tgReply) ProcessReplies(ctx context.Context, replies tg.MessagesMessages
 
 		encodedData, err := json.Marshal(rpl)
 		if err != nil {
-			r.log.Warn().Err(err).Msg("failed to marshal reply data")
+			logger.Warn().Err(err).Msg("marshal reply data")
 
 			continue
 		}
 
 		err = json.Unmarshal(encodedData, &reply)
 		if err != nil {
-			r.log.Warn().Err(err).Msg("failed to unmarshal reply data")
+			r.log.Warn().Err(err).Msg("unmarshal reply data")
 
 			continue
 		}
@@ -69,6 +71,8 @@ func (r tgReply) ProcessReplies(ctx context.Context, replies tg.MessagesMessages
 }
 
 func (r tgReply) GetReplyPhoto(ctx context.Context, reply model.TgRepliesMessage) (tg.UploadFileClass, error) {
+	logger := r.log
+
 	length := len(reply.Media.Photo.Sizes) - 1
 
 	data, err := r.api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
@@ -82,9 +86,8 @@ func (r tgReply) GetReplyPhoto(ctx context.Context, reply model.TgRepliesMessage
 		Limit:  photo.Size,
 	})
 	if err != nil {
-		r.log.Error().Err(err).Msg("failed to get reply photo")
-
-		return nil, &errors.GetError{Name: "reply photo", ErrorValue: err}
+		logger.Error().Err(err).Msg("get reply photo")
+		return nil, fmt.Errorf("get reply photo error: %w", err)
 	}
 
 	return data, nil
