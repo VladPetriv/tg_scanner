@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gotd/td/tg"
-	"github.com/rs/zerolog/log"
 
 	"github.com/VladPetriv/tg_scanner/internal/client/group"
 	"github.com/VladPetriv/tg_scanner/internal/client/message"
@@ -65,11 +64,13 @@ func New(ctx context.Context, store *store.Store, queue controller.Controller, a
 }
 
 func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
+	logger := c.log
+
 	time.Sleep(_startTimeout)
 
 	for {
 		for _, groupData := range groups {
-			c.log.Info().Msgf("get - [%s]", groupData.Username)
+			logger.Info().Msgf("get - [%s]", groupData.Username)
 
 			path := fmt.Sprintf("./data/%s.json", groupData.Username)
 
@@ -80,44 +81,44 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 
 			groupMessages, err := c.Groups.GetMessagesFromGroupHistory(c.ctx, groupPeer)
 			if err != nil {
-				c.log.Error().Err(err).Msg("failed to get messages from group history")
+				logger.Error().Err(err).Msg("get messages from group history")
 			}
 
 			modifiedGroupMessages, ok := groupMessages.AsModified()
 			if !ok {
-				c.log.Warn().Msg("failed to get modified group messages")
+				logger.Warn().Msg("receive unexpected messages type")
 			}
 
 			processedMessages := c.Messages.ProcessHistoryMessages(c.ctx, modifiedGroupMessages, groupPeer)
 
 			messagesFromFile, err := file.GetMessagesFromFile(path)
 			if err != nil {
-				c.log.Error().Err(err).Msg("failed to get messages from file")
+				logger.Error().Err(err).Msg("get messages from the file")
 			}
 
 			for _, msg := range processedMessages {
 				// check if message is question
 				ok := filter.ProcessMessage(&msg)
 				if !ok {
+					logger.Info().Msg("message isn't a question")
+
 					continue
 				}
 
 				msg.PeerID = groupData
 
-				// get user info for message
 				userInfo, err := c.Users.GetUser(c.ctx, msg, groupPeer)
 				if err != nil {
-					c.log.Error().Err(err).Msg("failed to get user info for message")
+					logger.Error().Err(err).Msg("get user info for message")
 
 					continue
 				}
 
 				msg.FromID = *userInfo
 
-				// get replies for message
 				replies, err := c.Replies.GetReplies(c.ctx, &msg, groupPeer)
 				if err != nil {
-					c.log.Error().Err(err).Msg("failed to get replies for message")
+					logger.Error().Err(err).Msg("get replies for message")
 
 					continue
 				}
@@ -128,7 +129,7 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 				for index, reply := range processedReplies {
 					userInfo, err := c.Users.GetUser(c.ctx, reply, groupPeer)
 					if err != nil {
-						c.log.Error().Err(err).Msg("failed to get user info for reply")
+						logger.Error().Err(err).Msg("get user info for reply")
 
 						continue
 					}
@@ -146,7 +147,7 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 
 			err = file.WriteMessagesToFile(result, path)
 			if err != nil {
-				c.log.Error().Err(err).Msg("failed to write messages into file")
+				logger.Error().Err(err).Msg("write messages into file")
 			}
 
 			time.Sleep(time.Second * 10)
@@ -157,43 +158,43 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 }
 
 func (c appClient) GetIncomingMessages(user *tg.User, groups []model.TgGroup) {
+	logger := c.log
+
 	time.Sleep(_startTimeout)
 
 	path := "./data/incoming.json"
 
-	c.log.Info().Msg("create base file for incoming messages")
 	err := file.CreateFileForIncoming()
 	if err != nil {
-		c.log.Error().Err(err).Msg("failed to create base file for incoming messages")
+		logger.Error().Err(err).Msg("create base file for incoming messages")
 	}
 
 	for {
-		c.log.Info().Msg("get - [incoming messages]")
-
 		processedMessages, err := c.Messages.ProcessIncomingMessages(c.ctx, user, groups)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to process incoming messages")
+			logger.Error().Err(err).Msg("process incoming messages")
 		}
 
 		messagesFromFile, err := file.GetMessagesFromFile(path)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to get message from files")
+			logger.Error().Err(err).Msg("get message from files")
 		}
 
 		for _, msg := range processedMessages {
 			// check if message in question
 			ok := filter.ProcessMessage(&msg)
 			if !ok {
+				logger.Info().Msg("message isn't a question")
+
 				continue
 			}
 
-			// get user info for message
 			userInfo, err := c.Users.GetUser(c.ctx, msg, &tg.InputPeerChannel{
 				ChannelID:  msg.PeerID.ID,
 				AccessHash: msg.PeerID.AccessHash,
 			})
 			if err != nil {
-				c.log.Error().Err(err).Msg("failed to get user info for message")
+				logger.Error().Err(err).Msg("get user info for message")
 
 				continue
 			}
@@ -207,7 +208,7 @@ func (c appClient) GetIncomingMessages(user *tg.User, groups []model.TgGroup) {
 
 		err = file.WriteMessagesToFile(result, path)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to write messages into file")
+			logger.Error().Err(err).Msg("write messages into file")
 		}
 
 		time.Sleep(_incomingTimeout)
@@ -215,26 +216,28 @@ func (c appClient) GetIncomingMessages(user *tg.User, groups []model.TgGroup) {
 }
 
 func (c appClient) PushToQueue() {
-	for {
-		c.log.Info().Msg("pushing messages to queue")
+	logger := c.log
 
+	for {
 		messages, err := file.ParseFromFiles("data")
 		if err != nil {
-			c.log.Error().Err(err).Msg("failed to get messages from files")
+			logger.Error().Err(err).Msg("get messages from files")
 		}
 
 		for _, messageData := range messages {
 			messageValue, err := c.store.Cache.Get(c.ctx, c.store.Cache.GenerateKey(messageData))
 			if err != nil {
-				c.log.Error().Err(err).Msg("failed to get message key from cache")
+				logger.Error().Err(err).Msg("get message key from cache")
 			}
 
 			if messageValue == "" {
 				err := c.store.Cache.Set(c.ctx, c.store.Cache.GenerateKey(messageData), true)
 				if err != nil {
-					c.log.Error().Err(err).Msg("failed to set message into cache")
+					logger.Error().Err(err).Msg("set message into cache")
 				}
 			} else {
+				logger.Info().Msg("message is exist")
+
 				continue
 			}
 
@@ -243,21 +246,19 @@ func (c appClient) PushToQueue() {
 				AccessHash: messageData.PeerID.AccessHash,
 			}
 
-			// get replies for message
 			replies, err := c.Replies.GetReplies(c.ctx, &messageData, groupPeer)
 			if err != nil {
-				c.log.Error().Err(err).Msg("failed to get replies for message")
+				logger.Error().Err(err).Msg("get replies for message")
 
 				continue
 			}
 
 			processedReplies := c.Replies.ProcessReplies(c.ctx, replies, groupPeer)
 
-			// get user info for replies
 			for _, reply := range processedReplies {
 				userInfo, err := c.Users.GetUser(c.ctx, reply, groupPeer)
 				if err != nil {
-					c.log.Error().Err(err).Msg("failed to get user info for reply")
+					logger.Error().Err(err).Msg("failed to get user info for reply")
 
 					continue
 				}
@@ -270,20 +271,21 @@ func (c appClient) PushToQueue() {
 
 			filter.RemoveDuplicatesFromReplies(&messageData.Replies)
 
-			// if len of replies is 0 move to other message
+			// if length of replies is 0 move to other message
 			if len(messageData.Replies.Messages) == 0 {
+				logger.Info().Msg("message have no replies")
+
 				continue
 			}
 
-			// process user photo
 			userPhotoData, err := c.Users.GetUserPhoto(c.ctx, messageData.FromID)
 			if err != nil {
-				c.log.Error().Err(err).Msg("failed to get user photo")
+				logger.Error().Err(err).Msg("get user photo")
 			}
 
 			userImageUrl, err := c.Photos.ProcessPhoto(c.ctx, userPhotoData, messageData.FromID.Username)
 			if err != nil {
-				c.log.Error().Err(err).Msg("failed to process user photo")
+				logger.Error().Err(err).Msg("process user photo")
 			}
 
 			messageData.FromID.ImageURL = userImageUrl
@@ -294,12 +296,12 @@ func (c appClient) PushToQueue() {
 			if ok, _ := c.Messages.CheckMessagePhotoStatus(c.ctx, &messageData); ok {
 				messagePhotoData, err := c.Messages.GetMessagePhoto(c.ctx, messageData)
 				if err != nil {
-					c.log.Error().Err(err).Msg("failed to check message photo status")
+					logger.Error().Err(err).Msg("check message photo status")
 				}
 
 				messageImageUrl, err = c.Photos.ProcessPhoto(c.ctx, messagePhotoData, fmt.Sprint(messageData.ID))
 				if err != nil {
-					c.log.Error().Err(err).Msg("failed to process message photo")
+					logger.Error().Err(err).Msg("process message photo")
 				}
 			}
 
@@ -309,12 +311,12 @@ func (c appClient) PushToQueue() {
 			for index, replyData := range messageData.Replies.Messages {
 				userPhotoData, err := c.Users.GetUserPhoto(c.ctx, replyData.FromID)
 				if err != nil {
-					c.log.Error().Err(err).Msg("failed to get user photo")
+					logger.Error().Err(err).Msg("get user photo")
 				}
 
 				userImageUrl, err := c.Photos.ProcessPhoto(c.ctx, userPhotoData, replyData.FromID.Username)
 				if err != nil {
-					log.Error().Err(err).Msg("failed to process user photo")
+					logger.Error().Err(err).Msg("process user photo")
 				}
 
 				messageData.Replies.Messages[index].FromID.ImageURL = userImageUrl
@@ -325,12 +327,12 @@ func (c appClient) PushToQueue() {
 				if replyData.Media.Photo != nil {
 					replyPhotoData, err := c.Replies.GetReplyPhoto(c.ctx, replyData)
 					if err != nil {
-						log.Error().Err(err).Msg("failed to get reply photo")
+						logger.Error().Err(err).Msg("get reply photo")
 					}
 
 					replyImageUrl, err = c.Photos.ProcessPhoto(c.ctx, replyPhotoData, fmt.Sprint(replyData.ID))
 					if err != nil {
-						log.Error().Err(err).Msg("failed to process reply photo")
+						logger.Error().Err(err).Msg("process reply photo")
 					}
 				}
 
@@ -339,7 +341,7 @@ func (c appClient) PushToQueue() {
 
 			err = c.queue.PushDataToQueue("messages", messageData)
 			if err != nil {
-				log.Error().Err(err).Msg("failed to push message into queue")
+				logger.Error().Err(err).Msg("failed to push message into queue")
 			}
 		}
 

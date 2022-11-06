@@ -12,7 +12,6 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/controller"
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
-	"github.com/VladPetriv/tg_scanner/pkg/errors"
 	"github.com/VladPetriv/tg_scanner/pkg/file"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
@@ -22,7 +21,7 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{})
 	if err != nil {
-		log.Error().Err(&errors.CreateError{Name: "telegram client", ErrorValue: err}).Msg("failed to create telegram client")
+		log.Error().Err(err).Msg("create telegram client")
 	}
 
 	api := tgClient.API()
@@ -37,7 +36,7 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 
 		user, err := auth.Login(ctx, tgClient, cfg)
 		if err != nil {
-			return fmt.Errorf("failed to authenticate user: %w", err)
+			return fmt.Errorf("authenticate user: %w", err)
 		}
 
 		userData, _ := user.GetUser().AsNotEmpty()
@@ -46,13 +45,13 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 
 		groups, err := appClient.Groups.GetGroups(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to get user groups")
+			log.Error().Err(err).Msg("get user groups")
 		}
 
 		log.Info().Msg("create base files")
 		err = file.CreateFilesForGroups(groups)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to create base files for group messages")
+			log.Error().Err(err).Msg("create base files for group messages")
 		}
 
 		log.Info().Msg("check if groups are in cache")
@@ -63,13 +62,13 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 
 			groupValue, err := store.Cache.Get(ctx, store.Cache.GenerateKey(groupData))
 			if err != nil {
-				log.Error().Err(err).Msg("failed to get value from cache")
+				log.Error().Err(err).Msg("get value from cache")
 			}
 
 			if groupValue == "" {
 				err = store.Cache.Set(ctx, store.Cache.GenerateKey(groupData), true)
 				if err != nil {
-					log.Error().Err(err).Msg("failed to set value into cache")
+					log.Error().Err(err).Msg("set value into cache")
 				}
 			} else {
 				continue
@@ -77,29 +76,27 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 
 			groupPhotoData, err := appClient.Groups.GetGroupPhoto(ctx, &groupData)
 			if err != nil {
-				log.Error().Err(err).Msgf("failed to get [%s] photo data", groupData.Username)
+				log.Error().Err(err).Msgf("get [%s] photo data", groupData.Username)
 
 				continue
 			}
 
 			groupImageUrl, err := appClient.Photos.ProcessPhoto(ctx, groupPhotoData, groupData.Username)
 			if err != nil {
-				log.Error().Err(err).Msgf("failed to process [%s] photo data", groupData.Username)
+				log.Error().Err(err).Msgf("process [%s] photo data", groupData.Username)
 			}
 
 			groupData.ImageURL = groupImageUrl
 
 			err = queue.PushDataToQueue("groups", groupData)
 			if err != nil {
-				log.Error().Err(err).Msgf("failed to push [%s] into queue", groupData.Username)
+				log.Error().Err(err).Msgf("push [%s] into queue", groupData.Username)
 			}
 		}
 
 		log.Info().Msg("successfully pushed groups into queue")
 
 		waitGroup.Add(3)
-
-		log.Info().Msg("wait default start timeout [20s]")
 
 		go appClient.PushToQueue()
 		go appClient.GetHistoryMessages(groups[5:])

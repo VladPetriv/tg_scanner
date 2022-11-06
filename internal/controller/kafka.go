@@ -23,14 +23,14 @@ var _ Controller = (*queue)(nil)
 func (q queue) PushDataToQueue(topic string, data interface{}) error {
 	producer, err := connectAsProducer(q.cfg.KafkaAddr)
 	if err != nil {
-		return fmt.Errorf("failed to connect as producer: %w", err)
+		return fmt.Errorf("connect as producer error: %w", err)
 	}
 
 	defer producer.Close()
 
 	encodedData, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("failed to marshal data: %w", err)
+		return fmt.Errorf("marshal data error: %w", err)
 	}
 
 	queueMessage := &sarama.ProducerMessage{
@@ -40,7 +40,7 @@ func (q queue) PushDataToQueue(topic string, data interface{}) error {
 
 	_, _, err = producer.SendMessage(queueMessage)
 	if err != nil {
-		return fmt.Errorf("failed send message into kafka: %w", err)
+		return fmt.Errorf("send message into kafka error: %w", err)
 	}
 
 	return nil
@@ -54,7 +54,7 @@ func connectAsProducer(addr string) (sarama.SyncProducer, error) {
 
 	conn, err := sarama.NewSyncProducer([]string{addr}, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create producer: %w", err)
+		return nil, fmt.Errorf("create producer error: %w", err)
 	}
 
 	return conn, nil

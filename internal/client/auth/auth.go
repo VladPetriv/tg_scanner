@@ -13,7 +13,6 @@ import (
 	"github.com/gotd/td/tg"
 
 	"github.com/VladPetriv/tg_scanner/pkg/config"
-	cerrors "github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
 type noSignUp struct{}
@@ -47,7 +46,7 @@ func (a TermAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
 
 	code, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
-		return "", &cerrors.CreateError{Name: "new reader", ErrorValue: err}
+		return "", fmt.Errorf("create new reader error: %w", err)
 	}
 
 	return strings.TrimSpace(code), nil
@@ -57,11 +56,7 @@ func Login(ctx context.Context, client *telegram.Client, cfg *config.Config) (*t
 	// Create new flow
 	flow := auth.NewFlow(
 		TermAuth{noSignUp: noSignUp{}, UserPhone: cfg.Phone},
-		auth.SendCodeOptions{
-			AllowFlashCall: false,
-			CurrentNumber:  false,
-			AllowAppHash:   false,
-		},
+		auth.SendCodeOptions{},
 	)
 	// Authorization
 	if err := client.Auth().IfNecessary(ctx, flow); err != nil {
