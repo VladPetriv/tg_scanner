@@ -47,7 +47,7 @@ func (r redisStore) GenerateKey(value interface{}) string {
 func (r redisStore) Get(ctx context.Context, key string) (string, error) {
 	value, err := r.client.Get(ctx, key).Result()
 	if err != nil && err != redis.Nil {
-		return "", fmt.Errorf("failed to get data from redis: %w", err)
+		return "", fmt.Errorf("get data from redis error: %w", err)
 	}
 
 	return value, nil
@@ -56,7 +56,7 @@ func (r redisStore) Get(ctx context.Context, key string) (string, error) {
 func (r redisStore) Set(ctx context.Context, key string, value bool) error {
 	err := r.client.Set(ctx, key, value, 0)
 	if err.Err() != nil {
-		return fmt.Errorf("failed to set data to redis: %w", err.Err())
+		return fmt.Errorf("set data to redis error: %w", err.Err())
 	}
 
 	return nil

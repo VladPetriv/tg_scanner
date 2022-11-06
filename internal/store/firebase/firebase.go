@@ -10,7 +10,6 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/VladPetriv/tg_scanner/pkg/config"
-	"github.com/VladPetriv/tg_scanner/pkg/errors"
 )
 
 type firebaseStore struct {
@@ -35,17 +34,17 @@ func (f firebaseStore) Send(ctx context.Context, path string, objectName string)
 	opt := option.WithCredentialsFile(f.cfg.SecretPath)
 	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
-		return "", &errors.CreateError{Name: "firebase application", ErrorValue: err}
+		return "", fmt.Errorf("create firebase app error: %w", err)
 	}
 
 	client, err := app.Storage(ctx)
 	if err != nil {
-		return "", &errors.CreateError{Name: "firebase storage", ErrorValue: err}
+		return "", fmt.Errorf("get access to storage error: %w", err)
 	}
 
 	bucket, err := client.DefaultBucket()
 	if err != nil {
-		return "", &errors.GetError{Name: "default bucket", ErrorValue: err}
+		return "", fmt.Errorf("get default bucket error: %w", err)
 	}
 
 	storageWriter := bucket.Object(objectName).NewWriter(ctx)
@@ -67,7 +66,7 @@ func (f firebaseStore) Send(ctx context.Context, path string, objectName string)
 
 	err = os.Remove(path)
 	if err != nil {
-		return "", fmt.Errorf("error while deleting image: %w", err)
+		return "", fmt.Errorf("delete image error: %w", err)
 	}
 
 	return url, nil
