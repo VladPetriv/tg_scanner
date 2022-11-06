@@ -11,7 +11,6 @@ import (
 
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/store"
-	cerrors "github.com/VladPetriv/tg_scanner/pkg/errors"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
@@ -33,49 +32,55 @@ func New(log *logger.Logger, store *store.Store) *tgPhoto {
 }
 
 func (p tgPhoto) ProcessPhoto(ctx context.Context, photoData tg.UploadFileClass, name string) (string, error) {
+	logger := p.log
+
 	image, err := p.decodePhoto(photoData)
 	if err != nil {
-		p.log.Warn().Err(err)
+		logger.Warn().Err(err).Msg("decode photo")
 	}
 
 	filename, err := p.createPhoto(image, fmt.Sprint(name))
 	if err != nil {
-		p.log.Warn().Err(err)
+		logger.Warn().Err(err).Msg("create photo file")
 	}
 
 	imageUrl, err := p.store.Image.Send(ctx, filename, fmt.Sprint(name))
 	if err != nil {
-		p.log.Error().Err(err)
-
-		return imageUrl, fmt.Errorf("failed to send image into firebase: %w", err)
+		logger.Error().Err(err).Msg("send image into firebase")
+		return imageUrl, fmt.Errorf("send image into firebase error: %w", err)
 	}
 
 	return imageUrl, nil
 }
 
 func (p tgPhoto) decodePhoto(photo tg.UploadFileClass) (*model.Image, error) {
-	if photo == nil {
-		p.log.Error().Err(errPhotoDataIsNil)
+	logger := p.log
 
+	if photo == nil {
+		logger.Error().Err(errPhotoDataIsNil).Msg("photo data is nil")
 		return nil, errPhotoDataIsNil
 	}
 
-	img := model.Image{}
+	var img model.Image
 
 	encodedData, err := json.Marshal(photo)
 	if err != nil {
-		return nil, &cerrors.CreateError{Name: "JSON", ErrorValue: err}
+		logger.Error().Err(err).Msg("marshal photo data")
+		return nil, fmt.Errorf("marshal photo data error: %w", err)
 	}
 
 	err = json.Unmarshal(encodedData, &img)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshal JSON error: %w", err)
+		logger.Error().Err(err).Msg("unmarshal photo data")
+		return nil, fmt.Errorf("unmarshal photo data error: %w", err)
 	}
 
 	return &img, nil
 }
 
 func (p tgPhoto) createPhoto(img *model.Image, name string) (string, error) {
+	logger := p.log
+
 	if img == nil {
 		return "", errPhotoDataIsNil
 	}
@@ -83,12 +88,14 @@ func (p tgPhoto) createPhoto(img *model.Image, name string) (string, error) {
 	path := fmt.Sprintf("./images/%s.jpg", name)
 	photo, err := os.Create(path)
 	if err != nil {
-		return "", &cerrors.CreateError{Name: "photo", ErrorValue: err}
+		logger.Error().Err(err).Msg("create file")
+		return "", fmt.Errorf("create file error: %w", err)
 	}
 
 	_, err = photo.Write(img.Bytes)
 	if err != nil {
-		return "", fmt.Errorf("write file error: %w", err)
+		logger.Error().Err(err).Msg("wirte data to file")
+		return "", fmt.Errorf("write data to file error: %w", err)
 	}
 
 	return path, nil
