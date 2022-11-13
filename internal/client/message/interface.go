@@ -12,4 +12,6 @@ type Message interface {
 	ProcessIncomingMessages(ctx context.Context, tgUser *tg.User, groups []model.TgGroup) ([]model.TgMessage, error)
 	GetMessagePhoto(ctx context.Context, message model.TgMessage) (tg.UploadFileClass, error)
 	CheckMessagePhotoStatus(ctx context.Context, message *model.TgMessage) (bool, error)
+	WriteMessagesToFile(messages []model.TgMessage, fileName string)
+	GetMessagesFromFile(pathToFile string) ([]model.TgMessage, error)
 }

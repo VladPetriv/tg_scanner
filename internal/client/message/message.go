@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/gotd/td/tg"
 
@@ -177,4 +178,49 @@ func (m tgMessage) CheckMessagePhotoStatus(ctx context.Context, message *model.T
 	}
 
 	return false, nil
+}
+
+func (m tgMessage) WriteMessagesToFile(messages []model.TgMessage, fileName string) {
+	logger := m.log
+
+	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		logger.Error().Err(err).Msg("open file error")
+	}
+
+	encodedMessages, err := json.Marshal(messages)
+	if err != nil {
+		logger.Error().Err(err).Msg("marshal messages error")
+	}
+
+	_, err = file.Write(encodedMessages)
+	if err != nil {
+		logger.Error().Err(err).Msg("write messages to file error")
+	}
+}
+
+func (m tgMessage) GetMessagesFromFile(filePath string) ([]model.TgMessage, error) {
+	logger := m.log
+
+	messages := make([]model.TgMessage, 0)
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		logger.Error().Err(err).Msg("read file")
+		return nil, fmt.Errorf("read file error: %w", err)
+	}
+
+	err = json.Unmarshal(data, &messages)
+	if err != nil {
+		logger.Error().Err(err).Msg("unmarshal messages")
+		return nil, fmt.Errorf("unmarshal file data error: %w", err)
+	}
+
+	_, err = os.Create(filePath)
+	if err != nil {
+		logger.Error().Err(err).Msg("create file")
+		return nil, fmt.Errorf("create file error: %w", err)
+	}
+
+	return messages, nil
 }

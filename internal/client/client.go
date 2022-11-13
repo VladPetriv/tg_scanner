@@ -3,10 +3,12 @@ package client
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/gotd/td/tg"
 
+	"github.com/VladPetriv/tg_scanner/internal/client/filter"
 	"github.com/VladPetriv/tg_scanner/internal/client/group"
 	"github.com/VladPetriv/tg_scanner/internal/client/message"
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
@@ -17,17 +19,17 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/file"
-	"github.com/VladPetriv/tg_scanner/pkg/filter"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
 // Timeouts
 var (
-	_startTimeout    time.Duration = 20 * time.Second
-	_historyTimeout  time.Duration = 30 * time.Minute
-	_removeTimeout   time.Duration = 30 * time.Minute
-	_saveTimeout     time.Duration = 15 * time.Minute
-	_incomingTimeout time.Duration = time.Minute
+	_startTimeout         time.Duration = 20 * time.Second
+	_historyTimeout       time.Duration = 30 * time.Minute
+	_removeTimeout        time.Duration = 30 * time.Minute
+	_saveTimeout          time.Duration = 15 * time.Minute
+	_beetweenGroupTimeout time.Duration = 10 * time.Second
+	_incomingTimeout      time.Duration = time.Minute
 )
 
 type appClient struct {
@@ -72,7 +74,7 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 		for _, groupData := range groups {
 			logger.Info().Msgf("get - [%s]", groupData.Username)
 
-			path := fmt.Sprintf("./data/%s.json", groupData.Username)
+			filePath := fmt.Sprintf("./data/%s.json", groupData.Username)
 
 			groupPeer := &tg.InputPeerChannel{
 				ChannelID:  groupData.ID,
@@ -91,7 +93,7 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 
 			processedMessages := c.Messages.ProcessHistoryMessages(c.ctx, modifiedGroupMessages, groupPeer)
 
-			messagesFromFile, err := file.GetMessagesFromFile(path)
+			messagesFromFile, err := c.Messages.GetMessagesFromFile(filePath)
 			if err != nil {
 				logger.Error().Err(err).Msg("get messages from the file")
 			}
@@ -100,8 +102,6 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 				// check if message is question
 				ok := filter.ProcessMessage(&msg)
 				if !ok {
-					logger.Info().Msg("message isn't a question")
-
 					continue
 				}
 
@@ -145,10 +145,7 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 
 			result := filter.RemoveDuplicatesFromMessages(messagesFromFile)
 
-			err = file.WriteMessagesToFile(result, path)
-			if err != nil {
-				logger.Error().Err(err).Msg("write messages into file")
-			}
+			c.Messages.WriteMessagesToFile(result, filePath)
 
 			time.Sleep(time.Second * 10)
 		}
@@ -162,7 +159,7 @@ func (c appClient) GetIncomingMessages(user *tg.User, groups []model.TgGroup) {
 
 	time.Sleep(_startTimeout)
 
-	path := "./data/incoming.json"
+	filePath := "./data/incoming.json"
 
 	err := file.CreateFileForIncoming()
 	if err != nil {
@@ -175,17 +172,15 @@ func (c appClient) GetIncomingMessages(user *tg.User, groups []model.TgGroup) {
 			logger.Error().Err(err).Msg("process incoming messages")
 		}
 
-		messagesFromFile, err := file.GetMessagesFromFile(path)
+		messagesFromFile, err := c.Messages.GetMessagesFromFile(filePath)
 		if err != nil {
-			logger.Error().Err(err).Msg("get message from files")
+			logger.Error().Err(err).Msg("get message from file")
 		}
 
 		for _, msg := range processedMessages {
 			// check if message in question
 			ok := filter.ProcessMessage(&msg)
 			if !ok {
-				logger.Info().Msg("message isn't a question")
-
 				continue
 			}
 
@@ -206,10 +201,7 @@ func (c appClient) GetIncomingMessages(user *tg.User, groups []model.TgGroup) {
 
 		result := filter.RemoveDuplicatesFromMessages(messagesFromFile)
 
-		err = file.WriteMessagesToFile(result, path)
-		if err != nil {
-			logger.Error().Err(err).Msg("write messages into file")
-		}
+		c.Messages.WriteMessagesToFile(result, filePath)
 
 		time.Sleep(_incomingTimeout)
 	}
@@ -219,7 +211,7 @@ func (c appClient) PushToQueue() {
 	logger := c.log
 
 	for {
-		messages, err := file.ParseFromFiles("data")
+		messages, err := c.ProcessMessagesFromFiles("data")
 		if err != nil {
 			logger.Error().Err(err).Msg("get messages from files")
 		}
@@ -347,4 +339,56 @@ func (c appClient) PushToQueue() {
 
 		time.Sleep(_saveTimeout)
 	}
+}
+
+func (c appClient) ProcessMessagesFromFiles(path string) ([]model.TgMessage, error) {
+	logger := c.log
+
+	messages := make([]model.TgMessage, 0)
+
+	directory, err := os.Open(path)
+	if err != nil {
+		logger.Error().Err(err).Msg("open directory")
+		return nil, fmt.Errorf("open directory error: %w", err)
+	}
+
+	files, err := directory.ReadDir(0)
+	if err != nil {
+		logger.Error().Err(err).Msg("get all files from directory")
+		return nil, fmt.Errorf("read directory error: %w", err)
+	}
+
+	for _, file := range files {
+		filePath := fmt.Sprintf("./%s/%s", path, file.Name())
+
+		messagesFromFile, err := c.Messages.GetMessagesFromFile(filePath)
+		if err != nil {
+			logger.Warn().Err(err).Msgf("get messages from file[%s]", file.Name())
+
+			continue
+		}
+
+		/* err = os.Remove(pathToFile)
+		if err != nil {
+			return nil, fmt.Errorf("remove file error: %w", err)
+		} */
+
+		file, err := os.Create(filePath)
+		if err != nil {
+			logger.Error().Err(err).Msg("create file")
+			return nil, fmt.Errorf("create file error: %w", err)
+		}
+
+		_, err = file.WriteString("[  ]")
+		if err != nil {
+			logger.Error().Err(err).Msg("write to file")
+			return nil, fmt.Errorf("write to file error: %w", err)
+		}
+
+		messages = append(messages, messagesFromFile...)
+	}
+
+	result := filter.RemoveDuplicatesFromMessages(messages)
+
+	return result, nil
 }

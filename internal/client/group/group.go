@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/gotd/td/tg"
 
@@ -95,4 +96,35 @@ func (g tgGroup) GetGroupPhoto(ctx context.Context, group *model.TgGroup) (tg.Up
 	}
 
 	return data, nil
+}
+
+func (g tgGroup) CreateFilesForGroups(groups []model.TgGroup) error {
+	logger := g.log
+
+	for _, group := range groups {
+		fileName := fmt.Sprintf("%s.json", group.Username)
+		if _, err := os.Stat("./data/" + fileName); err == nil {
+			continue
+		}
+
+		file, err := os.Create(fileName)
+		if err != nil {
+			logger.Error().Err(err).Msg("create file")
+			return fmt.Errorf("create file error: %w", err)
+		}
+
+		_, err = file.WriteString("[ ]")
+		if err != nil {
+			logger.Error().Err(err).Msg("write to file")
+			return fmt.Errorf("write to file error: %s", err)
+		}
+
+		err = os.Rename(fileName, fmt.Sprintf("./data/%s", fileName))
+		if err != nil {
+			logger.Error().Err(err).Msg("rename file")
+			return fmt.Errorf("rename file error: %w", err)
+		}
+	}
+
+	return nil
 }

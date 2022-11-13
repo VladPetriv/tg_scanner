@@ -12,7 +12,6 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/controller"
 	"github.com/VladPetriv/tg_scanner/internal/store"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
-	"github.com/VladPetriv/tg_scanner/pkg/file"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
@@ -49,7 +48,7 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 		}
 
 		log.Info().Msg("create base files")
-		err = file.CreateFilesForGroups(groups)
+		err = appClient.Groups.CreateFilesForGroups(groups)
 		if err != nil {
 			log.Error().Err(err).Msg("create base files for group messages")
 		}
