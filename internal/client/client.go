@@ -71,62 +71,59 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 	time.Sleep(_startTimeout)
 
 	for {
-		for _, groupData := range groups {
-			logger.Info().Msgf("get - [%s]", groupData.Username)
+		for _, group := range groups {
+			logger.Info().Msgf("get - [%s]", group.Username)
 
-			filePath := fmt.Sprintf("./data/%s.json", groupData.Username)
+			filePath := fmt.Sprintf("./data/%s.json", group.Username)
 
 			groupPeer := &tg.InputPeerChannel{
-				ChannelID:  groupData.ID,
-				AccessHash: groupData.AccessHash,
+				ChannelID:  group.ID,
+				AccessHash: group.AccessHash,
 			}
 
-			groupMessages, err := c.Groups.GetMessagesFromGroupHistory(c.ctx, groupPeer)
+			tgMessages, err := c.Groups.GetMessagesFromGroupHistory(c.ctx, groupPeer)
 			if err != nil {
 				logger.Error().Err(err).Msg("get messages from group history")
 			}
 
-			modifiedGroupMessages, ok := groupMessages.AsModified()
+			modifiedTgMessages, ok := tgMessages.AsModified()
 			if !ok {
 				logger.Warn().Msg("receive unexpected messages type")
 			}
 
-			processedMessages := c.Messages.ProcessHistoryMessages(c.ctx, modifiedGroupMessages, groupPeer)
+			parsedMessages := c.Messages.ParseHistoryMessages(c.ctx, modifiedTgMessages, groupPeer)
 
-			messagesFromFile, err := c.Messages.GetMessagesFromFile(filePath)
-			if err != nil {
-				logger.Error().Err(err).Msg("get messages from the file")
-			}
+			messages := make([]model.TgMessage, 0)
 
-			for _, msg := range processedMessages {
+			for _, message := range parsedMessages {
 				// check if message is question
-				ok := filter.ProcessMessage(&msg)
+				ok := filter.ProcessMessage(&message)
 				if !ok {
 					continue
 				}
 
-				msg.PeerID = groupData
+				message.PeerID = group
 
-				userInfo, err := c.Users.GetUser(c.ctx, msg, groupPeer)
+				user, err := c.Users.GetUser(c.ctx, message, groupPeer)
 				if err != nil {
 					logger.Error().Err(err).Msg("get user info for message")
 
 					continue
 				}
 
-				msg.FromID = *userInfo
+				message.FromID = *user
 
-				replies, err := c.Replies.GetReplies(c.ctx, &msg, groupPeer)
+				tgReplies, err := c.Replies.GetReplies(c.ctx, message, groupPeer)
 				if err != nil {
 					logger.Error().Err(err).Msg("get replies for message")
 
 					continue
 				}
 
-				processedReplies := c.Replies.ProcessReplies(c.ctx, replies, groupPeer)
+				parsedReplies := c.Replies.ParseTelegramReplies(c.ctx, tgReplies, groupPeer)
 
 				// get user info for replies
-				for index, reply := range processedReplies {
+				for index, reply := range parsedReplies {
 					userInfo, err := c.Users.GetUser(c.ctx, reply, groupPeer)
 					if err != nil {
 						logger.Error().Err(err).Msg("get user info for reply")
@@ -134,18 +131,25 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 						continue
 					}
 
-					processedReplies[index].FromID = *userInfo
+					parsedReplies[index].FromID = *userInfo
 				}
 
-				msg.Replies.Count = len(processedReplies)
-				msg.Replies.Messages = processedReplies
+				message.Replies.Count = len(parsedReplies)
+				message.Replies.Messages = parsedReplies
+
+				messages = append(messages, message)
 			}
 
-			messagesFromFile = append(messagesFromFile, processedMessages...)
+			messagesFromFile, err := c.Messages.GetMessagesFromFile(filePath)
+			if err != nil {
+				logger.Error().Err(err).Msg("get messages from the file")
+			}
 
-			result := filter.RemoveDuplicatesFromMessages(messagesFromFile)
+			messagesFromFile = append(messagesFromFile, messages...)
 
-			c.Messages.WriteMessagesToFile(result, filePath)
+			filteredmessages := filter.RemoveDuplicatesFromMessages(messagesFromFile)
+
+			c.Messages.WriteMessagesToFile(filteredmessages, filePath)
 
 			time.Sleep(time.Second * 10)
 		}
