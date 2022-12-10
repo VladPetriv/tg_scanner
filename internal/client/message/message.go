@@ -27,13 +27,13 @@ func New(log *logger.Logger, api *tg.Client) *tgMessage {
 	}
 }
 
-func (m tgMessage) ProcessHistoryMessages(ctx context.Context, data tg.ModifiedMessagesMessages, groupPeer *tg.InputPeerChannel) []model.TgMessage {
+func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMessagesMessages, groupPeer *tg.InputPeerChannel) []model.TgMessage {
 	logger := m.log
 
-	processedMessages := make([]model.TgMessage, 0)
-	messages := data.GetMessages()
+	messages := make([]model.TgMessage, 0)
+	tgMessages := data.GetMessages()
 
-	for _, message := range messages {
+	for _, message := range tgMessages {
 		msg := model.TgMessage{}
 
 		encodedData, err := json.Marshal(message)
@@ -50,17 +50,18 @@ func (m tgMessage) ProcessHistoryMessages(ctx context.Context, data tg.ModifiedM
 			continue
 		}
 
-		processedMessages = append(processedMessages, msg)
+		messages = append(messages, msg)
 	}
 
-	return processedMessages
+	return messages
 }
 
-func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User, groups []model.TgGroup) ([]model.TgMessage, error) {
+func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, groups []model.TgGroup) ([]model.TgMessage, error) {
 	logger := m.log
-	processedMessages := make([]model.TgMessage, 0)
 
-	data, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
+	messages := make([]model.TgMessage, 0)
+
+	tgmessages, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
 		OffsetPeer: &tg.InputPeerUser{
 			UserID:     tgUser.ID,
 			AccessHash: tgUser.AccessHash,
@@ -71,9 +72,9 @@ func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User,
 		return nil, fmt.Errorf("get incoming messages error: %w", err)
 	}
 
-	modifiedMessages, _ := data.AsModified()
+	modifiedTgMessages, _ := tgmessages.AsModified()
 
-	for _, message := range modifiedMessages.GetMessages() {
+	for _, message := range modifiedTgMessages.GetMessages() {
 		msg := model.TgMessage{}
 
 		encodedData, err := json.Marshal(message)
@@ -90,17 +91,10 @@ func (m tgMessage) ProcessIncomingMessages(ctx context.Context, tgUser *tg.User,
 			continue
 		}
 
-		// add group info because incoming message don't have it
-		for _, groupData := range groups {
-			if msg.PeerID.ChannelID == groupData.ID {
-				msg.PeerID = groupData
-			}
-		}
-
-		processedMessages = append(processedMessages, msg)
+		messages = append(messages, msg)
 	}
 
-	return processedMessages, nil
+	return messages, nil
 }
 
 func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.TgMessage) (tg.UploadFileClass, error) {
