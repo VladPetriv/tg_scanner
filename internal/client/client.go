@@ -24,12 +24,10 @@ import (
 
 // Timeouts
 var (
-	_startTimeout         time.Duration = 20 * time.Second
-	_historyTimeout       time.Duration = 30 * time.Minute
-	_removeTimeout        time.Duration = 30 * time.Minute
-	_saveTimeout          time.Duration = 15 * time.Minute
-	_beetweenGroupTimeout time.Duration = 10 * time.Second
-	_incomingTimeout      time.Duration = time.Minute
+	_startTimeout    time.Duration = 20 * time.Second
+	_historyTimeout  time.Duration = 30 * time.Minute
+	_saveTimeout     time.Duration = 15 * time.Minute
+	_incomingTimeout time.Duration = time.Minute
 )
 
 type appClient struct {
