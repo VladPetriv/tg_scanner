@@ -8,7 +8,6 @@ build:
 run:
 	go run ./cmd/scanner/main.go
 
-.PHONY: docker
-
-docker:
-	docker build -t tg_scanner .
+.PHONY: lint
+lint:
+	golangci-lint run ./...
