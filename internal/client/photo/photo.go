@@ -3,7 +3,6 @@ package photo
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 
@@ -15,8 +14,6 @@ import (
 )
 
 const Size = 1024 * 1024
-
-var errPhotoDataIsNil = errors.New("photo data is nil")
 
 type tgPhoto struct {
 	log   *logger.Logger
@@ -57,11 +54,6 @@ func (p tgPhoto) ProcessPhoto(ctx context.Context, photoData tg.UploadFileClass,
 func (p tgPhoto) decodePhoto(photo tg.UploadFileClass) (*model.Image, error) {
 	logger := p.log
 
-	if photo == nil {
-		logger.Error().Err(errPhotoDataIsNil).Msg("photo data is nil")
-		return nil, errPhotoDataIsNil
-	}
-
 	var img model.Image
 
 	encodedData, err := json.Marshal(photo)
@@ -81,10 +73,6 @@ func (p tgPhoto) decodePhoto(photo tg.UploadFileClass) (*model.Image, error) {
 
 func (p tgPhoto) createPhoto(img *model.Image, name string) (string, error) {
 	logger := p.log
-
-	if img == nil {
-		return "", errPhotoDataIsNil
-	}
 
 	path := fmt.Sprintf("./images/%s.jpg", name)
 	photo, err := os.Create(path)
