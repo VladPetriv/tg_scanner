@@ -120,54 +120,44 @@ func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.TgMessage)
 	return data, nil
 }
 
-// TODO: refactor it
 func (m tgMessage) CheckMessagePhotoStatus(ctx context.Context, message *model.TgMessage) (bool, error) {
 	logger := m.log
 
-	request := &tg.ChannelsGetMessagesRequest{
-		Channel: &tg.InputChannel{
-			ChannelID:  message.PeerID.ID,
-			AccessHash: message.PeerID.AccessHash,
-		},
-		ID: []tg.InputMessageClass{&tg.InputMessageID{ID: message.ID}},
-	}
-
-	data, err := m.api.ChannelsGetMessages(ctx, request)
+	data, err := m.api.ChannelsGetMessages(ctx,
+		&tg.ChannelsGetMessagesRequest{
+			Channel: &tg.InputChannel{
+				ChannelID:  message.PeerID.ID,
+				AccessHash: message.PeerID.AccessHash,
+			},
+			ID: []tg.InputMessageClass{&tg.InputMessageID{ID: message.ID}},
+		})
 	if err != nil {
 		logger.Error().Err(err).Msg("get message by id")
 		return false, fmt.Errorf("get message by id error: %w", err)
 	}
 
-	messages, _ := data.(*tg.MessagesChannelMessages)
+	messages, ok := data.(*tg.MessagesChannelMessages)
 
-	for _, m := range messages.GetMessages() {
-		message, ok := m.(*tg.Message)
-		if !ok {
-			logger.Warn().Bool("isMessage", ok).Msg("receive unexpected message type")
+	if ok {
+		//NOTE: we should check only first message
+		message, isMessage := messages.GetMessages()[0].(*tg.Message)
+		if !isMessage {
+			logger.Warn().Bool("isMessage", isMessage).Msg("receive unexpected message type")
 
-			continue
+			return false, nil
 		}
 
 		if message.Media != nil {
-			media, ok := message.Media.(*tg.MessageMediaPhoto)
-			if !ok {
-				logger.Warn().Bool("isMedia", ok).Msg("receive unexpected media type")
+			media, isMedia := message.Media.(*tg.MessageMediaPhoto)
+			if !isMedia {
+				logger.Warn().Bool("isMedia", isMedia).Msg("receive unexpected media type")
 
-				continue
+				return false, nil
 			}
 
-			photo, ok := media.GetPhoto()
-			if !ok {
-				logger.Warn().Bool("isPhoto", ok).Msg("receive unexpected photo type")
+			_, isPhoto := media.GetPhoto()
 
-				continue
-			}
-
-			if photo != nil {
-				return true, nil
-			}
-
-			return false, nil
+			return isPhoto, nil
 		}
 	}
 
