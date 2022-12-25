@@ -103,6 +103,11 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) { //nolint:gocogni
 			messages := make([]model.TgMessage, 0)
 
 			for _, message := range parsedMessages {
+				// We won't save messages that are reply to other messages
+				if message.ReplyTo.ReplyToMsgID != 0 {
+					continue
+				}
+
 				isQuestion := filter.IsQuestion(message)
 				if !isQuestion {
 					continue
@@ -185,6 +190,11 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
 		messages := make([]model.TgMessage, 0)
 
 		for _, message := range parsedMessages {
+			// We won't save messages that are reply to other messages
+			if message.ReplyTo.ReplyToMsgID != 0 {
+				continue
+			}
+
 			isQuestion := filter.IsQuestion(message)
 			if !isQuestion {
 				continue
@@ -192,7 +202,7 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
 
 			message.Message = filter.ReplaceUnexpectedSymbols(message.Message)
 
-			//NOTE: add group info because incoming message don't have it
+			// Add group info because incoming message don't have it
 			for _, group := range groups {
 				if message.PeerID.ChannelID == group.ID {
 					message.PeerID = group
