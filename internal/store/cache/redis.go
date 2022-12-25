@@ -1,7 +1,8 @@
-package redis
+package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -15,7 +16,7 @@ type redisStore struct {
 	client *redis.Client
 }
 
-func New(cfg *config.Config) *redisStore {
+func New(cfg *config.Config) Store {
 	client := redis.NewClient(&redis.Options{
 		Addr:     cfg.RedisAddr,
 		Password: cfg.RedisPassword,
@@ -23,6 +24,24 @@ func New(cfg *config.Config) *redisStore {
 	})
 
 	return &redisStore{cfg: cfg, client: client}
+}
+
+func (r redisStore) Get(ctx context.Context, key string) (string, error) {
+	value, err := r.client.Get(ctx, key).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return "", fmt.Errorf("get data from redis error: %w", err)
+	}
+
+	return value, nil
+}
+
+func (r redisStore) Set(ctx context.Context, key string, value bool) error {
+	err := r.client.Set(ctx, key, value, 0)
+	if err.Err() != nil {
+		return fmt.Errorf("set data to redis error: %w", err.Err())
+	}
+
+	return nil
 }
 
 func (r redisStore) GenerateKey(value interface{}) string {
@@ -42,22 +61,4 @@ func (r redisStore) GenerateKey(value interface{}) string {
 	}
 
 	return key
-}
-
-func (r redisStore) Get(ctx context.Context, key string) (string, error) {
-	value, err := r.client.Get(ctx, key).Result()
-	if err != nil && err != redis.Nil {
-		return "", fmt.Errorf("get data from redis error: %w", err)
-	}
-
-	return value, nil
-}
-
-func (r redisStore) Set(ctx context.Context, key string, value bool) error {
-	err := r.client.Set(ctx, key, value, 0)
-	if err.Err() != nil {
-		return fmt.Errorf("set data to redis error: %w", err.Err())
-	}
-
-	return nil
 }

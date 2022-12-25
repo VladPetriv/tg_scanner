@@ -20,14 +20,14 @@ type tgMessage struct {
 
 var _ Message = (*tgMessage)(nil)
 
-func New(log *logger.Logger, api *tg.Client) *tgMessage {
+func New(log *logger.Logger, api *tg.Client) Message {
 	return &tgMessage{
 		log: log,
 		api: api,
 	}
 }
 
-func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMessagesMessages, groupPeer *tg.InputPeerChannel) []model.TgMessage {
+func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMessagesMessages, groupPeer *tg.InputPeerChannel) []model.TgMessage { //nolint:lll
 	logger := m.log
 
 	messages := make([]model.TgMessage, 0)
@@ -56,12 +56,12 @@ func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMes
 	return messages
 }
 
-func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, groups []model.TgGroup) ([]model.TgMessage, error) {
+func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, groups []model.TgGroup) ([]model.TgMessage, error) { //nolint:lll
 	logger := m.log
 
 	messages := make([]model.TgMessage, 0)
 
-	tgmessages, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
+	tgMessages, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
 		OffsetPeer: &tg.InputPeerUser{
 			UserID:     tgUser.ID,
 			AccessHash: tgUser.AccessHash,
@@ -72,7 +72,7 @@ func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, gr
 		return nil, fmt.Errorf("get incoming messages error: %w", err)
 	}
 
-	modifiedTgMessages, _ := tgmessages.AsModified()
+	modifiedTgMessages, _ := tgMessages.AsModified()
 
 	for _, message := range modifiedTgMessages.GetMessages() {
 		msg := model.TgMessage{}

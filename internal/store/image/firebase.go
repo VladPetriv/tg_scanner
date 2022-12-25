@@ -1,4 +1,4 @@
-package firebase
+package image
 
 import (
 	"context"
@@ -16,14 +16,17 @@ type firebaseStore struct {
 	cfg *config.Config
 }
 
-func New(cfg *config.Config) *firebaseStore {
+func New(cfg *config.Config) Store {
 	return &firebaseStore{cfg: cfg}
 }
 
 func (f firebaseStore) Send(ctx context.Context, path string, objectName string) (string, error) {
-	defaultUrl := fmt.Sprintf("https://firebasestorage.googleapis.com/v0/b/%s/o/default.jpg?alt=media", f.cfg.StorageBucket)
+	defaultURL := fmt.Sprintf(
+		"https://firebasestorage.googleapis.com/v0/b/%s/o/default.jpg?alt=media",
+		f.cfg.StorageBucket,
+	)
 	if objectName == "" || path == "" {
-		return defaultUrl, nil
+		return defaultURL, nil
 	}
 
 	config := &firebase.Config{

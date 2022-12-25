@@ -15,7 +15,10 @@ import (
 )
 
 func Run(store *store.Store, queue controller.Controller, cfg *config.Config, log *logger.Logger) {
-	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{}) //nolint
+	// jobCount represents the number of goroutines
+	jobCount := 3
+
+	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{})
 	if err != nil {
 		log.Error().Err(err).Msg("create telegram client")
 	}
@@ -23,28 +26,37 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 	api := tgClient.API()
 	ctx := context.Background()
 
-	appClient := client.New(ctx, store, queue, api, log, cfg)
+	appClient := client.New(
+		client.AppClientOptions{
+			Ctx:   ctx,
+			Store: store,
+			Queue: queue,
+			API:   api,
+			Log:   log,
+			Cfg:   cfg,
+		},
+	)
 
-	if err := tgClient.Run(ctx, func(ctx context.Context) error {
+	if err = tgClient.Run(ctx, func(ctx context.Context) error {
 		var waitGroup sync.WaitGroup
 
-		user, err := auth.Login(ctx, tgClient, cfg)
+		tgUser, err := auth.Login(ctx, tgClient, cfg)
 		if err != nil {
 			return fmt.Errorf("authenticate user: %w", err)
 		}
 
-		userData, _ := user.GetUser().AsNotEmpty()
+		tgUserData, _ := tgUser.GetUser().AsNotEmpty()
 
 		groups, err := appClient.ValidateAndPushGroupsToQueue(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to validation and push groups to queue: %w", err)
 		}
 
-		waitGroup.Add(3) //nolint
+		waitGroup.Add(jobCount)
 
 		go appClient.PushMessagesToQueue()
-		go appClient.GetHistoryMessages(groups[5:])
-		go appClient.GetIncomingMessages(*userData, groups[5:])
+		go appClient.GetHistoryMessages(groups)
+		go appClient.GetIncomingMessages(*tgUserData, groups)
 
 		waitGroup.Wait()
 

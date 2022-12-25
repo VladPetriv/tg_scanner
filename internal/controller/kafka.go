@@ -12,7 +12,7 @@ type queue struct {
 	cfg *config.Config
 }
 
-func New(cfg *config.Config) *queue {
+func New(cfg *config.Config) Controller {
 	return &queue{
 		cfg: cfg,
 	}

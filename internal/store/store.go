@@ -1,19 +1,19 @@
 package store
 
 import (
-	"github.com/VladPetriv/tg_scanner/internal/store/firebase"
-	"github.com/VladPetriv/tg_scanner/internal/store/redis"
+	"github.com/VladPetriv/tg_scanner/internal/store/cache"
+	"github.com/VladPetriv/tg_scanner/internal/store/image"
 	"github.com/VladPetriv/tg_scanner/pkg/config"
 )
 
 type Store struct {
-	Cache CacheStore
-	Image ImageStore
+	Cache cache.Store
+	Image image.Store
 }
 
 func New(cfg *config.Config) *Store {
 	return &Store{
-		Cache: redis.New(cfg),
-		Image: firebase.New(cfg),
+		Cache: cache.New(cfg),
+		Image: image.New(cfg),
 	}
 }

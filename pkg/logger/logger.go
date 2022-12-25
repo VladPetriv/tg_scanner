@@ -15,19 +15,18 @@ type Logger struct {
 	*zerolog.Logger
 }
 
-var (
-	logger Logger
-	once   sync.Once
-)
-
 func newFileWriter(filename string) io.Writer {
 	return &lumberjack.Logger{
 		Filename: filename,
-		MaxAge:   22,
 	}
 }
 
 func Get(cfg *config.Config) *Logger {
+	var (
+		logger Logger
+		once   sync.Once
+	)
+
 	once.Do(func() {
 		// By default create console writer
 		writers := []io.Writer{zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.Stamp}}

@@ -22,12 +22,12 @@ import (
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
-// Timeouts
-var (
-	_startTimeout    time.Duration = 20 * time.Second
-	_historyTimeout  time.Duration = 30 * time.Minute
-	_saveTimeout     time.Duration = 15 * time.Minute
-	_incomingTimeout time.Duration = time.Minute
+const (
+	_startTimeout    = 20 * time.Second
+	_historyTimeout  = 30 * time.Minute
+	_saveTimeout     = 15 * time.Minute
+	_betweenGroup    = 10 * time.Second
+	_incomingTimeout = time.Minute
 )
 
 type appClient struct {
@@ -45,25 +45,34 @@ type appClient struct {
 	Replies  reply.Reply
 }
 
+type AppClientOptions struct {
+	Ctx   context.Context
+	Store *store.Store
+	Queue controller.Controller
+	API   *tg.Client
+	Log   *logger.Logger
+	Cfg   *config.Config
+}
+
 var _ AppClient = (*appClient)(nil)
 
-func New(ctx context.Context, store *store.Store, queue controller.Controller, api *tg.Client, log *logger.Logger, cfg *config.Config) *appClient {
+func New(options AppClientOptions) AppClient {
 	return &appClient{
-		ctx:      ctx,
-		store:    store,
-		api:      api,
-		log:      log,
-		cfg:      cfg,
-		queue:    queue,
-		Groups:   group.New(log, api),
-		Messages: message.New(log, api),
-		Users:    user.New(log, api),
-		Replies:  reply.New(log, api),
-		Photos:   photo.New(log, store),
+		ctx:      options.Ctx,
+		store:    options.Store,
+		api:      options.API,
+		log:      options.Log,
+		cfg:      options.Cfg,
+		queue:    options.Queue,
+		Groups:   group.New(options.Log, options.API),
+		Messages: message.New(options.Log, options.API),
+		Users:    user.New(options.Log, options.API),
+		Replies:  reply.New(options.Log, options.API),
+		Photos:   photo.New(options.Log, options.Store),
 	}
 }
 
-func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
+func (c appClient) GetHistoryMessages(groups []model.TgGroup) { //nolint:gocognit
 	logger := c.log
 
 	time.Sleep(_startTimeout)
@@ -94,22 +103,23 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 			messages := make([]model.TgMessage, 0)
 
 			for _, message := range parsedMessages {
-				// check if message is question
-				ok := filter.ProcessMessage(&message)
-				if !ok {
+				isQuestion := filter.IsQuestion(message)
+				if !isQuestion {
 					continue
 				}
 
+				message.Message = filter.ReplaceUnexpectedSymbols(message.Message)
+
 				message.PeerID = group
 
-				user, err := c.Users.GetUser(c.ctx, message, groupPeer)
+				userInfo, err := c.Users.GetUser(c.ctx, message, groupPeer)
 				if err != nil {
 					logger.Error().Err(err).Msg("get user info for message")
 
 					continue
 				}
 
-				message.FromID = *user
+				message.FromID = *userInfo
 
 				tgReplies, err := c.Replies.GetReplies(c.ctx, message, groupPeer)
 				if err != nil {
@@ -145,18 +155,18 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) {
 
 			messagesFromFile = append(messagesFromFile, messages...)
 
-			filteredmessages := filter.RemoveDuplicatesFromMessages(messagesFromFile)
+			filteredMessages := filter.RemoveDuplicatesFromMessages(messagesFromFile)
 
-			c.Messages.WriteMessagesToFile(filteredmessages, filePath)
+			c.Messages.WriteMessagesToFile(filteredMessages, filePath)
 
-			time.Sleep(time.Second * 10)
+			time.Sleep(_betweenGroup)
 		}
 
 		time.Sleep(_historyTimeout)
 	}
 }
 
-func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
+func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) { //nolint:gocognit
 	logger := c.log
 
 	time.Sleep(_startTimeout)
@@ -175,11 +185,12 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
 		messages := make([]model.TgMessage, 0)
 
 		for _, message := range parsedMessages {
-			// check if message in question
-			ok := filter.ProcessMessage(&message)
-			if !ok {
+			isQuestion := filter.IsQuestion(message)
+			if !isQuestion {
 				continue
 			}
+
+			message.Message = filter.ReplaceUnexpectedSymbols(message.Message)
 
 			//NOTE: add group info because incoming message don't have it
 			for _, group := range groups {
@@ -210,9 +221,9 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
 
 		messagesFromFile = append(messagesFromFile, messages...)
 
-		filteredmessages := filter.RemoveDuplicatesFromMessages(messagesFromFile)
+		filteredMessages := filter.RemoveDuplicatesFromMessages(messagesFromFile)
 
-		c.Messages.WriteMessagesToFile(filteredmessages, "./data/incoming.json")
+		c.Messages.WriteMessagesToFile(filteredMessages, "./data/incoming.json")
 
 		time.Sleep(_incomingTimeout)
 	}
@@ -252,7 +263,7 @@ func (c appClient) ValidateAndPushGroupsToQueue(ctx context.Context) ([]model.Tg
 			logger.Error().Err(err).Msg("set value into cache with generated group key")
 		}
 
-		photo, err := c.Groups.GetGroupPhoto(ctx, &group)
+		photo, err := c.Groups.GetGroupPhoto(ctx, group)
 		if err != nil {
 			logger.Error().Err(err).Msgf("get [%s] photo data", group.Username)
 
@@ -275,7 +286,7 @@ func (c appClient) ValidateAndPushGroupsToQueue(ctx context.Context) ([]model.Tg
 	return groups, nil
 }
 
-func (c appClient) PushMessagesToQueue() {
+func (c appClient) PushMessagesToQueue() { //nolint:gocognit
 	logger := c.log
 
 	for {
@@ -339,7 +350,7 @@ func (c appClient) PushMessagesToQueue() {
 				continue
 			}
 
-			c.processPhotosBeforePushToQueue(&message)
+			c.processPhotosBeforePushToQueue(&message) //nolint:gosec// ...
 
 			message.FromID.Fullname = fmt.Sprintf(
 				"%s %s",
@@ -359,7 +370,9 @@ func (c appClient) PushMessagesToQueue() {
 					reply.FromID.LastName,
 				)
 
-				message.Replies.Messages[index].FromID.Fullname = fmt.Sprintf("%s %s", reply.FromID.FirstName, reply.FromID.LastName)
+				message.Replies.Messages[index].FromID.Fullname = fmt.Sprintf(
+					"%s %s", reply.FromID.FirstName, reply.FromID.LastName,
+				)
 			}
 
 			err = c.queue.PushDataToQueue("messages", message)
@@ -422,61 +435,61 @@ func (c appClient) processMessagesFromFiles(path string) ([]model.TgMessage, err
 func (c appClient) processPhotosBeforePushToQueue(message *model.TgMessage) {
 	logger := c.log
 
-	photoData, err := c.Users.GetUserPhoto(c.ctx, message.FromID)
+	userPhotoData, err := c.Users.GetUserPhoto(c.ctx, message.FromID)
 	if err != nil {
 		logger.Error().Err(err).Msg("get user photo")
 	}
 
-	userImageUrl, err := c.Photos.ProcessPhoto(c.ctx, photoData, message.FromID.Username)
+	userImageURL, err := c.Photos.ProcessPhoto(c.ctx, userPhotoData, message.FromID.Username)
 	if err != nil {
 		logger.Error().Err(err).Msg("process user photo")
 	}
 
-	message.FromID.ImageURL = userImageUrl
+	message.FromID.ImageURL = userImageURL
 
-	var messageImageUrl string
+	var messageImageURL string
 
 	if ok, _ := c.Messages.CheckMessagePhotoStatus(c.ctx, message); ok {
-		photoData, err := c.Messages.GetMessagePhoto(c.ctx, *message)
+		messagePhotoData, err := c.Messages.GetMessagePhoto(c.ctx, *message)
 		if err != nil {
 			logger.Error().Err(err).Msg("check message photo status")
 		}
 
-		messageImageUrl, err = c.Photos.ProcessPhoto(c.ctx, photoData, fmt.Sprint(message.ID))
+		messageImageURL, err = c.Photos.ProcessPhoto(c.ctx, messagePhotoData, fmt.Sprint(message.ID))
 		if err != nil {
 			logger.Error().Err(err).Msg("process message photo")
 		}
 	}
 
-	message.ImageURL = messageImageUrl
+	message.ImageURL = messageImageURL
 
 	for index, reply := range message.Replies.Messages {
-		photoData, err := c.Users.GetUserPhoto(c.ctx, reply.FromID)
+		replyUserPhotoData, err := c.Users.GetUserPhoto(c.ctx, reply.FromID)
 		if err != nil {
 			logger.Error().Err(err).Msg("get user photo")
 		}
 
-		userImageUrl, err := c.Photos.ProcessPhoto(c.ctx, photoData, reply.FromID.Username)
+		replyUserImageURL, err := c.Photos.ProcessPhoto(c.ctx, replyUserPhotoData, reply.FromID.Username)
 		if err != nil {
 			logger.Error().Err(err).Msg("process user photo")
 		}
 
-		message.Replies.Messages[index].FromID.ImageURL = userImageUrl
+		message.Replies.Messages[index].FromID.ImageURL = replyUserImageURL
 
-		var replyImageUrl string
+		var replyImageURL string
 
 		if reply.Media.Photo != nil {
-			photoData, err := c.Replies.GetReplyPhoto(c.ctx, reply)
+			replyPhotoData, err := c.Replies.GetReplyPhoto(c.ctx, reply)
 			if err != nil {
 				logger.Error().Err(err).Msg("get reply photo")
 			}
 
-			replyImageUrl, err = c.Photos.ProcessPhoto(c.ctx, photoData, fmt.Sprint(reply.ID))
+			replyImageURL, err = c.Photos.ProcessPhoto(c.ctx, replyPhotoData, fmt.Sprint(reply.ID))
 			if err != nil {
 				logger.Error().Err(err).Msg("process reply photo")
 			}
 		}
 
-		reply.ImageURL = replyImageUrl
+		reply.ImageURL = replyImageURL
 	}
 }
