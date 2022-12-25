@@ -6,22 +6,11 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/model"
 )
 
-// ProcessMessage check if message is question and remove unexpected symbols from message
-func ProcessMessage(msg *model.TgMessage) bool {
-	isQuestion := checkIfMessageIsQuestion(msg)
-
-	if isQuestion {
-		msg.Message = replaceUnexpectedSymbols(msg.Message)
-	}
-
-	return isQuestion
-}
-
-func checkIfMessageIsQuestion(msg *model.TgMessage) bool {
+func IsQuestion(msg model.TgMessage) bool {
 	return strings.Contains(msg.Message, "?")
 }
 
-func replaceUnexpectedSymbols(message string) string {
+func ReplaceUnexpectedSymbols(message string) string {
 	return strings.ReplaceAll(message, "\n", " ")
 }
 
