@@ -26,7 +26,16 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 	api := tgClient.API()
 	ctx := context.Background()
 
-	appClient := client.New(ctx, store, queue, api, log, cfg)
+	appClient := client.New(
+		client.AppClientOptions{
+			Ctx:   ctx,
+			Store: store,
+			Queue: queue,
+			API:   api,
+			Log:   log,
+			Cfg:   cfg,
+		},
+	)
 
 	if err = tgClient.Run(ctx, func(ctx context.Context) error {
 		var waitGroup sync.WaitGroup
