@@ -13,7 +13,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
-var _getUserInfoTimeout = 3 * time.Second
+const getUserInfoTimeout = 3 * time.Second
 
 type tgUser struct {
 	log *logger.Logger
@@ -22,7 +22,7 @@ type tgUser struct {
 
 var _ User = (*tgUser)(nil)
 
-func New(log *logger.Logger, api *tg.Client) *tgUser {
+func New(log *logger.Logger, api *tg.Client) User {
 	return &tgUser{
 		log: log,
 		api: api,
@@ -62,7 +62,7 @@ func (u tgUser) GetUser(ctx context.Context, data interface{}, groupPeer *tg.Inp
 	}
 
 	// here we sleep to avoid timeout error from telegram API
-	time.Sleep(_getUserInfoTimeout)
+	time.Sleep(getUserInfoTimeout)
 
 	return &user, nil
 }

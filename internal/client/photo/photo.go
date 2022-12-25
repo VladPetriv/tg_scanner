@@ -14,8 +14,9 @@ import (
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )
 
-var Size int = 1024 * 1024
-var errPhotoDataIsNil error = errors.New("photo data is nil")
+const Size = 1024 * 1024
+
+var errPhotoDataIsNil = errors.New("photo data is nil")
 
 type tgPhoto struct {
 	log   *logger.Logger
@@ -24,7 +25,7 @@ type tgPhoto struct {
 
 var _ Photo = (*tgPhoto)(nil)
 
-func New(log *logger.Logger, store *store.Store) *tgPhoto {
+func New(log *logger.Logger, store *store.Store) Photo {
 	return &tgPhoto{
 		log:   log,
 		store: store,
@@ -44,13 +45,13 @@ func (p tgPhoto) ProcessPhoto(ctx context.Context, photoData tg.UploadFileClass,
 		logger.Warn().Err(err).Msg("create photo file")
 	}
 
-	imageUrl, err := p.store.Image.Send(ctx, filename, fmt.Sprint(name))
+	imageURL, err := p.store.Image.Send(ctx, filename, fmt.Sprint(name))
 	if err != nil {
 		logger.Error().Err(err).Msg("send image into firebase")
-		return imageUrl, fmt.Errorf("send image into firebase error: %w", err)
+		return imageURL, fmt.Errorf("send image into firebase error: %w", err)
 	}
 
-	return imageUrl, nil
+	return imageURL, nil
 }
 
 func (p tgPhoto) decodePhoto(photo tg.UploadFileClass) (*model.Image, error) {

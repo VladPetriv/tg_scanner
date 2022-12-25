@@ -20,7 +20,7 @@ type tgGroup struct {
 
 var _ Group = (*tgGroup)(nil)
 
-func New(log *logger.Logger, api *tg.Client) *tgGroup {
+func New(log *logger.Logger, api *tg.Client) Group {
 	return &tgGroup{
 		log: log,
 		api: api,
@@ -30,7 +30,7 @@ func New(log *logger.Logger, api *tg.Client) *tgGroup {
 func (g tgGroup) GetGroups(ctx context.Context) ([]model.TgGroup, error) {
 	logger := g.log
 
-	groups := make([]model.TgGroup, 5)
+	groups := make([]model.TgGroup, 0)
 
 	data, err := g.api.MessagesGetAllChats(ctx, []int64{})
 	if err != nil {
@@ -63,7 +63,7 @@ func (g tgGroup) GetGroups(ctx context.Context) ([]model.TgGroup, error) {
 	return groups, nil
 }
 
-func (g tgGroup) GetMessagesFromGroupHistory(ctx context.Context, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) {
+func (g tgGroup) GetMessagesFromGroupHistory(ctx context.Context, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) { //nolint:lll
 	logger := g.log
 
 	groupHistory, err := g.api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
@@ -77,7 +77,7 @@ func (g tgGroup) GetMessagesFromGroupHistory(ctx context.Context, groupPeer *tg.
 	return groupHistory, nil
 }
 
-func (g tgGroup) GetGroupPhoto(ctx context.Context, group *model.TgGroup) (tg.UploadFileClass, error) {
+func (g tgGroup) GetGroupPhoto(ctx context.Context, group model.TgGroup) (tg.UploadFileClass, error) {
 	logger := g.log
 
 	data, err := g.api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
@@ -116,7 +116,7 @@ func (g tgGroup) CreateFilesForGroups(groups []model.TgGroup) error {
 		_, err = file.WriteString("[ ]")
 		if err != nil {
 			logger.Error().Err(err).Msg("write to file")
-			return fmt.Errorf("write to file error: %s", err)
+			return fmt.Errorf("write to file error: %w", err)
 		}
 
 		err = os.Rename(fileName, fmt.Sprintf("./data/%s", fileName))

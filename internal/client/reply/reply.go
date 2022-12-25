@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/gotd/td/tg"
-
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
+	"github.com/gotd/td/tg"
 )
 
 type tgReply struct {
@@ -19,19 +18,19 @@ type tgReply struct {
 
 var _ Reply = (*tgReply)(nil)
 
-func New(log *logger.Logger, api *tg.Client) *tgReply {
+func New(log *logger.Logger, api *tg.Client) Reply {
 	return &tgReply{
 		log: log,
 		api: api,
 	}
 }
 
-func (r tgReply) GetReplies(ctx context.Context, message model.TgMessage, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) {
+func (r tgReply) GetReplies(ctx context.Context, msg model.TgMessage, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) { //nolint:lll
 	logger := r.log
 
 	replies, err := r.api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{
 		Peer:  groupPeer,
-		MsgID: message.ID,
+		MsgID: msg.ID,
 	})
 	if err != nil {
 		logger.Error().Err(err).Msg("get replies from message")
@@ -41,7 +40,7 @@ func (r tgReply) GetReplies(ctx context.Context, message model.TgMessage, groupP
 	return replies, nil
 }
 
-func (r tgReply) ParseTelegramReplies(ctx context.Context, replies tg.MessagesMessagesClass, groupPeer *tg.InputPeerChannel) []model.TgRepliesMessage {
+func (r tgReply) ParseTelegramReplies(ctx context.Context, replies tg.MessagesMessagesClass, groupPeer *tg.InputPeerChannel) []model.TgRepliesMessage { //nolint:lll
 	logger := r.log
 
 	parsedReplies := make([]model.TgRepliesMessage, 0)
