@@ -26,8 +26,8 @@ func New(cfg *config.Config) Store {
 	return &redisStore{cfg: cfg, client: client}
 }
 
-func (r redisStore) Get(ctx context.Context, key string) (string, error) {
-	value, err := r.client.Get(ctx, key).Result()
+func (r redisStore) Get(ctx context.Context, data interface{}) (string, error) {
+	value, err := r.client.Get(ctx, generateKey(data)).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return "", fmt.Errorf("get data from redis error: %w", err)
 	}
@@ -35,8 +35,8 @@ func (r redisStore) Get(ctx context.Context, key string) (string, error) {
 	return value, nil
 }
 
-func (r redisStore) Set(ctx context.Context, key string, value bool) error {
-	err := r.client.Set(ctx, key, value, 0)
+func (r redisStore) Set(ctx context.Context, data interface{}, value bool) error {
+	err := r.client.Set(ctx, generateKey(data), value, 0)
 	if err.Err() != nil {
 		return fmt.Errorf("set data to redis error: %w", err.Err())
 	}
@@ -44,7 +44,7 @@ func (r redisStore) Set(ctx context.Context, key string, value bool) error {
 	return nil
 }
 
-func (r redisStore) GenerateKey(value interface{}) string {
+func generateKey(value interface{}) string {
 	var key string
 
 	switch data := value.(type) {
