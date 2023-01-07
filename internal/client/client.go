@@ -79,6 +79,10 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) { //nolint:gocogni
 
 	for {
 		for _, group := range groups {
+			if group.Username == "" {
+				continue
+			}
+
 			logger.Info().Msgf("get - [%s]", group.Username)
 
 			filePath := fmt.Sprintf("./data/%s.json", group.Username)
