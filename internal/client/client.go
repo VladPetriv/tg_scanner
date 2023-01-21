@@ -186,6 +186,8 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
 	}
 
 	for {
+		logger.Info().Msg("get - [incoming messages]")
+
 		parsedMessages, err := c.Messages.ParseIncomingMessages(c.ctx, tgUser, groups)
 		if err != nil {
 			logger.Error().Err(err).Msg("parse incoming messages from tg")
