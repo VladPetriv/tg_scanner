@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/VladPetriv/tg_scanner/internal/app"
 	"github.com/VladPetriv/tg_scanner/internal/controller"
 	"github.com/VladPetriv/tg_scanner/internal/store"
@@ -12,19 +14,19 @@ import (
 func main() {
 	err := file.InitDirectories()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	cfg, err := config.Get()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	log := logger.Get(cfg)
+	logger := logger.Get(cfg)
 
 	store := store.New(cfg)
 
 	queue := controller.New(cfg)
 
-	app.Run(store, queue, cfg, log)
+	app.Run(store, queue, cfg, logger)
 }
