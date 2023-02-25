@@ -16,7 +16,7 @@ type firebaseStore struct {
 	cfg *config.Config
 }
 
-func New(cfg *config.Config) Store {
+func NewFirebase(cfg *config.Config) Store {
 	return &firebaseStore{cfg: cfg}
 }
 

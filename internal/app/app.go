@@ -15,7 +15,6 @@ import (
 )
 
 func Run(store *store.Store, queue controller.Controller, cfg *config.Config, log *logger.Logger) {
-	// jobCount represents the number of goroutines
 	jobCount := 3
 
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{})

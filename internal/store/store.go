@@ -13,7 +13,7 @@ type Store struct {
 
 func New(cfg *config.Config) *Store {
 	return &Store{
-		Cache: cache.New(cfg),
-		Image: image.New(cfg),
+		Cache: cache.NewRedis(cfg),
+		Image: image.NewFirebase(cfg),
 	}
 }

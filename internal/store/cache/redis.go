@@ -16,7 +16,7 @@ type redisStore struct {
 	client *redis.Client
 }
 
-func New(cfg *config.Config) Store {
+func NewRedis(cfg *config.Config) Store {
 	client := redis.NewClient(&redis.Options{
 		Addr:     cfg.RedisAddr,
 		Password: cfg.RedisPassword,
