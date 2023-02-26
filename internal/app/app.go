@@ -41,14 +41,17 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 
 		tgUser, err := auth.Login(ctx, tgClient, cfg)
 		if err != nil {
-			return fmt.Errorf("authenticate user: %w", err)
+			return fmt.Errorf("login user: %w", err)
 		}
 
-		tgUserData, _ := tgUser.GetUser().AsNotEmpty()
+		tgUserData, isEmpty := tgUser.GetUser().AsNotEmpty()
+		if !isEmpty {
+			return fmt.Errorf("user data is empty")
+		}
 
 		groups, err := appClient.ValidateAndPushGroupsToQueue(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to validation and push groups to queue: %w", err)
+			return fmt.Errorf("validate and push groups to queue: %w", err)
 		}
 
 		waitGroup.Add(jobCount)
