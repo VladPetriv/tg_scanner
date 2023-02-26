@@ -16,9 +16,9 @@ type tgReply struct {
 	api *tg.Client
 }
 
-var _ Reply = (*tgReply)(nil)
+var _ TgReply = (*tgReply)(nil)
 
-func New(log *logger.Logger, api *tg.Client) Reply {
+func New(log *logger.Logger, api *tg.Client) TgReply {
 	return &tgReply{
 		log: log,
 		api: api,

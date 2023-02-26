@@ -20,9 +20,9 @@ type tgUser struct {
 	api *tg.Client
 }
 
-var _ User = (*tgUser)(nil)
+var _ TgUser = (*tgUser)(nil)
 
-func New(log *logger.Logger, api *tg.Client) User {
+func New(log *logger.Logger, api *tg.Client) TgUser {
 	return &tgUser{
 		log: log,
 		api: api,

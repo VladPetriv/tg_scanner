@@ -19,9 +19,9 @@ type tgMessage struct {
 	api *tg.Client
 }
 
-var _ Message = (*tgMessage)(nil)
+var _ TgMessage = (*tgMessage)(nil)
 
-func New(log *logger.Logger, api *tg.Client) Message {
+func New(log *logger.Logger, api *tg.Client) TgMessage {
 	return &tgMessage{
 		log: log,
 		api: api,

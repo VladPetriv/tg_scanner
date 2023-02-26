@@ -7,7 +7,7 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-type Message interface {
+type TgMessage interface {
 	// GetQuestionsFromGroupHistory retrieves all questions asked in a group's history.
 	GetQuestionsFromGroupHistory(ctx context.Context, groupPeer *tg.InputPeerChannel) ([]model.TgMessage, error)
 	ParseIncomingMessages(ctx context.Context, tgUser tg.User, groups []model.TgGroup) ([]model.TgMessage, error)

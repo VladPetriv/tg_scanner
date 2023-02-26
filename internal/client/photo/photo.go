@@ -20,9 +20,9 @@ type tgPhoto struct {
 	store *store.Store
 }
 
-var _ Photo = (*tgPhoto)(nil)
+var _ TgPhoto = (*tgPhoto)(nil)
 
-func New(log *logger.Logger, store *store.Store) Photo {
+func New(log *logger.Logger, store *store.Store) TgPhoto {
 	return &tgPhoto{
 		log:   log,
 		store: store,

@@ -18,9 +18,9 @@ type tgGroup struct {
 	api *tg.Client
 }
 
-var _ Group = (*tgGroup)(nil)
+var _ TgGroup = (*tgGroup)(nil)
 
-func New(log *logger.Logger, api *tg.Client) Group {
+func New(log *logger.Logger, api *tg.Client) TgGroup {
 	return &tgGroup{
 		log: log,
 		api: api,

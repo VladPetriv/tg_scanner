@@ -7,7 +7,7 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-type User interface {
+type TgUser interface {
 	GetUser(ctx context.Context, data interface{}, groupPeer *tg.InputPeerChannel) (*model.TgUser, error)
 	GetUserPhoto(ctx context.Context, user model.TgUser) (tg.UploadFileClass, error)
 }
