@@ -35,13 +35,18 @@ func (g tgGroup) GetGroups(ctx context.Context) ([]model.TgGroup, error) {
 	data, err := g.api.MessagesGetAllChats(ctx, []int64{})
 	if err != nil {
 		logger.Error().Err(err).Msg("get all groups")
-		return nil, fmt.Errorf("get all groups error: %w", err)
+		return nil, fmt.Errorf("get all groups: %w", err)
 	}
 
 	for _, groupData := range data.GetChats() {
 		var group model.TgGroup
 
-		fullGroupInfo, _ := groupData.AsFull()
+		fullGroupInfo, isFull := groupData.AsFull()
+		if !isFull {
+			logger.Warn().Bool("is full", isFull).Msg("received unexpected type of group")
+
+			continue
+		}
 
 		encodedData, err := json.Marshal(fullGroupInfo)
 		if err != nil {
@@ -60,21 +65,8 @@ func (g tgGroup) GetGroups(ctx context.Context) ([]model.TgGroup, error) {
 		groups = append(groups, group)
 	}
 
+	logger.Info().Interface("groups", groups).Msg("successfully got telegram groups")
 	return groups, nil
-}
-
-func (g tgGroup) GetMessagesFromGroupHistory(ctx context.Context, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) { //nolint:lll
-	logger := g.log
-
-	groupHistory, err := g.api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
-		Peer: groupPeer,
-	})
-	if err != nil {
-		logger.Error().Err(err).Msg("get messages from group history")
-		return nil, fmt.Errorf("get messages from group history error: %w", err)
-	}
-
-	return groupHistory, nil
 }
 
 func (g tgGroup) GetGroupPhoto(ctx context.Context, group model.TgGroup) (tg.UploadFileClass, error) {
