@@ -8,6 +8,7 @@ import (
 
 	"github.com/gotd/td/tg"
 
+	"github.com/VladPetriv/tg_scanner/internal/client/filter"
 	"github.com/VladPetriv/tg_scanner/internal/client/photo"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
@@ -27,14 +28,37 @@ func New(log *logger.Logger, api *tg.Client) Message {
 	}
 }
 
-func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMessagesMessages, groupPeer *tg.InputPeerChannel) []model.TgMessage { //nolint:lll
+func (m tgMessage) GetQuestionsFromGroupHistory(ctx context.Context, groupPeer *tg.InputPeerChannel) ([]model.TgMessage, error) { //nolint:lll
+	logger := m.log
+
+	historyMessages, err := m.api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
+		Peer: groupPeer,
+	})
+	if err != nil {
+		logger.Error().Interface("group peer", groupPeer).Err(err).Msg("get messages from group history")
+		return nil, fmt.Errorf("get messages from telegram group: %w", err)
+	}
+
+	modifiedMessages, isModified := historyMessages.AsModified()
+	if !isModified {
+		logger.Warn().Bool("is modified", isModified).Msg("received unexpected type of messages")
+	}
+
+	tgMessages := modifiedMessages.GetMessages()
+
+	messages := m.parseHistoryQuestions(tgMessages)
+
+	logger.Info().Interface("messages", messages).Msg("successfully got messages")
+	return messages, nil
+}
+
+func (m tgMessage) parseHistoryQuestions(tgMessages []tg.MessageClass) []model.TgMessage {
 	logger := m.log
 
 	messages := make([]model.TgMessage, 0)
-	tgMessages := data.GetMessages()
 
 	for _, message := range tgMessages {
-		msg := model.TgMessage{}
+		var msg model.TgMessage
 
 		encodedData, err := json.Marshal(message)
 		if err != nil {
@@ -49,6 +73,12 @@ func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMes
 
 			continue
 		}
+
+		if !filter.IsQuestion(msg.Message) {
+			continue
+		}
+
+		msg.Message = filter.ReplaceUnexpectedSymbols(msg.Message)
 
 		messages = append(messages, msg)
 	}
