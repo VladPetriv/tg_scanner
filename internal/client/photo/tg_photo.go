@@ -7,7 +7,7 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-type Photo interface {
+type TgPhoto interface {
 	ProcessPhoto(ctx context.Context, photoData tg.UploadFileClass, name string) (string, error)
 	decodePhoto(photo tg.UploadFileClass) (*model.Image, error)
 	createPhoto(img *model.Image, name string) (string, error)
