@@ -38,11 +38,11 @@ type appClient struct {
 	log   *logger.Logger
 	cfg   *config.Config
 
-	Groups   group.Group
-	Messages message.Message
-	Users    user.User
-	Photos   photo.Photo
-	Replies  reply.Reply
+	Groups   group.TgGroup
+	Messages message.TgMessage
+	Users    user.TgUser
+	Photos   photo.TgPhoto
+	Replies  reply.TgReply
 }
 
 type AppClientOptions struct {
