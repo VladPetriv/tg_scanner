@@ -61,36 +61,29 @@ func (u tgUser) GetUser(ctx context.Context, data interface{}, groupPeer *tg.Inp
 		}
 	}
 
-	// here we sleep to avoid timeout error from telegram API
+	// use timeount to avoid limit errors from Telegram API
 	time.Sleep(getUserInfoTimeout)
 
 	return &user, nil
 }
 
 func getUserDataFromEntity(data interface{}) (int64, int) {
-	var userID int64
-	var modelID int
-
 	switch dataType := data.(type) {
 	case model.TgMessage:
 		if dataType.FromID.ID != 0 {
-			userID = dataType.FromID.ID
-		} else {
-			userID = dataType.FromID.UserID
+			return dataType.FromID.ID, dataType.ID
 		}
 
-		modelID = dataType.ID
+		return dataType.FromID.UserID, dataType.ID
 	case model.TgRepliesMessage:
 		if dataType.FromID.ID != 0 {
-			userID = dataType.FromID.ID
-		} else {
-			userID = dataType.FromID.UserID
+			return dataType.FromID.ID, dataType.ID
 		}
 
-		modelID = dataType.ID
+		return dataType.FromID.UserID, dataType.ID
+	default:
+		return 0, 0
 	}
-
-	return userID, modelID
 }
 
 func (u tgUser) GetUserPhoto(ctx context.Context, user model.TgUser) (tg.UploadFileClass, error) {
