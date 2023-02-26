@@ -19,7 +19,7 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 
 	tgClient, err := telegram.ClientFromEnvironment(telegram.Options{})
 	if err != nil {
-		log.Error().Err(err).Msg("create telegram client")
+		log.Fatal().Err(err).Msg("create telegram client")
 	}
 
 	api := tgClient.API()
