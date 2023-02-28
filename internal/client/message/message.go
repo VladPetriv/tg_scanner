@@ -86,12 +86,10 @@ func (m tgMessage) parseHistoryQuestions(tgMessages []tg.MessageClass) []model.T
 	return messages
 }
 
-func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, groups []model.TgGroup) ([]model.TgMessage, error) { //nolint:lll
+func (m tgMessage) GetIncomingQuestionsFromGroup(ctx context.Context, tgUser tg.User) ([]model.TgMessage, error) {
 	logger := m.log
 
-	messages := make([]model.TgMessage, 0)
-
-	tgMessages, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
+	incomingMessages, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
 		OffsetPeer: &tg.InputPeerUser{
 			UserID:     tgUser.ID,
 			AccessHash: tgUser.AccessHash,
@@ -99,13 +97,29 @@ func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, gr
 	})
 	if err != nil {
 		logger.Error().Err(err).Msg("get incoming messages")
-		return nil, fmt.Errorf("get incoming messages error: %w", err)
+		return nil, fmt.Errorf("get incoming messages from telegram group: %w", err)
 	}
 
-	modifiedTgMessages, _ := tgMessages.AsModified()
+	modifiedMessages, isModified := incomingMessages.AsModified()
+	if !isModified {
+		logger.Warn().Bool("is modified", isModified).Msg("received unexpected type of messages")
+	}
 
-	for _, message := range modifiedTgMessages.GetMessages() {
-		msg := model.TgMessage{}
+	tgMessages := modifiedMessages.GetMessages()
+
+	messages := m.parseIncomingQuestions(tgMessages)
+
+	logger.Info().Interface("messages", messages).Msg("successfully got messages")
+	return messages, nil
+}
+
+func (m tgMessage) parseIncomingQuestions(tgMessages []tg.MessageClass) []model.TgMessage {
+	logger := m.log
+
+	messages := make([]model.TgMessage, 0)
+
+	for _, message := range tgMessages {
+		var msg model.TgMessage
 
 		encodedData, err := json.Marshal(message)
 		if err != nil {
@@ -121,10 +135,16 @@ func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, gr
 			continue
 		}
 
+		if !filter.IsQuestion(msg.Message) {
+			continue
+		}
+
+		msg.Message = filter.ReplaceUnexpectedSymbols(msg.Message)
+
 		messages = append(messages, msg)
 	}
 
-	return messages, nil
+	return messages
 }
 
 func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.TgMessage) (tg.UploadFileClass, error) {
