@@ -176,7 +176,7 @@ func (c appClient) addAdditionalDataToHistoryMessages(parsedMessages []model.TgM
 	return messages
 }
 
-func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) { //nolint:gocognit
+func (c appClient) ProcessIncomingMessagesFromUserGroups(tgUser tg.User, groups []model.TgGroup) {
 	logger := c.log
 
 	time.Sleep(_startTimeout)
@@ -189,46 +189,9 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
 	for {
 		logger.Info().Msg("get - [incoming messages]")
 
-		parsedMessages, err := c.Messages.ParseIncomingMessages(c.ctx, tgUser, groups)
+		parsedMessages, err := c.Messages.GetIncomingQuestionsFromGroup(c.ctx, tgUser)
 		if err != nil {
 			logger.Error().Err(err).Msg("parse incoming messages from tg")
-		}
-
-		messages := make([]model.TgMessage, 0)
-
-		for _, message := range parsedMessages {
-			// We won't save messages that are reply to other messages
-			if message.ReplyTo.ReplyToMsgID != 0 {
-				continue
-			}
-
-			isQuestion := filter.IsQuestion(message.Message)
-			if !isQuestion {
-				continue
-			}
-
-			message.Message = filter.ReplaceUnexpectedSymbols(message.Message)
-
-			// Add group info because incoming message don't have it
-			for _, group := range groups {
-				if message.PeerID.ChannelID == group.ID {
-					message.PeerID = group
-				}
-			}
-
-			user, err := c.Users.GetUser(c.ctx, message, &tg.InputPeerChannel{
-				ChannelID:  message.PeerID.ID,
-				AccessHash: message.PeerID.AccessHash,
-			})
-			if err != nil {
-				logger.Error().Err(err).Msg("get user info for message")
-
-				continue
-			}
-
-			message.FromID = *user
-
-			messages = append(messages, message)
 		}
 
 		messagesFromFile, err := c.Messages.GetMessagesFromFile("./data/incoming.json")
@@ -236,7 +199,7 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
 			logger.Error().Err(err).Msg("get messages from file")
 		}
 
-		messagesFromFile = append(messagesFromFile, messages...)
+		messagesFromFile = append(messagesFromFile, c.addAdditionalDataToIncomingMessages(parsedMessages, groups)...)
 
 		filteredMessages := filter.RemoveDuplicatesFromMessages(messagesFromFile)
 
@@ -244,6 +207,43 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
 
 		time.Sleep(_incomingTimeout)
 	}
+}
+
+// addAdditionalDataToIncomingMessages adds data about user and group  to messages
+func (c appClient) addAdditionalDataToIncomingMessages(parsedMessages []model.TgMessage, groups []model.TgGroup) []model.TgMessage {
+	logger := c.log
+
+	var messages []model.TgMessage
+
+	for _, message := range parsedMessages {
+		// We won't save messages that are reply to other messages
+		if message.ReplyTo.ReplyToMsgID != 0 {
+			continue
+		}
+
+		user, err := c.Users.GetUser(c.ctx, message, &tg.InputPeerChannel{
+			ChannelID:  message.PeerID.ID,
+			AccessHash: message.PeerID.AccessHash,
+		})
+		if err != nil {
+			logger.Error().Err(err).Msg("get user info for message")
+
+			continue
+		}
+
+		message.FromID = *user
+
+		// add group info because incoming message don't have it
+		for _, group := range groups {
+			if message.PeerID.ChannelID == group.ID {
+				message.PeerID = group
+			}
+		}
+
+		messages = append(messages, message)
+	}
+
+	return messages
 }
 
 func (c appClient) ValidateAndPushGroupsToQueue(ctx context.Context) ([]model.TgGroup, error) {

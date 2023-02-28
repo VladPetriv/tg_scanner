@@ -9,7 +9,7 @@ import (
 
 type AppClient interface {
 	ProcessMessagesFromGroupHistory(groups []model.TgGroup)
-	GetIncomingMessages(user tg.User, groups []model.TgGroup)
+	ProcessIncomingMessagesFromUserGroups(user tg.User, groups []model.TgGroup)
 	ValidateAndPushGroupsToQueue(ctx context.Context) ([]model.TgGroup, error)
 	PushMessagesToQueue()
 }

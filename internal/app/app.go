@@ -58,7 +58,7 @@ func Run(store *store.Store, queue controller.Controller, cfg *config.Config, lo
 
 		go appClient.PushMessagesToQueue()
 		go appClient.ProcessMessagesFromGroupHistory(groups)
-		go appClient.GetIncomingMessages(*tgUserData, groups)
+		go appClient.ProcessIncomingMessagesFromUserGroups(*tgUserData, groups)
 
 		waitGroup.Wait()
 
