@@ -105,7 +105,7 @@ func (c appClient) ProcessMessagesFromGroupHistory(groups []model.TgGroup) {
 				logger.Error().Err(err).Msg("get messages from the file")
 			}
 
-			messagesFromFile = append(messagesFromFile, c.addAdditionalDataToHistoryMessage(parsedMessages, group)...)
+			messagesFromFile = append(messagesFromFile, c.addAdditionalDataToHistoryMessages(parsedMessages, group)...)
 
 			filteredMessages := filter.RemoveDuplicatesFromMessages(messagesFromFile)
 
@@ -118,8 +118,8 @@ func (c appClient) ProcessMessagesFromGroupHistory(groups []model.TgGroup) {
 	}
 }
 
-// addAdditionalDataToHistoryMessage adds data about user, group and replies to message.
-func (c appClient) addAdditionalDataToHistoryMessage(parsedMessages []model.TgMessage, group model.TgGroup) []model.TgMessage {
+// addAdditionalDataToHistoryMessages adds data about user, group and replies to messages.
+func (c appClient) addAdditionalDataToHistoryMessages(parsedMessages []model.TgMessage, group model.TgGroup) []model.TgMessage {
 	logger := c.log
 
 	groupPeer := &tg.InputPeerChannel{
