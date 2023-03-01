@@ -25,7 +25,7 @@ func New(log *logger.Logger, api *tg.Client) TgReply {
 	}
 }
 
-func (r tgReply) GetReplies(ctx context.Context, msg model.TgMessage) (tg.MessagesMessagesClass, error) {
+func (r tgReply) GetReplies(ctx context.Context, msg model.TgMessage) ([]model.TgRepliesMessage, error) {
 	logger := r.log
 
 	replies, err := r.api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{
@@ -40,33 +40,39 @@ func (r tgReply) GetReplies(ctx context.Context, msg model.TgMessage) (tg.Messag
 		return nil, fmt.Errorf("get replies from message error: %w", err)
 	}
 
-	return replies, nil
+	parsedResplies := r.parseTelegramReplies(ctx, replies)
+
+	return parsedResplies, nil
 }
 
-func (r tgReply) ParseTelegramReplies(ctx context.Context, replies tg.MessagesMessagesClass, groupPeer *tg.InputPeerChannel) []model.TgRepliesMessage { //nolint:lll
+func (r tgReply) parseTelegramReplies(ctx context.Context, replies tg.MessagesMessagesClass) []model.TgRepliesMessage {
 	logger := r.log
 
 	parsedReplies := make([]model.TgRepliesMessage, 0)
-	repliesMessages, _ := replies.AsModified()
 
-	for _, rpl := range repliesMessages.GetMessages() {
-		reply := model.TgRepliesMessage{}
+	repliesMessages, ok := replies.AsModified()
+	if !ok {
+		logger.Error().Bool("ok", ok).Msg("received unexpected type of replies")
+	}
 
-		encodedData, err := json.Marshal(rpl)
+	for _, reply := range repliesMessages.GetMessages() {
+		var replyMessage model.TgRepliesMessage
+
+		encodedData, err := json.Marshal(reply)
 		if err != nil {
-			logger.Warn().Err(err).Msg("marshal reply data")
+			logger.Error().Err(err).Msg("marshal reply data")
 
 			continue
 		}
 
-		err = json.Unmarshal(encodedData, &reply)
+		err = json.Unmarshal(encodedData, &replyMessage)
 		if err != nil {
-			r.log.Warn().Err(err).Msg("unmarshal reply data")
+			r.log.Error().Err(err).Msg("unmarshal reply data")
 
 			continue
 		}
 
-		parsedReplies = append(parsedReplies, reply)
+		parsedReplies = append(parsedReplies, replyMessage)
 	}
 
 	return parsedReplies
