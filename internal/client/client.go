@@ -146,7 +146,7 @@ func (c appClient) addAdditionalDataToHistoryMessages(parsedMessages []model.TgM
 
 		message.FromID = *userInfo
 
-		tgReplies, err := c.Replies.GetReplies(c.ctx, message, groupPeer)
+		tgReplies, err := c.Replies.GetReplies(c.ctx, message)
 		if err != nil {
 			logger.Error().Err(err).Msg("get replies for history message")
 

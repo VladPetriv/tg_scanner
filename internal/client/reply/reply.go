@@ -25,11 +25,14 @@ func New(log *logger.Logger, api *tg.Client) TgReply {
 	}
 }
 
-func (r tgReply) GetReplies(ctx context.Context, msg model.TgMessage, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) { //nolint:lll
+func (r tgReply) GetReplies(ctx context.Context, msg model.TgMessage) (tg.MessagesMessagesClass, error) {
 	logger := r.log
 
 	replies, err := r.api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{
-		Peer:  groupPeer,
+		Peer: &tg.InputPeerChannel{
+			ChannelID:  msg.PeerID.ID,
+			AccessHash: msg.PeerID.AccessHash,
+		},
 		MsgID: msg.ID,
 	})
 	if err != nil {
