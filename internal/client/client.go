@@ -153,10 +153,7 @@ func (c appClient) addAdditionalDataToHistoryMessages(parsedMessages []model.TgM
 			continue
 		}
 
-		parsedReplies := c.Replies.ParseTelegramReplies(c.ctx, tgReplies, groupPeer)
-
-		// get user info for replies
-		for index, reply := range parsedReplies {
+		for index, reply := range tgReplies {
 			userInfo, err := c.Users.GetUser(c.ctx, reply, groupPeer)
 			if err != nil {
 				logger.Error().Err(err).Msg("get user info for reply")
@@ -164,11 +161,11 @@ func (c appClient) addAdditionalDataToHistoryMessages(parsedMessages []model.TgM
 				continue
 			}
 
-			parsedReplies[index].FromID = *userInfo
+			tgReplies[index].FromID = *userInfo
 		}
 
-		message.Replies.Count = len(parsedReplies)
-		message.Replies.Messages = parsedReplies
+		message.Replies.Count = len(tgReplies)
+		message.Replies.Messages = tgReplies
 
 		messages = append(messages, message)
 	}
