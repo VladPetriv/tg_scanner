@@ -3,8 +3,9 @@ package reply
 import (
 	"context"
 
-	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/gotd/td/tg"
+
+	"github.com/VladPetriv/tg_scanner/internal/model"
 )
 
 type Reply interface {

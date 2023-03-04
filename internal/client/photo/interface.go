@@ -3,8 +3,9 @@ package photo
 import (
 	"context"
 
-	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/gotd/td/tg"
+
+	"github.com/VladPetriv/tg_scanner/internal/model"
 )
 
 type Photo interface {
