@@ -1,9 +1,9 @@
 package store
 
 import (
+	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/store/cache"
 	"github.com/VladPetriv/tg_scanner/internal/store/image"
-	"github.com/VladPetriv/tg_scanner/pkg/config"
 )
 
 type Store struct {

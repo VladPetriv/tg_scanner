@@ -6,9 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/rs/zerolog"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	"github.com/VladPetriv/tg_scanner/config"
 )
 
 type Logger struct {

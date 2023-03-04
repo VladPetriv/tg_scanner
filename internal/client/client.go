@@ -8,6 +8,7 @@ import (
 
 	"github.com/gotd/td/tg"
 
+	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/client/filter"
 	"github.com/VladPetriv/tg_scanner/internal/client/group"
 	"github.com/VladPetriv/tg_scanner/internal/client/message"
@@ -17,7 +18,6 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/controller"
 	"github.com/VladPetriv/tg_scanner/internal/model"
 	"github.com/VladPetriv/tg_scanner/internal/store"
-	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/file"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )

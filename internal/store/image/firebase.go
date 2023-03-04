@@ -9,7 +9,7 @@ import (
 	firebase "firebase.google.com/go"
 	"google.golang.org/api/option"
 
-	"github.com/VladPetriv/tg_scanner/pkg/config"
+	"github.com/VladPetriv/tg_scanner/config"
 )
 
 type firebaseStore struct {

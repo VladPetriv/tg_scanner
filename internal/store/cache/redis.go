@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/VladPetriv/tg_scanner/internal/model"
-	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/go-redis/redis/v9"
+
+	"github.com/VladPetriv/tg_scanner/config"
+	"github.com/VladPetriv/tg_scanner/internal/model"
 )
 
 type redisStore struct {

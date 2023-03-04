@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 
+	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/app"
 	"github.com/VladPetriv/tg_scanner/internal/controller"
 	"github.com/VladPetriv/tg_scanner/internal/store"
-	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/file"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
 )

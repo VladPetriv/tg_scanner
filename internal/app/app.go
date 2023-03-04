@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/gotd/td/telegram"
+
+	"github.com/VladPetriv/tg_scanner/config"
 	"github.com/VladPetriv/tg_scanner/internal/client"
 	"github.com/VladPetriv/tg_scanner/internal/client/auth"
 	"github.com/VladPetriv/tg_scanner/internal/controller"
 	"github.com/VladPetriv/tg_scanner/internal/store"
-	"github.com/VladPetriv/tg_scanner/pkg/config"
 	"github.com/VladPetriv/tg_scanner/pkg/logger"
-	"github.com/gotd/td/telegram"
 )
 
 func Run(store *store.Store, queue controller.Controller, cfg *config.Config, log *logger.Logger) {

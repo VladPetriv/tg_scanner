@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	"github.com/Shopify/sarama"
-	"github.com/VladPetriv/tg_scanner/pkg/config"
+
+	"github.com/VladPetriv/tg_scanner/config"
 )
 
 type queue struct {
