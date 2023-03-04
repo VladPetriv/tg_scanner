@@ -1,5 +1,11 @@
 package model
 
+import (
+	"fmt"
+
+	"github.com/cnf/structhash"
+)
+
 type TgMessage struct {
 	ID         int
 	Message    string
@@ -10,4 +16,13 @@ type TgMessage struct {
 	Media      Media     `json:"Media"`
 	MessageURL string
 	ImageURL   string
+}
+
+func (m TgMessage) GetHash() (string, error) {
+	hash, err := structhash.Hash(m, 1)
+	if err != nil {
+		return "", fmt.Errorf("hash message data: %w", err)
+	}
+
+	return hash, nil
 }

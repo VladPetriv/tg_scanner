@@ -265,7 +265,14 @@ func (c appClient) ValidateAndPushGroupsToQueue(ctx context.Context) ([]model.Tg
 			continue
 		}
 
-		isExist, err := c.store.Cache.Get(ctx, group)
+		groupHash, err := group.GetHash()
+		if err != nil {
+			logger.Error().Err(err).Msg("generate hash for group")
+
+			continue
+		}
+
+		isExist, err := c.store.Cache.Get(ctx, groupHash)
 		if err != nil {
 			logger.Error().Err(err).Msg("get value from cache by generated group key")
 		}
@@ -274,7 +281,7 @@ func (c appClient) ValidateAndPushGroupsToQueue(ctx context.Context) ([]model.Tg
 			continue
 		}
 
-		err = c.store.Cache.Set(ctx, group, true)
+		err = c.store.Cache.Set(ctx, groupHash, true)
 		if err != nil {
 			logger.Error().Err(err).Msg("set value into cache with generated group key")
 		}
@@ -312,14 +319,22 @@ func (c appClient) PushMessagesToQueue() { //nolint:gocognit
 		}
 
 		for _, message := range messages {
+
+			messageHash, err := message.GetHash()
+			if err != nil {
+				logger.Error().Err(err).Msg("generate hash for message")
+
+				continue
+			}
+
 			// check if message exist in cache
-			messageCacheValue, err := c.store.Cache.Get(c.ctx, message)
+			messageCacheValue, err := c.store.Cache.Get(c.ctx, messageHash)
 			if err != nil {
 				logger.Error().Err(err).Msg("get message key from cache")
 			}
 
 			if messageCacheValue == "" {
-				err := c.store.Cache.Set(c.ctx, message, true)
+				err := c.store.Cache.Set(c.ctx, messageHash, true)
 				if err != nil {
 					logger.Error().Err(err).Msg("set message into cache")
 				}

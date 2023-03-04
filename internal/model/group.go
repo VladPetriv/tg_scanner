@@ -1,6 +1,11 @@
 package model
 
-import "github.com/gotd/td/tg"
+import (
+	"fmt"
+
+	"github.com/cnf/structhash"
+	"github.com/gotd/td/tg"
+)
 
 type TgGroup struct {
 	ID         int64
@@ -10,4 +15,13 @@ type TgGroup struct {
 	Username   string
 	Photo      tg.ChatPhoto
 	ImageURL   string
+}
+
+func (g TgGroup) GetHash() (string, error) {
+	hash, err := structhash.Hash(g, 1)
+	if err != nil {
+		return "", fmt.Errorf("hash group data: %w", err)
+	}
+
+	return hash, nil
 }
