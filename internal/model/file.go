@@ -1,7 +1,5 @@
 package model
 
-import "github.com/gotd/td/tg"
-
 type Image struct {
 	Bytes []byte
 }
@@ -13,5 +11,12 @@ type Photo struct {
 	ID            int64
 	AccessHash    int64
 	FileReference []byte
-	Sizes         []tg.PhotoSize
+	Sizes         []PhotoSize
+}
+
+type PhotoSize struct {
+	Type string
+	W    int
+	H    int
+	Size int
 }

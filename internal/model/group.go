@@ -2,7 +2,7 @@ package model
 
 import "github.com/gotd/td/tg"
 
-type TgGroup struct {
+type Group struct {
 	ID         int64
 	ChannelID  int64
 	Title      string

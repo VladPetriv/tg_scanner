@@ -1,11 +1,11 @@
 package model
 
-type TgReplies struct {
+type Replies struct {
 	Count    int
-	Messages []TgRepliesMessage
+	Messages []RepliesMessage
 }
 
-type TgRepliesMessage struct {
+type RepliesMessage struct {
 	ID       int
 	FromID   TgUser
 	Message  string
@@ -14,6 +14,6 @@ type TgRepliesMessage struct {
 	ImageURL string
 }
 
-type TgReplyTo struct {
+type ReplyTo struct {
 	ReplyToMsgID int
 }

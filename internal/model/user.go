@@ -1,15 +1,17 @@
 package model
 
-import "github.com/gotd/td/tg"
-
-type TgUser struct {
+type User struct {
 	ID         int64
 	UserID     int64
 	AccessHash int64
 	FirstName  string
 	LastName   string
 	Username   string
-	Photo      tg.UserProfilePhoto
+	Photo      UserProfilePhoto
 	ImageURL   string
 	Fullname   string
+}
+
+type UserProfilePhoto struct {
+	PhotoID int64
 }
