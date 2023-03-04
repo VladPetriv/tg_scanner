@@ -1,36 +1,35 @@
-package controller
+package queue
 
 import (
 	"encoding/json"
 	"fmt"
 
 	"github.com/Shopify/sarama"
-	"github.com/VladPetriv/tg_scanner/pkg/config"
 )
 
-type queue struct {
-	cfg *config.Config
+type kafka struct {
+	Address string
 }
 
-func New(cfg *config.Config) Controller {
-	return &queue{
-		cfg: cfg,
+func New(address string) *kafka {
+	return &kafka{
+		Address: address,
 	}
 }
 
-var _ Controller = (*queue)(nil)
+var _ Queue = (*kafka)(nil)
 
-func (q queue) PushDataToQueue(topic string, data interface{}) error {
-	producer, err := connectAsProducer(q.cfg.KafkaAddr)
+func (k kafka) SendMessageToQueue(topic string, data interface{}) error {
+	producer, err := connectAsProducer(k.Address)
 	if err != nil {
-		return fmt.Errorf("connect as producer error: %w", err)
+		return fmt.Errorf("connect as producer: %w", err)
 	}
 
 	defer producer.Close()
 
 	encodedData, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("marshal data error: %w", err)
+		return fmt.Errorf("marshal data: %w", err)
 	}
 
 	queueMessage := &sarama.ProducerMessage{
@@ -40,7 +39,7 @@ func (q queue) PushDataToQueue(topic string, data interface{}) error {
 
 	_, _, err = producer.SendMessage(queueMessage)
 	if err != nil {
-		return fmt.Errorf("send message into kafka error: %w", err)
+		return fmt.Errorf("send message to kafka: %w", err)
 	}
 
 	return nil
@@ -54,7 +53,7 @@ func connectAsProducer(addr string) (sarama.SyncProducer, error) {
 
 	conn, err := sarama.NewSyncProducer([]string{addr}, config)
 	if err != nil {
-		return nil, fmt.Errorf("create producer error: %w", err)
+		return nil, fmt.Errorf("create sync producer: %w", err)
 	}
 
 	return conn, nil
