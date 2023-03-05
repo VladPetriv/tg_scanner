@@ -30,18 +30,31 @@ func New(log *logger.Logger, api *tg.Client) Group {
 func (g tgGroup) GetGroups(ctx context.Context) ([]model.Group, error) {
 	logger := g.log
 
-	groups := make([]model.Group, 0)
-
 	data, err := g.api.MessagesGetAllChats(ctx, []int64{})
 	if err != nil {
-		logger.Error().Err(err).Msg("get all groups")
-		return nil, fmt.Errorf("get all groups error: %w", err)
+		logger.Error().Err(err).Msg("get user groups")
+		return nil, fmt.Errorf("get user groups: %w", err)
 	}
 
-	for _, groupData := range data.GetChats() {
+	tgGroups := data.GetChats()
+
+	groups := g.parseGroups(tgGroups)
+
+	return groups, nil
+}
+
+func (g tgGroup) parseGroups(tgGroups []tg.ChatClass) []model.Group {
+	logger := g.log
+
+	groups := make([]model.Group, 0)
+
+	for _, groupData := range tgGroups {
 		var group model.Group
 
-		fullGroupInfo, _ := groupData.AsFull()
+		fullGroupInfo, ok := groupData.AsFull()
+		if !ok {
+			logger.Info().Msg("received unexpected type of group")
+		}
 
 		encodedData, err := json.Marshal(fullGroupInfo)
 		if err != nil {
