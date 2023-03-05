@@ -42,33 +42,32 @@ func (a TermAuth) Password(_ context.Context) (string, error) {
 }
 
 func (a TermAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
-	fmt.Println("Enter code: ")
+	fmt.Print("Enter code: ")
 
 	code, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {
-		return "", fmt.Errorf("create new reader error: %w", err)
+		return "", fmt.Errorf("create code reader: %w", err)
 	}
 
 	return strings.TrimSpace(code), nil
 }
 
 func Login(ctx context.Context, client *telegram.Client, cfg *config.Config) (*tg.AuthAuthorization, error) {
-	// Create new flow
 	flow := auth.NewFlow(
-		TermAuth{noSignUp: noSignUp{}, UserPhone: cfg.Phone},
+		TermAuth{
+			noSignUp:  noSignUp{},
+			UserPhone: cfg.Phone,
+		},
 		auth.SendCodeOptions{},
 	)
-	// Authorization
+
 	if err := client.Auth().IfNecessary(ctx, flow); err != nil {
-		return nil, fmt.Errorf("authentication error: %w", err)
+		return nil, fmt.Errorf("run auth flow: %w", err)
 	}
 
-	// Authorization with password
-	password, _ := flow.Auth.Password(ctx)
-
-	user, err := client.Auth().Password(ctx, password)
+	user, err := client.Auth().Password(ctx, cfg.Password)
 	if err != nil {
-		return nil, fmt.Errorf("authentication error: %w", err)
+		return nil, fmt.Errorf("authorize user via cloud password: %w", err)
 	}
 
 	return user, nil
