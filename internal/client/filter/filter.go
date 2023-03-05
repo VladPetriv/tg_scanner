@@ -6,8 +6,8 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/model"
 )
 
-func IsQuestion(msg model.Message) bool {
-	return strings.Contains(msg.Message, "?")
+func IsQuestion(message string) bool {
+	return strings.Contains(message, "?")
 }
 
 func ReplaceUnexpectedSymbols(message string) string {
