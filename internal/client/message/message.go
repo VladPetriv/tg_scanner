@@ -27,14 +27,40 @@ func New(log *logger.Logger, api *tg.Client) Message {
 	}
 }
 
-func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMessagesMessages, groupPeer *tg.InputPeerChannel) []model.Message { //nolint:lll
+func (m tgMessage) GetHistoryMessagesFromGroup(ctx context.Context, group *model.Group) ([]model.Message, error) {
+	logger := m.log
+
+	data, err := m.api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
+		Peer: &tg.InputPeerChannel{
+			ChannelID:  group.ID,
+			AccessHash: group.AccessHash,
+		},
+	})
+	if err != nil {
+		logger.Error().Err(err).Msg("get messages from group history")
+		return nil, fmt.Errorf("get messages from group history: %w", err)
+	}
+
+	modifiedData, ok := data.AsModified()
+	if !ok {
+		logger.Info().Msg("received unexpected type of messages")
+		return nil, nil
+	}
+
+	tgMessages := modifiedData.GetMessages()
+
+	messages := m.parseHistoryMessages(tgMessages)
+
+	return messages, nil
+}
+
+func (m tgMessage) parseHistoryMessages(tgMessages []tg.MessageClass) []model.Message {
 	logger := m.log
 
 	messages := make([]model.Message, 0)
-	tgMessages := data.GetMessages()
 
 	for _, message := range tgMessages {
-		msg := model.Message{}
+		var msg model.Message
 
 		encodedData, err := json.Marshal(message)
 		if err != nil {
@@ -56,12 +82,10 @@ func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMes
 	return messages
 }
 
-func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, groups []model.Group) ([]model.Message, error) { //nolint:lll
+func (m tgMessage) GetIncomingMessagesFromUserGroups(ctx context.Context, tgUser tg.User, groups []model.Group) ([]model.Message, error) {
 	logger := m.log
 
-	messages := make([]model.Message, 0)
-
-	tgMessages, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
+	data, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
 		OffsetPeer: &tg.InputPeerUser{
 			UserID:     tgUser.ID,
 			AccessHash: tgUser.AccessHash,
@@ -69,24 +93,39 @@ func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, gr
 	})
 	if err != nil {
 		logger.Error().Err(err).Msg("get incoming messages")
-		return nil, fmt.Errorf("get incoming messages error: %w", err)
+		return nil, fmt.Errorf("get incoming messages: %w", err)
 	}
 
-	modifiedTgMessages, _ := tgMessages.AsModified()
+	modifiedData, ok := data.AsModified()
+	if !ok {
+		logger.Info().Msg("received unexpected type of messages")
+	}
 
-	for _, message := range modifiedTgMessages.GetMessages() {
-		msg := model.Message{}
+	tgMessages := modifiedData.GetMessages()
+
+	messages := m.parseIncomingMessages(tgMessages)
+
+	return messages, nil
+}
+
+func (m tgMessage) parseIncomingMessages(tgMessages []tg.MessageClass) []model.Message {
+	logger := m.log
+
+	messages := make([]model.Message, 0)
+
+	for _, message := range tgMessages {
+		var msg model.Message
 
 		encodedData, err := json.Marshal(message)
 		if err != nil {
-			logger.Warn().Err(err).Msg("marshal message data")
+			logger.Error().Err(err).Msg("marshal message data")
 
 			continue
 		}
 
 		err = json.Unmarshal(encodedData, &msg)
 		if err != nil {
-			logger.Warn().Err(err).Msg("unmarshal message data")
+			logger.Error().Err(err).Msg("unmarshal message data")
 
 			continue
 		}
@@ -94,7 +133,7 @@ func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, gr
 		messages = append(messages, msg)
 	}
 
-	return messages, nil
+	return messages
 }
 
 func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.Message) (tg.UploadFileClass, error) {
