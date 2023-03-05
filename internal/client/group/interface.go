@@ -10,7 +10,6 @@ import (
 
 type Group interface {
 	GetGroups(ctx context.Context) ([]model.Group, error)
-	GetMessagesFromGroupHistory(ctx context.Context, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error)
 	GetGroupPhoto(ctx context.Context, group model.Group) (tg.UploadFileClass, error)
 	CreateFilesForGroups(groups []model.Group) error
 }

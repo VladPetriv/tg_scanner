@@ -57,24 +57,14 @@ func (g tgGroup) GetGroups(ctx context.Context) ([]model.Group, error) {
 			continue
 		}
 
+		if group.Username == "" {
+			continue
+		}
+
 		groups = append(groups, group)
 	}
 
-	return groups, nil
-}
-
-func (g tgGroup) GetMessagesFromGroupHistory(ctx context.Context, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) { //nolint:lll
-	logger := g.log
-
-	groupHistory, err := g.api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
-		Peer: groupPeer,
-	})
-	if err != nil {
-		logger.Error().Err(err).Msg("get messages from group history")
-		return nil, fmt.Errorf("get messages from group history error: %w", err)
-	}
-
-	return groupHistory, nil
+	return groups
 }
 
 func (g tgGroup) GetGroupPhoto(ctx context.Context, group model.Group) (tg.UploadFileClass, error) {
