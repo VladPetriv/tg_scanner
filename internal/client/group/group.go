@@ -27,10 +27,10 @@ func New(log *logger.Logger, api *tg.Client) Group {
 	}
 }
 
-func (g tgGroup) GetGroups(ctx context.Context) ([]model.TgGroup, error) {
+func (g tgGroup) GetGroups(ctx context.Context) ([]model.Group, error) {
 	logger := g.log
 
-	groups := make([]model.TgGroup, 0)
+	groups := make([]model.Group, 0)
 
 	data, err := g.api.MessagesGetAllChats(ctx, []int64{})
 	if err != nil {
@@ -39,7 +39,7 @@ func (g tgGroup) GetGroups(ctx context.Context) ([]model.TgGroup, error) {
 	}
 
 	for _, groupData := range data.GetChats() {
-		var group model.TgGroup
+		var group model.Group
 
 		fullGroupInfo, _ := groupData.AsFull()
 
@@ -77,7 +77,7 @@ func (g tgGroup) GetMessagesFromGroupHistory(ctx context.Context, groupPeer *tg.
 	return groupHistory, nil
 }
 
-func (g tgGroup) GetGroupPhoto(ctx context.Context, group model.TgGroup) (tg.UploadFileClass, error) {
+func (g tgGroup) GetGroupPhoto(ctx context.Context, group model.Group) (tg.UploadFileClass, error) {
 	logger := g.log
 
 	data, err := g.api.UploadGetFile(ctx, &tg.UploadGetFileRequest{
@@ -98,7 +98,7 @@ func (g tgGroup) GetGroupPhoto(ctx context.Context, group model.TgGroup) (tg.Upl
 	return data, nil
 }
 
-func (g tgGroup) CreateFilesForGroups(groups []model.TgGroup) error {
+func (g tgGroup) CreateFilesForGroups(groups []model.Group) error {
 	logger := g.log
 
 	for _, group := range groups {

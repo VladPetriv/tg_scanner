@@ -27,14 +27,14 @@ func New(log *logger.Logger, api *tg.Client) Message {
 	}
 }
 
-func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMessagesMessages, groupPeer *tg.InputPeerChannel) []model.TgMessage { //nolint:lll
+func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMessagesMessages, groupPeer *tg.InputPeerChannel) []model.Message { //nolint:lll
 	logger := m.log
 
-	messages := make([]model.TgMessage, 0)
+	messages := make([]model.Message, 0)
 	tgMessages := data.GetMessages()
 
 	for _, message := range tgMessages {
-		msg := model.TgMessage{}
+		msg := model.Message{}
 
 		encodedData, err := json.Marshal(message)
 		if err != nil {
@@ -56,10 +56,10 @@ func (m tgMessage) ParseHistoryMessages(ctx context.Context, data tg.ModifiedMes
 	return messages
 }
 
-func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, groups []model.TgGroup) ([]model.TgMessage, error) { //nolint:lll
+func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, groups []model.Group) ([]model.Message, error) { //nolint:lll
 	logger := m.log
 
-	messages := make([]model.TgMessage, 0)
+	messages := make([]model.Message, 0)
 
 	tgMessages, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{
 		OffsetPeer: &tg.InputPeerUser{
@@ -75,7 +75,7 @@ func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, gr
 	modifiedTgMessages, _ := tgMessages.AsModified()
 
 	for _, message := range modifiedTgMessages.GetMessages() {
-		msg := model.TgMessage{}
+		msg := model.Message{}
 
 		encodedData, err := json.Marshal(message)
 		if err != nil {
@@ -97,7 +97,7 @@ func (m tgMessage) ParseIncomingMessages(ctx context.Context, tgUser tg.User, gr
 	return messages, nil
 }
 
-func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.TgMessage) (tg.UploadFileClass, error) {
+func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.Message) (tg.UploadFileClass, error) {
 	logger := m.log
 
 	length := len(message.Media.Photo.Sizes) - 1
@@ -120,7 +120,7 @@ func (m tgMessage) GetMessagePhoto(ctx context.Context, message model.TgMessage)
 	return data, nil
 }
 
-func (m tgMessage) CheckMessagePhotoStatus(ctx context.Context, message *model.TgMessage) (bool, error) {
+func (m tgMessage) CheckMessagePhotoStatus(ctx context.Context, message *model.Message) (bool, error) {
 	logger := m.log
 
 	data, err := m.api.ChannelsGetMessages(ctx,
@@ -164,7 +164,7 @@ func (m tgMessage) CheckMessagePhotoStatus(ctx context.Context, message *model.T
 	return false, nil
 }
 
-func (m tgMessage) WriteMessagesToFile(messages []model.TgMessage, fileName string) {
+func (m tgMessage) WriteMessagesToFile(messages []model.Message, fileName string) {
 	logger := m.log
 
 	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
@@ -183,10 +183,10 @@ func (m tgMessage) WriteMessagesToFile(messages []model.TgMessage, fileName stri
 	}
 }
 
-func (m tgMessage) GetMessagesFromFile(filePath string) ([]model.TgMessage, error) {
+func (m tgMessage) GetMessagesFromFile(filePath string) ([]model.Message, error) {
 	logger := m.log
 
-	messages := make([]model.TgMessage, 0)
+	messages := make([]model.Message, 0)
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {

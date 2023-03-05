@@ -72,7 +72,7 @@ func New(options AppClientOptions) AppClient {
 	}
 }
 
-func (c appClient) GetHistoryMessages(groups []model.TgGroup) { //nolint:gocognit
+func (c appClient) GetHistoryMessages(groups []model.Group) { //nolint:gocognit
 	logger := c.log
 
 	time.Sleep(_startTimeout)
@@ -104,7 +104,7 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) { //nolint:gocogni
 
 			parsedMessages := c.Messages.ParseHistoryMessages(c.ctx, modifiedTgMessages, groupPeer)
 
-			messages := make([]model.TgMessage, 0)
+			messages := make([]model.Message, 0)
 
 			for _, message := range parsedMessages {
 				// We won't save messages that are reply to other messages
@@ -175,7 +175,7 @@ func (c appClient) GetHistoryMessages(groups []model.TgGroup) { //nolint:gocogni
 	}
 }
 
-func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) { //nolint:gocognit
+func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.Group) { //nolint:gocognit
 	logger := c.log
 
 	time.Sleep(_startTimeout)
@@ -193,7 +193,7 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
 			logger.Error().Err(err).Msg("parse incoming messages from tg")
 		}
 
-		messages := make([]model.TgMessage, 0)
+		messages := make([]model.Message, 0)
 
 		for _, message := range parsedMessages {
 			// We won't save messages that are reply to other messages
@@ -245,7 +245,7 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.TgGroup) {
 	}
 }
 
-func (c appClient) ValidateAndPushGroupsToQueue(ctx context.Context) ([]model.TgGroup, error) {
+func (c appClient) ValidateAndPushGroupsToQueue(ctx context.Context) ([]model.Group, error) {
 	logger := c.log
 
 	groups, err := c.Groups.GetGroups(ctx)
@@ -416,10 +416,10 @@ func (c appClient) PushMessagesToQueue() { //nolint:gocognit
 	}
 }
 
-func (c appClient) processMessagesFromFiles(path string) ([]model.TgMessage, error) {
+func (c appClient) processMessagesFromFiles(path string) ([]model.Message, error) {
 	logger := c.log
 
-	messages := make([]model.TgMessage, 0)
+	messages := make([]model.Message, 0)
 
 	directory, err := os.Open(path)
 	if err != nil {
@@ -463,7 +463,7 @@ func (c appClient) processMessagesFromFiles(path string) ([]model.TgMessage, err
 	return result, nil
 }
 
-func (c appClient) processPhotosBeforePushToQueue(message *model.TgMessage) {
+func (c appClient) processPhotosBeforePushToQueue(message *model.Message) {
 	logger := c.log
 
 	userPhotoData, err := c.Users.GetUserPhoto(c.ctx, message.FromID)

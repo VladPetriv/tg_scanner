@@ -9,6 +9,6 @@ import (
 )
 
 type User interface {
-	GetUser(ctx context.Context, data interface{}, groupPeer *tg.InputPeerChannel) (*model.TgUser, error)
-	GetUserPhoto(ctx context.Context, user model.TgUser) (tg.UploadFileClass, error)
+	GetUser(ctx context.Context, data interface{}, groupPeer *tg.InputPeerChannel) (*model.User, error)
+	GetUserPhoto(ctx context.Context, user model.User) (tg.UploadFileClass, error)
 }

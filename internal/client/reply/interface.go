@@ -9,7 +9,7 @@ import (
 )
 
 type Reply interface {
-	GetReplies(ctx context.Context, msg model.TgMessage, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error)
-	ParseTelegramReplies(ctx context.Context, replies tg.MessagesMessagesClass, groupPeer *tg.InputPeerChannel) []model.TgRepliesMessage //nolint:lll
-	GetReplyPhoto(ctx context.Context, reply model.TgRepliesMessage) (tg.UploadFileClass, error)
+	GetReplies(ctx context.Context, msg model.Message, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error)
+	ParseTelegramReplies(ctx context.Context, replies tg.MessagesMessagesClass, groupPeer *tg.InputPeerChannel) []model.RepliesMessage //nolint:lll
+	GetReplyPhoto(ctx context.Context, reply model.RepliesMessage) (tg.UploadFileClass, error)
 }

@@ -26,7 +26,7 @@ func New(log *logger.Logger, api *tg.Client) Reply {
 	}
 }
 
-func (r tgReply) GetReplies(ctx context.Context, msg model.TgMessage, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) { //nolint:lll
+func (r tgReply) GetReplies(ctx context.Context, msg model.Message, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) { //nolint:lll
 	logger := r.log
 
 	replies, err := r.api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{
@@ -41,14 +41,14 @@ func (r tgReply) GetReplies(ctx context.Context, msg model.TgMessage, groupPeer 
 	return replies, nil
 }
 
-func (r tgReply) ParseTelegramReplies(ctx context.Context, replies tg.MessagesMessagesClass, groupPeer *tg.InputPeerChannel) []model.TgRepliesMessage { //nolint:lll
+func (r tgReply) ParseTelegramReplies(ctx context.Context, replies tg.MessagesMessagesClass, groupPeer *tg.InputPeerChannel) []model.RepliesMessage { //nolint:lll
 	logger := r.log
 
-	parsedReplies := make([]model.TgRepliesMessage, 0)
+	parsedReplies := make([]model.RepliesMessage, 0)
 	repliesMessages, _ := replies.AsModified()
 
 	for _, rpl := range repliesMessages.GetMessages() {
-		reply := model.TgRepliesMessage{}
+		reply := model.RepliesMessage{}
 
 		encodedData, err := json.Marshal(rpl)
 		if err != nil {
@@ -70,7 +70,7 @@ func (r tgReply) ParseTelegramReplies(ctx context.Context, replies tg.MessagesMe
 	return parsedReplies
 }
 
-func (r tgReply) GetReplyPhoto(ctx context.Context, reply model.TgRepliesMessage) (tg.UploadFileClass, error) {
+func (r tgReply) GetReplyPhoto(ctx context.Context, reply model.RepliesMessage) (tg.UploadFileClass, error) {
 	logger := r.log
 
 	length := len(reply.Media.Photo.Sizes) - 1

@@ -6,19 +6,19 @@ import (
 	"github.com/cnf/structhash"
 )
 
-type TgMessage struct {
-	ID         int
-	Message    string
-	FromID     TgUser    `json:"FromID"`
-	PeerID     TgGroup   `json:"PeerID"`
-	Replies    TgReplies `json:"Replies"`
-	ReplyTo    TgReplyTo `json:"ReplyTo"`
-	Media      Media     `json:"Media"`
-	MessageURL string
-	ImageURL   string
+type Message struct {
+	ID         int     `json:"ID"`
+	Message    string  `json:"Message"`
+	FromID     User    `json:"FromID"`
+	PeerID     Group   `json:"PeerID"`
+	Replies    Replies `json:"Replies"`
+	ReplyTo    ReplyTo `json:"ReplyTo"`
+	Media      Media   `json:"Media"`
+	MessageURL string  `json:"MessageURL"`
+	ImageURL   string  `json:"ImageURL"`
 }
 
-func (m TgMessage) GetHash() (string, error) {
+func (m Message) GetHash() (string, error) {
 	hash, err := structhash.Hash(m, 1)
 	if err != nil {
 		return "", fmt.Errorf("hash message data: %w", err)

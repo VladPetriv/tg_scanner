@@ -1,7 +1,5 @@
 package model
 
-import "github.com/gotd/td/tg"
-
 type Image struct {
 	Bytes []byte
 }
@@ -10,8 +8,19 @@ type Media struct {
 }
 
 type Photo struct {
-	ID            int64
-	AccessHash    int64
-	FileReference []byte
-	Sizes         []tg.PhotoSize
+	ID            int64       `json:"ID"`
+	AccessHash    int64       `json:"AccessHash"`
+	FileReference []byte      `json:"FileReference"`
+	Sizes         []PhotoSize `json:"Sizes"`
+}
+
+type PhotoSize struct {
+	Type string `json:"Type"`
+	W    int    `json:"W"`
+	H    int    `json:"H"`
+	Size int    `json:"Size"`
+}
+
+func (p PhotoSize) GetType() string {
+	return p.Type
 }

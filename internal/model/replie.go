@@ -1,19 +1,18 @@
 package model
 
-type TgReplies struct {
-	Count    int
-	Messages []TgRepliesMessage
+type Replies struct {
+	Count    int              `json:"Count"`
+	Messages []RepliesMessage `json:"Messages"`
 }
 
-type TgRepliesMessage struct {
-	ID       int
-	FromID   TgUser
-	Message  string
-	ReplyTo  interface{}
-	Media    Media
-	ImageURL string
+type RepliesMessage struct {
+	ID       int    `json:"ID"`
+	FromID   User   `json:"FromID"`
+	Message  string `json:"Message"`
+	Media    Media  `json:"Media"`
+	ImageURL string `json:"ImageURL"`
 }
 
-type TgReplyTo struct {
-	ReplyToMsgID int
+type ReplyTo struct {
+	ReplyToMsgID int `json:"ReplyToMsgID"`
 }

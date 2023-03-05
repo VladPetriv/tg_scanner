@@ -29,11 +29,11 @@ func New(log *logger.Logger, api *tg.Client) User {
 	}
 }
 
-func (u tgUser) GetUser(ctx context.Context, data interface{}, groupPeer *tg.InputPeerChannel) (*model.TgUser, error) {
+func (u tgUser) GetUser(ctx context.Context, data interface{}, groupPeer *tg.InputPeerChannel) (*model.User, error) {
 	logger := u.log
 
 	userID, modelID := getUserDataFromEntity(data)
-	user := model.TgUser{}
+	user := model.User{}
 
 	fullUser, err := u.api.UsersGetFullUser(ctx, &tg.InputUserFromMessage{
 		Peer:   groupPeer,
@@ -69,13 +69,13 @@ func (u tgUser) GetUser(ctx context.Context, data interface{}, groupPeer *tg.Inp
 
 func getUserDataFromEntity(data interface{}) (int64, int) {
 	switch dataType := data.(type) {
-	case model.TgMessage:
+	case model.Message:
 		if dataType.FromID.ID != 0 {
 			return dataType.FromID.ID, dataType.ID
 		}
 
 		return dataType.FromID.UserID, dataType.ID
-	case model.TgRepliesMessage:
+	case model.RepliesMessage:
 		if dataType.FromID.ID != 0 {
 			return dataType.FromID.ID, dataType.ID
 		}
@@ -86,7 +86,7 @@ func getUserDataFromEntity(data interface{}) (int64, int) {
 	}
 }
 
-func (u tgUser) GetUserPhoto(ctx context.Context, user model.TgUser) (tg.UploadFileClass, error) {
+func (u tgUser) GetUserPhoto(ctx context.Context, user model.User) (tg.UploadFileClass, error) {
 	logger := u.log
 
 	data, err := u.api.UploadGetFile(ctx, &tg.UploadGetFileRequest{

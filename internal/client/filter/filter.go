@@ -6,7 +6,7 @@ import (
 	"github.com/VladPetriv/tg_scanner/internal/model"
 )
 
-func IsQuestion(msg model.TgMessage) bool {
+func IsQuestion(msg model.Message) bool {
 	return strings.Contains(msg.Message, "?")
 }
 
@@ -14,9 +14,9 @@ func ReplaceUnexpectedSymbols(message string) string {
 	return strings.ReplaceAll(message, "\n", " ")
 }
 
-func RemoveDuplicatesFromMessages(msgs []model.TgMessage) []model.TgMessage {
+func RemoveDuplicatesFromMessages(msgs []model.Message) []model.Message {
 	allMessages := make(map[string]bool)
-	messages := make([]model.TgMessage, 0)
+	messages := make([]model.Message, 0)
 
 	for _, m := range msgs {
 		if _, status := allMessages[m.Message]; !status {
@@ -29,13 +29,13 @@ func RemoveDuplicatesFromMessages(msgs []model.TgMessage) []model.TgMessage {
 	return messages
 }
 
-func RemoveDuplicatesFromReplies(reply *model.TgReplies) {
+func RemoveDuplicatesFromReplies(reply *model.Replies) {
 	if reply.Count == 0 {
 		return
 	}
 
 	allReplies := make(map[string]bool)
-	replies := make([]model.TgRepliesMessage, 0)
+	replies := make([]model.RepliesMessage, 0)
 
 	for _, r := range reply.Messages {
 		if _, status := allReplies[r.Message]; !status {
