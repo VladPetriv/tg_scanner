@@ -26,29 +26,40 @@ func New(log *logger.Logger, api *tg.Client) Reply {
 	}
 }
 
-func (r tgReply) GetReplies(ctx context.Context, msg model.Message, groupPeer *tg.InputPeerChannel) (tg.MessagesMessagesClass, error) { //nolint:lll
+func (r tgReply) GetReplies(ctx context.Context, message model.Message) ([]model.RepliesMessage, error) {
 	logger := r.log
 
-	replies, err := r.api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{
-		Peer:  groupPeer,
-		MsgID: msg.ID,
+	data, err := r.api.MessagesGetReplies(ctx, &tg.MessagesGetRepliesRequest{
+		Peer: &tg.InputPeerChannel{
+			ChannelID:  message.PeerID.ID,
+			AccessHash: message.PeerID.AccessHash,
+		},
+		MsgID: message.ID,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("get replies from message")
-		return nil, fmt.Errorf("get replies from message error: %w", err)
+		logger.Error().Err(err).Msg("get replies for message")
+		return nil, fmt.Errorf("get replies for message: %w", err)
 	}
+
+	modifiedData, ok := data.AsModified()
+	if !ok {
+		logger.Info().Msg("received unexpected type of replies")
+	}
+
+	tgReplies := modifiedData.GetMessages()
+
+	replies := r.parseTelegramReplies(tgReplies)
 
 	return replies, nil
 }
 
-func (r tgReply) ParseTelegramReplies(ctx context.Context, replies tg.MessagesMessagesClass, groupPeer *tg.InputPeerChannel) []model.RepliesMessage { //nolint:lll
+func (r tgReply) parseTelegramReplies(tgReplies []tg.MessageClass) []model.RepliesMessage {
 	logger := r.log
 
 	parsedReplies := make([]model.RepliesMessage, 0)
-	repliesMessages, _ := replies.AsModified()
 
-	for _, rpl := range repliesMessages.GetMessages() {
-		reply := model.RepliesMessage{}
+	for _, rpl := range tgReplies {
+		var reply model.RepliesMessage
 
 		encodedData, err := json.Marshal(rpl)
 		if err != nil {
