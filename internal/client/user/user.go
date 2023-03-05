@@ -29,42 +29,56 @@ func New(log *logger.Logger, api *tg.Client) User {
 	}
 }
 
-func (u tgUser) GetUser(ctx context.Context, data interface{}, groupPeer *tg.InputPeerChannel) (*model.User, error) {
+func (u tgUser) GetUser(ctx context.Context, entity interface{}, group *model.Group) (*model.User, error) {
 	logger := u.log
 
-	userID, modelID := getUserDataFromEntity(data)
-	user := model.User{}
+	userID, entityID := getUserDataFromEntity(entity)
 
-	fullUser, err := u.api.UsersGetFullUser(ctx, &tg.InputUserFromMessage{
-		Peer:   groupPeer,
+	data, err := u.api.UsersGetFullUser(ctx, &tg.InputUserFromMessage{
+		Peer: &tg.InputPeerChannel{
+			ChannelID:  group.ID,
+			AccessHash: group.AccessHash,
+		},
 		UserID: userID,
-		MsgID:  modelID,
+		MsgID:  entityID,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("get full user")
-		return nil, fmt.Errorf("get full user error: %w", err)
+		logger.Error().Err(err).Msg("get user data")
+		return nil, fmt.Errorf("get user data: %w", err)
 	}
 
-	for _, userData := range fullUser.Users {
-		notEmptyUser, _ := userData.AsNotEmpty()
+	user := u.parseUser(data.Users)
+
+	time.Sleep(getUserInfoTimeout)
+
+	return &user, nil
+}
+
+func (u tgUser) parseUser(tgUsers []tg.UserClass) model.User {
+	logger := u.log
+
+	var user model.User
+
+	for _, usr := range tgUsers {
+		notEmptyUser, ok := usr.AsNotEmpty()
+		if !ok {
+			logger.Info().Msg("received empty user")
+
+			continue
+		}
 
 		encodedData, err := json.Marshal(notEmptyUser)
 		if err != nil {
 			logger.Error().Err(err).Msg("marshal user data")
-			return nil, fmt.Errorf("marshal user data error: %w", err)
 		}
 
 		err = json.Unmarshal(encodedData, &user)
 		if err != nil {
 			logger.Error().Err(err).Msg("unmarshal user data")
-			return nil, fmt.Errorf("unmarshal user data error: %w", err)
 		}
 	}
 
-	// use timeount to avoid limit errors from Telegram API
-	time.Sleep(getUserInfoTimeout)
-
-	return &user, nil
+	return user
 }
 
 func getUserDataFromEntity(data interface{}) (int64, int) {
