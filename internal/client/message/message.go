@@ -27,7 +27,7 @@ func New(log *logger.Logger, api *tg.Client) Message {
 	}
 }
 
-func (m tgMessage) GetHistoryMessagesFromGroup(ctx context.Context, group *model.Group) ([]model.Message, error) {
+func (m tgMessage) GetHistoryMessagesFromGroup(ctx context.Context, group model.Group) ([]model.Message, error) {
 	logger := m.log
 
 	data, err := m.api.MessagesGetHistory(ctx, &tg.MessagesGetHistoryRequest{
@@ -82,7 +82,7 @@ func (m tgMessage) parseHistoryMessages(tgMessages []tg.MessageClass) []model.Me
 	return messages
 }
 
-func (m tgMessage) GetIncomingMessagesFromUserGroups(ctx context.Context, tgUser tg.User, groups []model.Group) ([]model.Message, error) {
+func (m tgMessage) GetIncomingMessagesFromUserGroups(ctx context.Context, tgUser tg.User, groups []model.Group) ([]model.Message, error) { //nolint: lll
 	logger := m.log
 
 	data, err := m.api.MessagesGetDialogs(ctx, &tg.MessagesGetDialogsRequest{

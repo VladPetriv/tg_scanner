@@ -83,24 +83,24 @@ func (c appClient) GetQuestionsFromGroupHistory(groups []model.Group) {
 
 			filePath := fmt.Sprintf("./data/%s.json", group.Username)
 
-			messages, err := c.Messages.GetHistoryMessagesFromGroup(c.ctx, &group)
+			messages, err := c.Messages.GetHistoryMessagesFromGroup(c.ctx, group)
 			if err != nil {
 				logger.Error().Err(err).Msg("get messages from group")
 			}
 
 			questions := make([]model.Message, 0)
 
-			for _, message := range messages {
+			for index, message := range messages {
 				if !filter.IsQuestion(message.Message) {
 					continue
 				}
 
-				filter.ReplaceUnexpectedSymbols(message.Message)
+				messages[index].Message = filter.ReplaceUnexpectedSymbols(message.Message)
 
 				questions = append(questions, message)
 			}
 
-			questions = c.addAdditionalDataForHistoryMessages(questions, &group)
+			questions = c.addAdditionalDataForHistoryMessages(questions, group)
 
 			messagesFromFile, err := c.Messages.GetMessagesFromFile(filePath)
 			if err != nil {
@@ -120,15 +120,15 @@ func (c appClient) GetQuestionsFromGroupHistory(groups []model.Group) {
 	}
 }
 
-func (c appClient) addAdditionalDataForHistoryMessages(parsedMessages []model.Message, group *model.Group) []model.Message {
+func (c appClient) addAdditionalDataForHistoryMessages(msgs []model.Message, group model.Group) []model.Message {
 	logger := c.log
 
 	messages := make([]model.Message, 0)
 
-	for _, message := range parsedMessages {
-		message.PeerID = *group
+	for _, message := range msgs {
+		message.PeerID = group
 
-		userInfo, err := c.Users.GetUser(c.ctx, message, group)
+		userInfo, err := c.Users.GetUser(c.ctx, message, &group)
 		if err != nil {
 			logger.Error().Err(err).Msg("get user info for message")
 
@@ -145,7 +145,7 @@ func (c appClient) addAdditionalDataForHistoryMessages(parsedMessages []model.Me
 		}
 
 		for index, reply := range replies {
-			userInfo, err := c.Users.GetUser(c.ctx, reply, group)
+			userInfo, err := c.Users.GetUser(c.ctx, reply, &group)
 			if err != nil {
 				logger.Error().Err(err).Msg("get user info for reply")
 
@@ -216,12 +216,12 @@ func (c appClient) GetQuestionsFromIncomingMessages(tgUser tg.User, groups []mod
 	}
 }
 
-func (c appClient) addAdditionalDataForIncomingMessages(parsedMessages []model.Message, groups []model.Group) []model.Message {
+func (c appClient) addAdditionalDataForIncomingMessages(msgs []model.Message, groups []model.Group) []model.Message {
 	logger := c.log
 
 	messages := make([]model.Message, 0)
 
-	for _, message := range parsedMessages {
+	for _, message := range msgs {
 		// Add group info because incoming message don't have it
 		for _, group := range groups {
 			if message.PeerID.ChannelID == group.ID {
@@ -318,7 +318,6 @@ func (c appClient) PushMessagesToQueue() { //nolint:gocognit
 		}
 
 		for _, message := range messages {
-
 			messageHash, err := message.GetHash()
 			if err != nil {
 				logger.Error().Err(err).Msg("generate hash for message")

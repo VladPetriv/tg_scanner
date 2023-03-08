@@ -9,7 +9,7 @@ import (
 )
 
 type Message interface {
-	GetHistoryMessagesFromGroup(ctx context.Context, group *model.Group) ([]model.Message, error)
+	GetHistoryMessagesFromGroup(ctx context.Context, group model.Group) ([]model.Message, error)
 	GetIncomingMessagesFromUserGroups(ctx context.Context, tgUser tg.User, groups []model.Group) ([]model.Message, error)
 	GetMessagePhoto(ctx context.Context, message model.Message) (tg.UploadFileClass, error)
 	CheckMessagePhotoStatus(ctx context.Context, message *model.Message) (bool, error)
