@@ -9,8 +9,8 @@ import (
 )
 
 type AppClient interface {
-	GetHistoryMessages(groups []model.Group)
-	GetIncomingMessages(user tg.User, groups []model.Group)
+	GetQuestionsFromGroupHistory(groups []model.Group)
+	GetQuestionsFromIncomingMessages(tgUser tg.User, groups []model.Group)
 	ValidateAndPushGroupsToQueue(ctx context.Context) ([]model.Group, error)
 	PushMessagesToQueue()
 }
