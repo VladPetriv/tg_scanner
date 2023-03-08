@@ -72,97 +72,42 @@ func New(options AppClientOptions) AppClient {
 	}
 }
 
-func (c appClient) GetHistoryMessages(groups []model.Group) { //nolint:gocognit
+func (c appClient) GetQuestionsFromGroupHistory(groups []model.Group) {
 	logger := c.log
 
 	time.Sleep(_startTimeout)
 
 	for {
 		for _, group := range groups {
-			if group.Username == "" {
-				continue
-			}
-
 			logger.Info().Msgf("get - [%s]", group.Username)
 
 			filePath := fmt.Sprintf("./data/%s.json", group.Username)
 
-			groupPeer := &tg.InputPeerChannel{
-				ChannelID:  group.ID,
-				AccessHash: group.AccessHash,
-			}
-
-			tgMessages, err := c.Groups.GetMessagesFromGroupHistory(c.ctx, groupPeer)
+			messages, err := c.Messages.GetHistoryMessagesFromGroup(c.ctx, &group)
 			if err != nil {
-				logger.Error().Err(err).Msg("get messages from group history")
+				logger.Error().Err(err).Msg("get messages from group")
 			}
 
-			modifiedTgMessages, ok := tgMessages.AsModified()
-			if !ok {
-				logger.Warn().Msg("receive unexpected messages type")
+			questions := make([]model.Message, 0)
+
+			for _, message := range messages {
+				if !filter.IsQuestion(message.Message) {
+					continue
+				}
+
+				filter.ReplaceUnexpectedSymbols(message.Message)
+
+				questions = append(questions, message)
 			}
 
-			parsedMessages := c.Messages.ParseHistoryMessages(c.ctx, modifiedTgMessages, groupPeer)
-
-			messages := make([]model.Message, 0)
-
-			for _, message := range parsedMessages {
-				// We won't save messages that are reply to other messages
-				if message.ReplyTo.ReplyToMsgID != 0 {
-					continue
-				}
-
-				isQuestion := filter.IsQuestion(message)
-				if !isQuestion {
-					continue
-				}
-
-				message.Message = filter.ReplaceUnexpectedSymbols(message.Message)
-
-				message.PeerID = group
-
-				userInfo, err := c.Users.GetUser(c.ctx, message, groupPeer)
-				if err != nil {
-					logger.Error().Err(err).Msg("get user info for message")
-
-					continue
-				}
-
-				message.FromID = *userInfo
-
-				tgReplies, err := c.Replies.GetReplies(c.ctx, message, groupPeer)
-				if err != nil {
-					logger.Error().Err(err).Msg("get replies for message")
-
-					continue
-				}
-
-				parsedReplies := c.Replies.ParseTelegramReplies(c.ctx, tgReplies, groupPeer)
-
-				// get user info for replies
-				for index, reply := range parsedReplies {
-					userInfo, err := c.Users.GetUser(c.ctx, reply, groupPeer)
-					if err != nil {
-						logger.Error().Err(err).Msg("get user info for reply")
-
-						continue
-					}
-
-					parsedReplies[index].FromID = *userInfo
-				}
-
-				message.Replies.Count = len(parsedReplies)
-				message.Replies.Messages = parsedReplies
-
-				messages = append(messages, message)
-			}
+			questions = c.addAdditionalDataForHistoryMessages(questions, &group)
 
 			messagesFromFile, err := c.Messages.GetMessagesFromFile(filePath)
 			if err != nil {
 				logger.Error().Err(err).Msg("get messages from the file")
 			}
 
-			messagesFromFile = append(messagesFromFile, messages...)
+			messagesFromFile = append(messagesFromFile, questions...)
 
 			filteredMessages := filter.RemoveDuplicatesFromMessages(messagesFromFile)
 
@@ -175,7 +120,51 @@ func (c appClient) GetHistoryMessages(groups []model.Group) { //nolint:gocognit
 	}
 }
 
-func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.Group) { //nolint:gocognit
+func (c appClient) addAdditionalDataForHistoryMessages(parsedMessages []model.Message, group *model.Group) []model.Message {
+	logger := c.log
+
+	messages := make([]model.Message, 0)
+
+	for _, message := range parsedMessages {
+		message.PeerID = *group
+
+		userInfo, err := c.Users.GetUser(c.ctx, message, group)
+		if err != nil {
+			logger.Error().Err(err).Msg("get user info for message")
+
+			continue
+		}
+
+		message.FromID = *userInfo
+
+		replies, err := c.Replies.GetReplies(c.ctx, message)
+		if err != nil {
+			logger.Error().Err(err).Msg("get replies for message")
+
+			continue
+		}
+
+		for index, reply := range replies {
+			userInfo, err := c.Users.GetUser(c.ctx, reply, group)
+			if err != nil {
+				logger.Error().Err(err).Msg("get user info for reply")
+
+				continue
+			}
+
+			replies[index].FromID = *userInfo
+		}
+
+		message.Replies.Count = len(replies)
+		message.Replies.Messages = replies
+
+		messages = append(messages, message)
+	}
+
+	return messages
+}
+
+func (c appClient) GetQuestionsFromIncomingMessages(tgUser tg.User, groups []model.Group) {
 	logger := c.log
 
 	time.Sleep(_startTimeout)
@@ -188,54 +177,36 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.Group) { /
 	for {
 		logger.Info().Msg("get - [incoming messages]")
 
-		parsedMessages, err := c.Messages.ParseIncomingMessages(c.ctx, tgUser, groups)
+		messages, err := c.Messages.GetIncomingMessagesFromUserGroups(c.ctx, tgUser, groups)
 		if err != nil {
-			logger.Error().Err(err).Msg("parse incoming messages from tg")
+			logger.Error().Err(err).Msg("get incoming messages from user group")
 		}
 
-		messages := make([]model.Message, 0)
+		questions := make([]model.Message, 0)
 
-		for _, message := range parsedMessages {
+		for _, message := range messages {
 			// We won't save messages that are reply to other messages
 			if message.ReplyTo.ReplyToMsgID != 0 {
 				continue
 			}
 
-			isQuestion := filter.IsQuestion(message)
-			if !isQuestion {
+			if !filter.IsQuestion(message.Message) {
 				continue
 			}
 
 			message.Message = filter.ReplaceUnexpectedSymbols(message.Message)
 
-			// Add group info because incoming message don't have it
-			for _, group := range groups {
-				if message.PeerID.ChannelID == group.ID {
-					message.PeerID = group
-				}
-			}
-
-			user, err := c.Users.GetUser(c.ctx, message, &tg.InputPeerChannel{
-				ChannelID:  message.PeerID.ID,
-				AccessHash: message.PeerID.AccessHash,
-			})
-			if err != nil {
-				logger.Error().Err(err).Msg("get user info for message")
-
-				continue
-			}
-
-			message.FromID = *user
-
-			messages = append(messages, message)
+			questions = append(questions, message)
 		}
+
+		questions = c.addAdditionalDataForIncomingMessages(questions, groups)
 
 		messagesFromFile, err := c.Messages.GetMessagesFromFile("./data/incoming.json")
 		if err != nil {
 			logger.Error().Err(err).Msg("get messages from file")
 		}
 
-		messagesFromFile = append(messagesFromFile, messages...)
+		messagesFromFile = append(messagesFromFile, questions...)
 
 		filteredMessages := filter.RemoveDuplicatesFromMessages(messagesFromFile)
 
@@ -243,6 +214,34 @@ func (c appClient) GetIncomingMessages(tgUser tg.User, groups []model.Group) { /
 
 		time.Sleep(_incomingTimeout)
 	}
+}
+
+func (c appClient) addAdditionalDataForIncomingMessages(parsedMessages []model.Message, groups []model.Group) []model.Message {
+	logger := c.log
+
+	messages := make([]model.Message, 0)
+
+	for _, message := range parsedMessages {
+		// Add group info because incoming message don't have it
+		for _, group := range groups {
+			if message.PeerID.ChannelID == group.ID {
+				message.PeerID = group
+			}
+		}
+
+		user, err := c.Users.GetUser(c.ctx, message, &message.PeerID)
+		if err != nil {
+			logger.Error().Err(err).Msg("get user info for message")
+
+			continue
+		}
+
+		message.FromID = *user
+
+		messages = append(messages, message)
+	}
+
+	return messages
 }
 
 func (c appClient) ValidateAndPushGroupsToQueue(ctx context.Context) ([]model.Group, error) {
@@ -344,33 +343,26 @@ func (c appClient) PushMessagesToQueue() { //nolint:gocognit
 				continue
 			}
 
-			groupPeer := &tg.InputPeerChannel{
-				ChannelID:  message.PeerID.ID,
-				AccessHash: message.PeerID.AccessHash,
-			}
-
-			replies, err := c.Replies.GetReplies(c.ctx, message, groupPeer)
+			replies, err := c.Replies.GetReplies(c.ctx, message)
 			if err != nil {
 				logger.Error().Err(err).Msg("get replies for message")
 
 				continue
 			}
 
-			parsedReplies := c.Replies.ParseTelegramReplies(c.ctx, replies, groupPeer)
-
-			for index, reply := range parsedReplies {
-				userInfo, err := c.Users.GetUser(c.ctx, reply, groupPeer)
+			for index, reply := range replies {
+				userInfo, err := c.Users.GetUser(c.ctx, reply, &message.PeerID)
 				if err != nil {
 					logger.Error().Err(err).Msg("failed to get user info for reply")
 
 					continue
 				}
 
-				parsedReplies[index].FromID = *userInfo
+				replies[index].FromID = *userInfo
 			}
 
-			message.Replies.Count = len(parsedReplies)
-			message.Replies.Messages = parsedReplies
+			message.Replies.Count = len(replies)
+			message.Replies.Messages = replies
 
 			filter.RemoveDuplicatesFromReplies(&message.Replies)
 
